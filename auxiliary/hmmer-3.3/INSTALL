@@ -1,0 +1,20 @@
+Brief installation instructions 
+HMMER 3.3 (Nov 2019)
+
+Starting from a source distribution, hmmer-3.3.tar.gz:
+   uncompress hmmer-3.3.tar.gz  
+   tar xf hmmer-3.3.tar
+   cd hmmer-3.3
+   ./configure
+   make
+   make check                        # optional: automated tests
+   make install                      # optional: install HMMER programs and man pages
+   (cd easel; make install)          # optional: install Easel tools too
+
+For more details including customization, supported platforms, and
+troubleshooting, see the Installation chapter in the HMMER User's
+Guide (Userguide.pdf).
+
+
+
+
