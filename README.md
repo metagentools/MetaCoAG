@@ -13,6 +13,7 @@ MetaCoAG installation requires Python 3 (tested on Python 3.7.4). You will need 
 * [scipy](https://www.scipy.org/) - version 1.3.1
 * [numpy](https://numpy.org/) - version 1.17.2
 * [tqdm](https://github.com/tqdm/tqdm) - version 4.36.1
+* [tabulate](https://pypi.org/project/tabulate/) - version 0.8.7 (for [`evaluate.py`](https://github.com/Vini2/MetaCoAG/blob/master/evaluation_scripts/evaluate.py))
 
 MetaCoAG uses the following tools to scan for single-copy marker genes. These tools are included with the following versions.
 * [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) - version 1.31
