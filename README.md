@@ -167,4 +167,8 @@ You can try running MetaCoAG using these test data files.
 
 ## Support Scripts
 
-MetaCoAG provides the evaluation script `evaluate.py` to evaluate binning results against a known ground truth.
+MetaCoAG provides the evaluation script [`evaluate.py`](https://github.com/Vini2/MetaCoAG/blob/master/evaluation_scripts/evaluate.py) to evaluate binning results against a known ground truth.
+
+```
+python evaluate.py --binned /path/to/binning_result.csv --groundtruth /path/to/graound_truth.csv
+```
