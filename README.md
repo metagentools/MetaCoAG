@@ -66,11 +66,16 @@ Firstly, you will have to assemble your set of reads into contigs. For this purp
 [**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
 
 ```
-spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 16
+spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 ```
 
 ### MEGAHIT
 [MEGAHIT](https://github.com/voutcn/megahit) is an assembler based on the de Bruijn graph approach. Use MEGAHIT software to assemble reads into contigs. A sample command is given below.
+
+```
+megahit -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
+megahit_toolkit contig2fastg 141 final.contigs.fa > final.assembly.fastg
+```
 
 Once you have obtained the assembly output, you can run MetaCoAG.
 
