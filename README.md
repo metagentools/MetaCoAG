@@ -137,26 +137,6 @@ For the MEGAHIT version, `metacoag` takes in 3 files as inputs (required).
 * Contigs file (in `.fa` format)
 * Abundance file (tab separated file with contig ID and coverage in each line)
 
-**Note:** The binning output file should have comma separated values ```(contig_identifier, bin_number)``` for each contig. The contents of the binning output file should look similar to the example given below. Contigs are named according to their original identifier and the numbering of bins starts from 1.
-
-Example metaSPAdes binned input
-```
-NODE_1,1
-NODE_2,1
-NODE_3,1
-NODE_4,2
-NODE_5,2
-...
-```
-Example MEGAHIT binned input
-```
-k99_10059,1
-k99_9367,1
-k99_15595,2
-k99_18709,1
-k99_15596,2
-...
-```
 
 ## Example Usage
 
