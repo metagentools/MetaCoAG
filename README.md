@@ -154,12 +154,11 @@ For the MEGAHIT version, `metacoag` takes in 3 files as inputs (required).
 
 ## Test Data
 
-The data used to test MetaCoAG can be found in the `test_data` folder. The test data for each of the datasets include the following files.
+Three metaSPAdes datasets used to test MetaCoAG can be found in the `test_data` folder. The test data for each of the datasets include the following files.
 * Contigs file
 * Assembly graph file
 * Contigs file
-* Paths file for the assembly graph (for the datasets assembled using metaSPAdes)
-* Abundance file (for the datasets assembled using MEGAHIT)
+* Paths file for the assembly graph
 * Initial binning result from [MaxBin 2.0](https://sourceforge.net/projects/maxbin2/)
 * Initial binning result from [MetaWatt](https://sourceforge.net/p/metawatt/wiki/Home/)
 * Initial binning result from [CONCOCT](https://concoct.readthedocs.io/en/latest/)
