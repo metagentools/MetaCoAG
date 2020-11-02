@@ -453,61 +453,26 @@ values, counts = np.unique(data, return_counts=True)
 
 max_count_gene = values[np.where(counts == np.amax(counts))]
 
-if len(max_count_gene)==1:
+min_count_index = -1
+max_count_index = -1
 
-    my_gene_counts.append(max_count_gene[0])
+my_gene_counts.append(max_count_gene[0])
 
-    max_count_gene_index = np.where(values == max_count_gene[0])[0][0]
+max_count_gene_index = np.where(values == max_count_gene[0])[0][0]
 
+print(counts[max_count_gene_index]*seed_mg_threshold)
 
-    for i in range(max_count_gene_index+1, len(values)):
-        if counts[i-1]*seed_mg_threshold <= counts[i]:
-            my_gene_counts.append(values[i])
-        else:
-            break
+for i in range(max_count_gene_index+1, len(values)):
+    if counts[max_count_gene_index]*seed_mg_threshold <= counts[i]:
+        max_count_index = i
 
-    for i in range(max_count_gene_index, 0, -1):
-        if counts[i]*seed_mg_threshold <= counts[i-1]:
-            if values[i] not in my_gene_counts:
-                my_gene_counts.append(values[i])
-        else:
-            if values[i] not in my_gene_counts:
-                my_gene_counts.append(values[i])
-            break
-            
-else:
-    
-    my_max = max(max_count_gene)
-    my_min = min(max_count_gene)
-    
-    print(max_count_gene, my_max, my_min)
-    
-    my_gene_counts.append(my_max)
-    my_gene_counts.append(my_min)
-    
-    max_count_gene_index_max = np.where(values == my_max)[0][0]
-    max_count_gene_index_min = np.where(values == my_min)[0][0]
-    
-    print(max_count_gene_index_max, max_count_gene_index_min)
-    
-    for i in range(max_count_gene_index_min, max_count_gene_index_max+1):
-        if values[i] not in my_gene_counts:
-            my_gene_counts.append(values[i])
-    
-    for i in range(max_count_gene_index_max+1, len(values)):
-        if counts[i-1]*seed_mg_threshold <= counts[i]:
-            my_gene_counts.append(values[i])
-        else:
-            break
-
-    for i in range(max_count_gene_index_min, 0, -1):
-        if counts[i]*seed_mg_threshold <= counts[i-1]:
-            if values[i] not in my_gene_counts:
-                my_gene_counts.append(values[i])
-        else:
-            if values[i] not in my_gene_counts:
-                my_gene_counts.append(values[i])
-            break
+for i in range(max_count_gene_index, 0, -1):
+    if counts[max_count_gene_index]*seed_mg_threshold <= counts[i-1]:
+        min_count_index = i-1
+        
+for i in range(min_count_index, max_count_index+1):
+    if values[i] not in my_gene_counts:
+        my_gene_counts.append(values[i])
 
 my_gene_counts.sort(reverse=True)
 
