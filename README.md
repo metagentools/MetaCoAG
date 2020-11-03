@@ -1,7 +1,6 @@
 # MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
 
-![GitHub](https://img.shields.io/github/license/Vini2/MetaBAG) 
-![GitHub top language](https://img.shields.io/github/languages/top/Vini2/MetaBAG)
+![GitHub](https://img.shields.io/github/license/Vini2/MetaBAG)
 
 MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of theconnectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs.
 
