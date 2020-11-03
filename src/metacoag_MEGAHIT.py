@@ -438,12 +438,12 @@ max_count_gene = values[np.where(counts == np.amax(counts))]
 
 print("max_count_gene:", max_count_gene)
 
-min_count_index = -1
-max_count_index = -1
-
 my_gene_counts.append(max_count_gene[0])
 
 max_count_gene_index = np.where(values == max_count_gene[0])[0][0]
+
+min_count_index = max_count_gene_index
+max_count_index = max_count_gene_index
 
 print(counts[max_count_gene_index]*seed_mg_threshold)
 
