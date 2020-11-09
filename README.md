@@ -78,8 +78,7 @@ You can see the usage options of MetaCoAG by typing `./metacoag.py -h` on the co
 usage: metacoag.py [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                    [--abundance ABUNDANCE] [--paths PATHS] --output OUTPUT
                    [--prefix PREFIX] [--depth DEPTH] [--min_length MIN_LENGTH]
-                   [--alpha_intra ALPHA_INTRA] [--alpha_inter ALPHA_INTER]
-                   [--dist_intra DIST_INTRA] [--dist_inter DIST_INTER]
+                   [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
                    [--nthreads NTHREADS]
 
 MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of
@@ -104,22 +103,15 @@ optional arguments:
   --min_length MIN_LENGTH
                         minimum length of contigs to consider for
                         compositional probability. [default: 1000]
-  --alpha_intra ALPHA_INTRA
-                        maximum weight of an edge matching to assign to the
+  --w_intra W_INTRA     maximum weight of an edge matching to assign to the
                         same bin. [default: 2]
-  --alpha_inter ALPHA_INTER
-                        minimum weight of an edge matching to create a new
+  --w_inter W_INTER     minimum weight of an edge matching to create a new
                         bin. [default: 80]
-  --dist_intra DIST_INTRA
-                        maximum distance of a contig matched to assign to the
-                        same bin. [default: 10]
-  --dist_inter DIST_INTER
-                        minimum distance of a contig matched to create a new
-                        bin. [default: 10]
+  --d_limit D_LIMIT     distance limit for contig matching. [default: 10]
   --nthreads NTHREADS   number of threads to use. [default: 8]
 ```
 
-`min_length`, `alpha_intra`, `alpha_inter`, `dist_intra`, `dist_inter` and `nthreads` parameters are set by default to `1000`, `2`, `80`, `10`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
+`min_length`, `w_intra`, `w_inter`, `d_limit`, and `nthreads` parameters are set by default to `1000`, `2`, `80`, `10`, and `8` respectively. However, the user can specify them when running MetaCoAG.
 
 ## Input Format
 
