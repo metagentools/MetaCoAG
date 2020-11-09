@@ -59,21 +59,13 @@ conda deactivate
 
 ## Preprocessing
 
-Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes or MEGAHIT as MetaCoAG currently supports assembly graphs produced from these two assemblers.
+Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes as MetaCoAG currently supports assembly graphs produced from the metaSPAdes assembler.
 
 ### metaSPAdes
 [**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
 
 ```
 spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
-```
-
-### MEGAHIT
-[MEGAHIT](https://github.com/voutcn/megahit) is an assembler based on the de Bruijn graph approach. Use MEGAHIT software to assemble reads into contigs. A sample command is given below.
-
-```
-megahit -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
-megahit_toolkit contig2fastg 141 final.contigs.fa > final.assembly.fastg
 ```
 
 Once you have obtained the assembly output, you can run MetaCoAG.
@@ -99,7 +91,7 @@ to bin contigs.
 optional arguments:
   -h, --help            show this help message and exit
   --assembler ASSEMBLER
-                        name of the assembler used (SPAdes or MEGAHIT).
+                        name of the assembler used
   --graph GRAPH         path to the assembly graph file
   --contigs CONTIGS     path to the contigs file
   --abundance ABUNDANCE
@@ -136,19 +128,10 @@ For the metaSPAdes version, `metacoag` takes in 3 files as inputs (required).
 * Contigs file (in `.fasta` format)
 * Paths of contigs (in `.paths` format)
 
-For the MEGAHIT version, `metacoag` takes in 3 files as inputs (required).
-* Assembly graph file (in `.gfa` format. To convert fastg to gfa refer [here](https://github.com/Vini2/GraphBin/blob/master/support/README.md#fastg2gfa))
-* Contigs file (in `.fa` format)
-* Abundance file (tab separated file with contig ID and coverage in each line)
-
-
 ## Example Usage
 
 ```
 ./metacoag.py --assembler spades --graph /path/to/graph_file.gfa --paths /path/to/paths_file.paths --output /path/to/output_folder
-```
-```
-./metacoag.py --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fa --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ## Test Data
