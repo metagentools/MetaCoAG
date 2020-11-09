@@ -67,29 +67,23 @@ parser.add_argument("--min_length",
                     default=1000, 
                     help="minimum length of contigs to consider for compositional probability. [default: 1000]")
 
-parser.add_argument("--alpha_intra", 
+parser.add_argument("--w_intra", 
                     required=False, 
                     type=int, 
                     default=2, 
                     help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
 
-parser.add_argument("--alpha_inter", 
+parser.add_argument("--w_inter", 
                     required=False, 
                     type=int, 
                     default=80, 
                     help="minimum weight of an edge matching to create a new bin. [default: 80]")
 
-parser.add_argument("--dist_intra", 
+parser.add_argument("--d_limit", 
                     required=False, 
                     type=int, 
                     default=10, 
-                    help="maximum distance of a contig matched to assign to the same bin. [default: 10]")
-
-parser.add_argument("--dist_inter", 
-                    required=False, 
-                    type=int, 
-                    default=10, 
-                    help="minimum distance of a contig matched to create a new bin. [default: 10]")
+                    help="distance limit for contig matching. [default: 10]")
 
 parser.add_argument("--nthreads", 
                     required=False, 
@@ -109,10 +103,9 @@ output_path = args["output"]
 prefix = args["prefix"]
 depth = args["depth"]
 min_length = args["min_length"]
-alpha_intra = args["alpha_intra"]
-alpha_inter = args["alpha_inter"]
-dist_intra = args["dist_intra"]
-dist_inter = args["dist_inter"]
+w_intra = args["w_intra"]
+w_inter = args["w_inter"]
+d_limit = args["d_limit"]
 nthreads = args["nthreads"]
 
 
@@ -120,8 +113,8 @@ nthreads = args["nthreads"]
 #---------------------------------------------------
 
 # Check assembler name
-if not (assembler.lower() == "spades" or assembler.lower() == "megahit"):
-    print("\nPlease make sure to provide the correct assembler type (SPAdes or MEGAHIT).")
+if not (assembler.lower() == "spades"):
+    print("\nPlease make sure to provide the correct assembler type.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
@@ -184,27 +177,21 @@ if min_length <= 0:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate alpha_intra
-if alpha_intra <= 0:
-    print("\nPlease enter a valid number for alpha_intra")
+# Validate w_intra
+if w_intra <= 0:
+    print("\nPlease enter a valid number for w_intra")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate alpha_inter
-if alpha_inter <= 0:
-    print("\nPlease enter a valid number for alpha_inter")
+# Validate w_inter
+if w_inter <= 0:
+    print("\nPlease enter a valid number for w_inter")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate dist_intra
-if dist_intra <= 0:
-    print("\nPlease enter a valid number for dist_intra")
-    print("Exiting MetaCoAG...\nBye...!\n")
-    sys.exit(1)
-
-# Validate dist_inter
-if dist_inter <= 0:
-    print("\nPlease enter a valid number for dist_inter")
+# Validate d_limit
+if d_limit <= 0:
+    print("\nPlease enter a valid number for d_limit")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
@@ -219,7 +206,7 @@ if nthreads <= 0:
 #---------------------------------------------------
 
 if assembler.lower()=="spades":
-    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --output "{4}" --prefix "{5}" --depth "{6}" --min_length "{7}" --alpha_intra "{8}" --alpha_inter "{9}" --dist_intra "{10}" --dist_inter "{11}" --nthreads "{12}" """.format(
+    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --output "{4}" --prefix "{5}" --depth "{6}" --min_length "{7}" --w_intra "{8}" --w_inter "{9}" --d_limit "{10}" --nthreads "{11}" """.format(
         os.path.dirname(__file__), 
         assembly_graph_file,
         contigs,
@@ -228,26 +215,9 @@ if assembler.lower()=="spades":
         prefix,
         depth,
         min_length,
-        alpha_intra,
-        alpha_inter,
-        dist_intra,
-        dist_inter,
-        nthreads)
-
-elif assembler.lower()=="megahit":
-    cmdMetaCoAG = """python "{0}/src/metacoag_MEGAHIT.py" --graph "{1}" --contigs "{2}" --abundance "{3}" --output "{4}" --prefix "{5}" --depth "{6}" --min_length "{7}" --alpha_intra "{8}" --alpha_inter "{9}" --dist_intra "{10}" --dist_inter "{11}" --nthreads "{12}" """.format(
-        os.path.dirname(__file__), 
-        assembly_graph_file,
-        contigs,
-        abundance,
-        output_path,
-        prefix,
-        depth,
-        min_length,
-        alpha_intra,
-        alpha_inter,
-        dist_intra,
-        dist_inter,
+        w_intra,
+        w_inter,
+        d_limit,
         nthreads)
 
 

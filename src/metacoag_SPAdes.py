@@ -46,10 +46,9 @@ ap.add_argument("--output", required=True, help="path to the output folder")
 ap.add_argument("--prefix", required=False, default='', help="prefix for the output file")
 ap.add_argument("--depth", required=False, type=int, default=5, help="maximum depth for the breadth-first-search. [default: 5]")
 ap.add_argument("--min_length", required=False, type=int, default=1000, help="minimum length of contigs to consider for compositional probability. [default: 1000]")
-ap.add_argument("--alpha_intra", required=False, type=int, default=2, help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
-ap.add_argument("--alpha_inter", required=False, type=int, default=80, help="minimum weight of an edge matching to create a new bin. [default: 80]")
-ap.add_argument("--dist_intra", required=False, type=int, default=10, help="maximum distance of a contig matched to assign to the same bin. [default: 10]")
-ap.add_argument("--dist_inter", required=False, type=int, default=10, help="minimum distance of a contig matched to create a new bin. [default: 10]")
+ap.add_argument("--w_intra", required=False, type=int, default=2, help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
+ap.add_argument("--w_inter", required=False, type=int, default=80, help="minimum weight of an edge matching to create a new bin. [default: 80]")
+ap.add_argument("--d_limit", required=False, type=int, default=10, help="distance limit for contig matching. [default: 10]")
 ap.add_argument("--nthreads", required=False, type=int, default=8, help="number of threads to use. [default: 8]")
 
 args = vars(ap.parse_args())
@@ -61,10 +60,9 @@ output_path = args["output"]
 prefix = args["prefix"]
 depth = args["depth"]
 min_length = args["min_length"]
-alpha_intra = args["alpha_intra"]
-alpha_inter = args["alpha_inter"]
-dist_intra = args["dist_intra"]
-dist_inter = args["dist_inter"]
+w_intra = args["w_intra"]
+w_inter = args["w_inter"]
+d_limit = args["d_limit"]
 nthreads = args["nthreads"]
 
 n_bins = 0
@@ -78,10 +76,9 @@ print("Contig paths file:", contig_paths)
 print("Final binning output file:", output_path)
 print("Minimum length of contigs to consider for compositional probability:", min_length)
 print("Depth:", depth)
-print("alpha_intra:", alpha_intra)
-print("alpha_inter:", alpha_inter)
-print("dist_intra:", dist_intra)
-print("dist_inter:", dist_inter)
+print("w_intra:", w_intra)
+print("w_inter:", w_inter)
+print("d_limit:", d_limit)
 print("Number of threads:", nthreads)
 
 print("\nMetaCoAG started\n-------------------")
@@ -640,7 +637,7 @@ for i in range(len(seed_iter)):
 
                         avg_path_len = path_len_sum/len(bins[b])
                                                
-                        if edge_weights[(l, my_matching[l])]<=alpha_intra and math.floor(avg_path_len)<=dist_intra:
+                        if edge_weights[(l, my_matching[l])]<=w_intra and math.floor(avg_path_len)<=d_limit:
                             bins[b].append(my_matching[l])
                             bin_of_contig[my_matching[l]] = b
                             matched_in_seed_iter.append(my_matching[l])
@@ -652,7 +649,7 @@ for i in range(len(seed_iter)):
 
             for nb in not_binned:
                     
-                if edge_weights_per_iteration[i][(not_binned[nb][0], nb)]>=alpha_inter:
+                if edge_weights_per_iteration[i][(not_binned[nb][0], nb)]>=w_inter:
                     
                     path_len_sum = 0
                     
@@ -664,7 +661,7 @@ for i in range(len(seed_iter)):
                     
                     avg_path_len = path_len_sum/len(bins[not_binned[nb][1]])
                     
-                    if math.floor(avg_path_len) >= dist_inter:
+                    if math.floor(avg_path_len) >= d_limit:
                         print("Creating new bin...")
                         bins[n_bins]=[nb]
                         bin_of_contig[nb] = n_bins
@@ -865,6 +862,26 @@ pbar.close()
 
 print("\nRemaining number of unbinned contigs:", len(unbinned_contigs))
 print("Total number of binned contigs:", len(binned_contigs))
+
+
+# Write intermediate result to output file
+#-----------------------------------
+
+output_bins = []
+
+for contig in bin_of_contig:
+    line = []
+    line.append("NODE_"+str(contigs_map[contig]))
+    line.append(bin_of_contig[contig]+1)
+    output_bins.append(line)
+
+output_file = output_path + prefix + 'metacoag_intermediate_output.csv'
+
+with open(output_file, mode='w') as output_file:
+    output_writer = csv.writer(output_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    
+    for row in output_bins:
+        output_writer.writerow(row)
 
 
 # Bin remaining unbinned contigs
