@@ -3,8 +3,10 @@
 import numpy as np
 import re
 import itertools
+import os
 
 from Bio import SeqIO
+from multiprocessing import Pool
 
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 nt_bits = {'A':0,'C':1,'G':2,'T':3}
@@ -54,6 +56,41 @@ def count_kmers(args):
     profile = profile/max(1, sum(profile))
     
     return profile
+
+
+def get_tetramer_profiles(output_path, seqs, nthreads):
+
+    tetramer_profiles = {}
+    i=0
+
+    if os.path.isfile(output_path+"contig_tetramers.txt"):
+        with open(output_path+"contig_tetramers.txt") as tetramers_file:
+            for line in tetramers_file.readlines():
+                f_list = [float(i) for i in line.split(" ") if i.strip()]
+                tetramer_profiles[i] = f_list
+                i+=1
+
+    else:
+
+        kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
+
+        pool = Pool(nthreads)
+        record_tetramers = pool.map(count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+        pool.close()
+        
+        i=0
+
+        for l in range(len(record_tetramers)):
+            tetramer_profiles[i] = record_tetramers[l]
+            i+=1
+        
+        with open(output_path+"contig_tetramers.txt", "w+") as myfile:
+            for l in range(len(record_tetramers)):
+                for j in range(len(record_tetramers[l])):
+                    myfile.write(str(record_tetramers[l][j])+" ")
+                myfile.write("\n")
+
+    return tetramer_profiles
 
 
 def get_cov_len_spades(contigs_file, contigs_map_rev):

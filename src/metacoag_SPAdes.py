@@ -108,6 +108,7 @@ try:
 
     # Add vertices
     assembly_graph.add_vertices(node_count)
+    print("Total number of contigs available: "+str(node_count))
 
     # Name vertices
     for i in range(node_count):
@@ -141,36 +142,7 @@ seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file,
 
 print("\nObtaining tetranucleotide frequencies of contigs...")
 
-tetramer_profiles = {}
-
-i=0
-if os.path.isfile(output_path+"contig_tetramers.txt"):
-    with open(output_path+"contig_tetramers.txt") as tetramers_file:
-        for line in tetramers_file.readlines():
-            f_list = [float(i) for i in line.split(" ") if i.strip()]
-            tetramer_profiles[i] = f_list
-            i+=1
-
-else:
-
-    kmer_inds_4, kmer_count_len_4 = feature_utils.compute_kmer_inds(4)
-
-    pool = Pool(nthreads)
-    record_tetramers = pool.map(feature_utils.count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
-    pool.close()
-    
-    i=0
-
-    for l in range(len(record_tetramers)):
-        tetramer_profiles[i] = record_tetramers[l]
-        i+=1
-    
-    with open(output_path+"contig_tetramers.txt", "w+") as myfile:
-        for l in range(len(record_tetramers)):
-            for j in range(len(record_tetramers[l])):
-                myfile.write(str(record_tetramers[l][j])+" ")
-            myfile.write("\n")
-
+tetramer_profiles = feature_utils.get_tetramer_profiles(output_path, seqs, nthreads)
 
 
 # Get contigs with marker genes
@@ -192,7 +164,6 @@ marker_contigs, marker_contig_counts = marker_gene_utils.get_contigs_with_marker
 marker_frequencies = marker_gene_utils.count_contigs_with_marker_genes(marker_contig_counts)
 
 
-
 # Get marker gene counts to make bins
 #-----------------------------------------------------
 
@@ -200,7 +171,6 @@ print("\nDetermining which marker genes to consider...")
 
 my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
 my_gene_counts.sort(reverse=True)
-
 
 # Get contigs containing each marker gene for each iteration
 seed_iter = {}
@@ -435,7 +405,6 @@ for contig in binned_contigs:
         closest_neighbours = filter(lambda x: x not in binned_contigs, assembly_graph.neighbors(contig, mode=ALL))
         contigs_to_bin.update(closest_neighbours)
 
-
 sorted_node_list = []
 sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
@@ -444,11 +413,9 @@ for data in sorted_node_list_:
     heapObj = label_prop_utils.DataWrap(data)
     heapq.heappush(sorted_node_list, heapObj)
 
-
 while sorted_node_list:
     best_choice = heapq.heappop(sorted_node_list)    
     to_bin, binned, bin_, dist, cov_diff, comp_diff = best_choice.data
-    
     
     if to_bin in unbinned_contigs:
         bins[bin_].append(to_bin)
@@ -472,7 +439,6 @@ while sorted_node_list:
 
 # Close progress bar
 pbar.close()
-
 
 print("\nRemaining number of unbinned contigs:", len(unbinned_contigs))
 print("Total number of binned contigs:", len(binned_contigs))

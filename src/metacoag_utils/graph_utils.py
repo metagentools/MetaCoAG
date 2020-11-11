@@ -53,8 +53,6 @@ def get_segment_paths_spades(contig_paths):
 
 def get_graph_edges_spades(assembly_graph_file, node_count, contigs_map, contigs_map_rev, paths, segment_contigs):
 
-    print("Total number of contigs available: "+str(node_count))
-
     links = []
     links_map = defaultdict(set)
 
