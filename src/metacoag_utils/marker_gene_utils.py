@@ -4,6 +4,10 @@ import os
 import pathlib
 import re
 import numpy as np
+import logging
+
+# create logger
+logger = logging.getLogger('MetaCoaAG 0.1')
 
 # Modified from SolidBin
 def scan_for_marker_genes(contig_file, nthreads, hard=0):
@@ -14,7 +18,7 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
     hmmExeURL = os.path.join(software_path.parent, 'auxiliary', 'hmmer-3.3', 'src', 'hmmsearch')
     markerURL = os.path.join(software_path.parent, 'auxiliary', 'marker.hmm')
 
-    print(markerURL)
+    logger.debug(markerURL)
     
     fragResultURL = contig_file+".frag.faa"
     hmmResultURL = contig_file+".hmmout"
@@ -22,20 +26,20 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
         fragCmd = fragScanURL+" -genome="+contig_file+" -out="+contig_file + \
             ".frag -complete=0 -train=complete -thread="+str(nthreads)+" 1>" + \
             contig_file+".frag.out 2>"+contig_file+".frag.err"
-        print("exec cmd: "+fragCmd)
+        logger.debug("exec cmd: "+fragCmd)
         os.system(fragCmd)
 
     if os.path.exists(fragResultURL):
         if not (os.path.exists(hmmResultURL)):
             hmmCmd = hmmExeURL+" --domtblout "+hmmResultURL+" --cut_tc --cpu "+str(nthreads)+" " + \
                 markerURL+" "+fragResultURL+" 1>"+hmmResultURL+".out 2>"+hmmResultURL+".err"
-            print("exec cmd: "+hmmCmd)
+            logger.debug("exec cmd: "+hmmCmd)
             os.system(hmmCmd)
 
         else:
-            print("HMMER search failed! Path: "+hmmResultURL + " does not exist.")
+            logger.debug("HMMER search failed! Path: "+hmmResultURL + " does not exist.")
     else:
-        print("FragGeneScan failed! Path: "+fragResultURL + " does not exist.")
+        logger.debug("FragGeneScan failed! Path: "+fragResultURL + " does not exist.")
 
 
 def get_contigs_with_marker_genes(contigs_file, mg_length_threshold):
@@ -105,8 +109,6 @@ def get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold):
 
     min_count_index = max_count_gene_index
     max_count_index = max_count_gene_index
-
-    print(counts[max_count_gene_index]*seed_mg_threshold)
 
     for i in range(max_count_gene_index+1, len(values)):
         if counts[max_count_gene_index]*seed_mg_threshold <= counts[i]:

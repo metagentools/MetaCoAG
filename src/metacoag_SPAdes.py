@@ -9,6 +9,7 @@ import heapq
 import os
 import math
 import networkx as nx
+import logging
 
 from multiprocessing import Pool
 from Bio import SeqIO
@@ -67,21 +68,40 @@ nthreads = args["nthreads"]
 
 n_bins = 0
 
-print("\nWelcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs.")
-print("This version of MetaCoAG makes use of the assembly graph produced by SPAdes which is based on the de Bruijn graph approach.")
+# Setup logger
+#-----------------------
+logger = logging.getLogger('MetaCoaAG 0.1')
+logger.setLevel(logging.DEBUG)
+logging.captureWarnings(True)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+consoleHeader = logging.StreamHandler()
+consoleHeader.setFormatter(formatter)
+consoleHeader.setLevel(logging.INFO)
+logger.addHandler(consoleHeader)
 
-print("\nInput arguments:", contigs_file)
-print("Assembly graph file:", assembly_graph_file)
-print("Contig paths file:", contig_paths)
-print("Final binning output file:", output_path)
-print("Minimum length of contigs to consider for compositional probability:", min_length)
-print("Depth:", depth)
-print("w_intra:", w_intra)
-print("w_inter:", w_inter)
-print("d_limit:", d_limit)
-print("Number of threads:", nthreads)
+# Setup output path for log file
+#---------------------------------------------------
 
-print("\nMetaCoAG started\n-------------------")
+fileHandler = logging.FileHandler(output_path+"/"+prefix+"metacoag.log")
+fileHandler.setLevel(logging.DEBUG)
+fileHandler.setFormatter(formatter)
+logger.addHandler(fileHandler)
+
+logger.info("Welcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs.")
+logger.info("This version of MetaCoAG makes use of the assembly graph produced by SPAdes which is based on the de Bruijn graph approach.")
+
+logger.info("Input arguments: "+contigs_file)
+logger.info("Assembly graph file: "+assembly_graph_file)
+logger.info("Contig paths file: "+contig_paths)
+logger.info("Final binning output file: "+output_path)
+logger.info("Minimum length of contigs to consider for compositional probability: "+str(min_length))
+logger.info("Depth: "+str(depth))
+logger.info("w_intra: "+str(w_intra))
+logger.info("w_inter: "+str(w_inter))
+logger.info("d_limit: "+str(d_limit))
+logger.info("Number of threads: "+str(nthreads))
+
+logger.info("MetaCoAG started")
 
 start_time = time.time()
 
@@ -93,8 +113,8 @@ try:
     paths, segment_contigs, node_count, my_map = graph_utils.get_segment_paths_spades(contig_paths)
 
 except:
-    print("Please make sure that the correct path to the contig paths file is provided.")
-    print("Exiting MetaCoAG... Bye...!")
+    logger.error("Please make sure that the correct path to the contig paths file is provided.")
+    logger.info("Exiting MetaCoAG... Bye...!")
 
 contigs_map = my_map
 contigs_map_rev = my_map.inverse
@@ -108,7 +128,7 @@ try:
 
     # Add vertices
     assembly_graph.add_vertices(node_count)
-    print("Total number of contigs available: "+str(node_count))
+    logger.info("Total number of contigs available: "+str(node_count))
 
     # Name vertices
     for i in range(node_count):
@@ -120,19 +140,19 @@ try:
 
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
-    print("Total number of edges in the assembly graph: "+str(len(edge_list)))
+    logger.info("Total number of edges in the assembly graph: "+str(len(edge_list)))
 
     assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
 
 except:
-    print("Please make sure that the correct path to the assembly graph file is provided.")
-    print("Exiting MetaCoAG... Bye...!")
+    logger.error("Please make sure that the correct path to the assembly graph file is provided.")
+    logger.info("Exiting MetaCoAG... Bye...!")
 
 
 # Get length and coverage of contigs
 #--------------------------------------------------------
 
-print("\nObtaining lengths and coverage values of contigs...")
+logger.info("Obtaining lengths and coverage values of contigs")
 
 seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file, contigs_map_rev)
 
@@ -140,7 +160,7 @@ seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file,
 # Get tetramer composition of contigs
 #--------------------------------------------------------
 
-print("\nObtaining tetranucleotide frequencies of contigs...")
+logger.info("Obtaining tetranucleotide frequencies of contigs")
 
 tetramer_profiles = feature_utils.get_tetramer_profiles(output_path, seqs, nthreads)
 
@@ -148,16 +168,16 @@ tetramer_profiles = feature_utils.get_tetramer_profiles(output_path, seqs, nthre
 # Get contigs with marker genes
 #-----------------------------------------------------
 
-print("\nScanning for single-copy marker genes...")
+logger.info("Scanning for single-copy marker genes")
 
 if not os.path.exists(contigs_file+".hmmout"):
-    print("Obtaining hmmout file...")
+    logger.info("Obtaining hmmout file")
     marker_gene_utils.scan_for_marker_genes(contigs_file, nthreads)
 else:
-    print("hmmout file already exists...")
+    logger.info(".hmmout file already exists")
 
 
-print("\nObtaining contigs with single-copy marker genes...")
+logger.info("Obtaining contigs with single-copy marker genes")
 
 marker_contigs, marker_contig_counts = marker_gene_utils.get_contigs_with_marker_genes(contigs_file, mg_length_threshold)
 
@@ -167,7 +187,7 @@ marker_frequencies = marker_gene_utils.count_contigs_with_marker_genes(marker_co
 # Get marker gene counts to make bins
 #-----------------------------------------------------
 
-print("\nDetermining which marker genes to consider...")
+logger.info("Determining seed marker genes")
 
 my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
 my_gene_counts.sort(reverse=True)
@@ -192,11 +212,7 @@ binned_contigs = []
 
 binned_contigs_with_markers = []
 
-print("\nInitialising bins...")
-
-print("\nseed_iter[0]", seed_iter[0])
-
-print("\nInitialised bins:")
+logger.info("Initialising bins")
 
 for i in range(len(seed_iter[0])):
     
@@ -208,8 +224,11 @@ for i in range(len(seed_iter[0])):
     bins[i] = [contigs_map_rev[contig_num]]
     bin_of_contig[contigs_map_rev[contig_num]] = i
     binned_contigs.append(contigs_map_rev[contig_num])
-  
-print(bins)
+
+logger.info("Number of initial bins detected: "+str(len(seed_iter[0])))
+
+logger.debug("Initialised bins:")
+logger.debug(bins)
 
 
 # Assign to bins
@@ -217,11 +236,11 @@ print(bins)
 
 edge_weights_per_iteration = {}
 
-print("\nMatching and assigning contigs with marker genes to bins...")
+logger.info("Matching and assigning contigs with marker genes to bins")
         
 for i in range(len(seed_iter)):
     
-    print("Iteration", i, ":", len(seed_iter[i]), "contigs")
+    logger.debug("Iteration "+str(i)+": "+str(len(seed_iter[i]))+" contigs")
     
     if i>0:
         
@@ -323,6 +342,7 @@ for i in range(len(seed_iter)):
                     
                         for contig_in_bin in bins[b]:
                             shortest_paths = assembly_graph.get_shortest_paths(my_matching[l], to=contig_in_bin)
+                        
                             if len(shortest_paths) != 0:
                                 path_len_sum += len(shortest_paths[0])
 
@@ -345,6 +365,7 @@ for i in range(len(seed_iter)):
                     path_len_sum = 0
                     
                     for contig_in_bin in bins[not_binned[nb][1]]:
+
                         shortest_paths = assembly_graph.get_shortest_paths(nb, to=contig_in_bin)
                         
                         if len(shortest_paths) != 0:
@@ -353,17 +374,17 @@ for i in range(len(seed_iter)):
                     avg_path_len = path_len_sum/len(bins[not_binned[nb][1]])
                     
                     if math.floor(avg_path_len) >= d_limit:
-                        print("Creating new bin...")
+                        logger.debug("Creating new bin...")
                         bins[n_bins]=[nb]
                         bin_of_contig[nb] = n_bins
                         binned_contigs.append(nb)
                         n_bins+=1
                         binned_contigs_with_markers.append("NODE_"+str(contigs_map[nb]))
 
-print("\nBins with contigs containing seed marker genes")
+logger.debug("Bins with contigs containing seed marker genes")
 
 for b in bins:
-    print(b, ":", bins[b])
+    logger.debug(str(b)+ ": "+str(bins[b]))
 
 
 # Get binned and unbinned contigs
@@ -373,8 +394,8 @@ binned_contigs = list(bin_of_contig.keys())
     
 unbinned_contigs = list(set([x for x in range(node_count)]) - set(binned_contigs))
 
-print("\nNumber of binned contigs:", len(binned_contigs))
-print("Number of unbinned contigs:", len(unbinned_contigs))
+logger.info("Number of binned contigs: "+str(len(binned_contigs)))
+logger.info("Number of unbinned contigs: "+str(len(unbinned_contigs)))
 
 
 # Get isolated vertices and components without labels
@@ -383,17 +404,17 @@ print("Number of unbinned contigs:", len(unbinned_contigs))
 isolated = graph_utils.get_isolated(node_count, assembly_graph)
 non_isolated = graph_utils.get_non_isolated(node_count, assembly_graph, binned_contigs)
 
-print("\nNumber of non-isolated contigs:", len(non_isolated))
+logger.info("Number of non-isolated contigs: "+str(len(non_isolated)))
 
 non_isolated_unbinned = list(set(non_isolated).intersection(set(unbinned_contigs)))
 
-print("Number of non-isolated unbinned contigs:", len(non_isolated_unbinned))
+logger.info("Number of non-isolated unbinned contigs: "+str(len(non_isolated_unbinned)))
 
 
 # Propagate labels to unlabelled vertices
 #-----------------------------------------------------
 
-print("\nPropagating labels to unlabelled vertices...")
+logger.info("Propagating labels to unlabelled vertices")
 
 # Initialise progress bar
 pbar = tqdm(total=len(non_isolated_unbinned))
@@ -440,8 +461,8 @@ while sorted_node_list:
 # Close progress bar
 pbar.close()
 
-print("\nRemaining number of unbinned contigs:", len(unbinned_contigs))
-print("Total number of binned contigs:", len(binned_contigs))
+logger.info("Remaining number of unbinned contigs: "+str(len(unbinned_contigs)))
+logger.info("Total number of binned contigs: "+str(len(binned_contigs)))
 
 
 # Write intermediate result to output file
@@ -467,7 +488,7 @@ with open(output_file, mode='w') as output_file:
 # Bin remaining unbinned contigs
 #-----------------------------------
 
-print("\nPropagating labels to remaining unlabelled vertices...")
+logger.info("Propagating labels to remaining unlabelled vertices")
 
 with Pool(nthreads) as p:
     assigned = list(tqdm(p.starmap(label_prop_utils.assign, 
@@ -478,9 +499,9 @@ with Pool(nthreads) as p:
 put_to_bins = list(filter(lambda x: x is not None, assigned))
 
 if len(put_to_bins) ==  0:
-    print("No further contigs were binned")
+    logger.info("No further contigs were binned")
 else:
-    print(str(len(put_to_bins)), "contigs were binned")
+    logger.info(str(len(put_to_bins))+" contigs were binned")
 
 # Assign contigs to bins
 for contig, contig_bin in put_to_bins:
@@ -489,8 +510,8 @@ for contig, contig_bin in put_to_bins:
     binned_contigs.append(contig)
     unbinned_contigs.remove(contig)
 
-print("\nRemaining number of unbinned contigs:", len(unbinned_contigs))
-print("Total number of binned contigs:", len(binned_contigs))
+logger.info("Remaining number of unbinned contigs: "+str(len(unbinned_contigs)))
+logger.info("Total number of binned contigs: "+str(len(binned_contigs)))
 
 
 # Get elapsed time
@@ -500,7 +521,7 @@ print("Total number of binned contigs:", len(binned_contigs))
 elapsed_time = time.time() - start_time
 
 # Print elapsed time for the process
-print("\nElapsed time: ", elapsed_time, " seconds")
+logger.info("Elapsed time: "+str(elapsed_time)+" seconds")
 
 # Sort contigs in bins
 for i in range(n_bins):
@@ -526,10 +547,10 @@ with open(output_file, mode='w') as output_file:
     for row in output_bins:
         output_writer.writerow(row)
 
-print("\nFinal binning results can be found at", output_file.name)
+logger.info("Final binning results can be found at "+str(output_file.name))
 
 
 # Exit program
 #-----------------------------------
 
-print("\nThank you for using MetaCoAG!\n")
+logger.info("Thank you for using MetaCoAG!")
