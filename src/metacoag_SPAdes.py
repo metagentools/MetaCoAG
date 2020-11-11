@@ -20,13 +20,15 @@ from collections import defaultdict
 from scipy.spatial import distance
 from scipy.stats import poisson
 from tqdm import tqdm
+
+from metacoag_utils import tetramer_utils
+from metacoag_utils import marker_gene_utils
+from metacoag_utils import matching_utils
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
 #---------------------------------------------------
 
-mu_intra, sigma_intra = 0, 0.01037897 / 2
-mu_inter, sigma_inter = 0.0676654, 0.03419337
 max_weight = sys.float_info.max
 mg_length_threshold = 0.5
 seed_mg_threshold = 0.33333
@@ -261,59 +263,10 @@ for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
     i+=1
 
 
-
-
 # Get tetramer composition of contigs
 #--------------------------------------------------------
 
 print("\nObtaining tetranucleotide frequencies of contigs...")
-
-def get_rc(seq):
-    rev = reversed(seq)
-    return "".join([complements.get(i,i) for i in rev])
-
-
-def mer2bits(kmer):
-    bit_mer=nt_bits[kmer[0]]
-    for c in kmer[1:]:
-        bit_mer = (bit_mer << 2) | nt_bits[c]
-    return bit_mer
-
-def compute_kmer_inds(k):
-    kmer_inds = {}
-    kmer_count_len = 0
-
-    alphabet = 'ACGT'
-    
-    all_kmers = [''.join(kmer) for kmer in itertools.product(alphabet,repeat=k)]
-    all_kmers.sort()
-    ind = 0
-    for kmer in all_kmers:
-        bit_mer = mer2bits(kmer)
-        rc_bit_mer = mer2bits(get_rc(kmer))
-        if rc_bit_mer in kmer_inds:
-            kmer_inds[bit_mer] = kmer_inds[rc_bit_mer]
-        else:
-            kmer_inds[bit_mer] = ind
-            kmer_count_len += 1
-            ind += 1
-            
-    return kmer_inds, kmer_count_len
-
-def count_kmers(args):
-    seq, k, kmer_inds, kmer_count_len = args
-    profile = np.zeros(kmer_count_len)
-    arrs = []
-    seq = list(seq.strip())
-    
-    for i in range(0, len(seq) - k + 1):
-        bit_mer = mer2bits(seq[i:i+k])
-        index = kmer_inds[bit_mer]
-        profile[index] += 1
-    profile = profile/max(1, sum(profile))
-    
-    return profile
-
 
 tetramer_profiles = {}
 
@@ -326,13 +279,11 @@ if os.path.isfile(output_path+"contig_tetramers.txt"):
             i+=1
 
 else:
-    complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
-    nt_bits = {'A':0,'C':1,'G':2,'T':3}
 
-    kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
+    kmer_inds_4, kmer_count_len_4 = tetramer_utils.compute_kmer_inds(4)
 
     pool = Pool(nthreads)
-    record_tetramers = pool.map(count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+    record_tetramers = pool.map(tetramer_utils.count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
     pool.close()
     
     i=0
@@ -348,90 +299,24 @@ else:
             myfile.write("\n")
 
 
+
 # Get contigs with marker genes
 #-----------------------------------------------------
-
-def scan_for_marker_genes(contig_file, hard=0):
-# Modified from SolidBin
-    
-    software_path = pathlib.Path(__file__).parent.absolute()
-    
-    fragScanURL = os.path.join(software_path.parent, 'auxiliary', 'FragGeneScan1.31', 'run_FragGeneScan.pl')
-    hmmExeURL = os.path.join(software_path.parent, 'auxiliary', 'hmmer-3.3', 'src', 'hmmsearch')
-    markerURL = os.path.join(software_path.parent, 'auxiliary', 'marker.hmm')
-
-    print(markerURL)
-    
-    fragResultURL = contig_file+".frag.faa"
-    hmmResultURL = contig_file+".hmmout"
-    if not (os.path.exists(fragResultURL)):
-        fragCmd = fragScanURL+" -genome="+contig_file+" -out="+contig_file + \
-            ".frag -complete=0 -train=complete -thread="+str(nthreads)+" 1>" + \
-            contig_file+".frag.out 2>"+contig_file+".frag.err"
-        print("exec cmd: "+fragCmd)
-        os.system(fragCmd)
-
-    if os.path.exists(fragResultURL):
-        if not (os.path.exists(hmmResultURL)):
-            hmmCmd = hmmExeURL+" --domtblout "+hmmResultURL+" --cut_tc --cpu "+str(nthreads)+" " + \
-                markerURL+" "+fragResultURL+" 1>"+hmmResultURL+".out 2>"+hmmResultURL+".err"
-            print("exec cmd: "+hmmCmd)
-            os.system(hmmCmd)
-
-        else:
-            print("HMMER search failed! Path: "+hmmResultURL + " does not exist.")
-    else:
-        print("FragGeneScan failed! Path: "+fragResultURL + " does not exist.")
 
 print("\nScanning for single-copy marker genes...")
 
 if not os.path.exists(contigs_file+".hmmout"):
     print("Obtaining hmmout file...")
-    scan_for_marker_genes(contigs_file)
+    marker_gene_utils.scan_for_marker_genes(contigs_file, nthreads)
 else:
     print("hmmout file already exists...")
 
 
-marker_contigs = {}
-marker_contig_counts = {}
-
 print("\nObtaining contigs with single-copy marker genes...")
 
-with open(contigs_file+".hmmout", "r") as myfile:
-    for line in myfile.readlines():
-        if not line.startswith("#"):
-            strings = line.strip().split()
-            
-            contig = strings[0]
-            marker_gene = strings[3]
-            marker_gene_length = int(strings[5])
-            
-            mapped_marker_length = int(strings[16]) - int(strings[15])
-            
-            start = ''
-            end = '_length_'
-            contig_num = re.search('%s(.*)%s' % (start, end), strings[0]).group(1)
-            
-            if mapped_marker_length > marker_gene_length*mg_length_threshold:
-                
-                if marker_gene not in marker_contigs:
-                    marker_contigs[marker_gene] = [contig_num]
-                else:
-                    marker_contigs[marker_gene].append(contig_num)
-                
-                if marker_gene not in marker_contig_counts:
-                    marker_contig_counts[marker_gene] = 1
-                else:
-                    marker_contig_counts[marker_gene] += 1
+marker_contigs, marker_contig_counts = marker_gene_utils.get_contigs_with_marker_genes(contigs_file, mg_length_threshold)
 
-marker_frequencies = {}
-
-for marker in marker_contig_counts:
-    
-    if marker_contig_counts[marker] not in marker_frequencies:
-        marker_frequencies[marker_contig_counts[marker]] = 1
-    else:
-        marker_frequencies[marker_contig_counts[marker]] += 1
+marker_frequencies = marker_gene_utils.count_contigs_with_marker_genes(marker_contig_counts)
 
 
 
@@ -440,36 +325,7 @@ for marker in marker_contig_counts:
 
 print("\nDetermining which marker genes to consider...")
 
-my_gene_counts = []
-
-vals = list(marker_contig_counts.values())
-
-data = np.array(vals)
-
-values, counts = np.unique(data, return_counts=True)
-
-max_count_gene = values[np.where(counts == np.amax(counts))]
-
-my_gene_counts.append(max_count_gene[0])
-
-max_count_gene_index = np.where(values == max_count_gene[0])[0][0]
-
-min_count_index = max_count_gene_index
-max_count_index = max_count_gene_index
-
-print(counts[max_count_gene_index]*seed_mg_threshold)
-
-for i in range(max_count_gene_index+1, len(values)):
-    if counts[max_count_gene_index]*seed_mg_threshold <= counts[i]:
-        max_count_index = i
-
-for i in range(max_count_gene_index, 0, -1):
-    if counts[max_count_gene_index]*seed_mg_threshold <= counts[i-1]:
-        min_count_index = i-1
-        
-for i in range(min_count_index, max_count_index+1):
-    if values[i] not in my_gene_counts:
-        my_gene_counts.append(values[i])
+my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
 
 my_gene_counts.sort(reverse=True)
 
@@ -516,13 +372,6 @@ print(bins)
 
 # Assign to bins
 #-----------------------------------------------------
-
-def normpdf(x, mean, sd):
-    var = float(sd)**2
-    denom = sd*(2*math.pi)**.5
-    num = math.exp(-(float(x)-float(mean))**2/(2*var))
-    return num/denom
-
 
 edge_weights_per_iteration = {}
 
@@ -578,9 +427,9 @@ for i in range(len(seed_iter)):
 
                     for j in range(n_contigs):
 
-                        tetramer_dist = distance.euclidean(tetramer_profiles[contigid], tetramer_profiles[bins[b][j]])
-                        prob_comp = normpdf(tetramer_dist, mu_intra, sigma_intra)/(normpdf(tetramer_dist, mu_intra, sigma_intra)+normpdf(tetramer_dist, mu_inter, sigma_inter))
-                        prob_cov = poisson.pmf(coverages[contigid], coverages[bins[b][j]])
+                        tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[contigid], tetramer_profiles[bins[b][j]])
+                        prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+                        prob_cov = matching_utils.get_cov_probability(coverages[contigid], coverages[bins[b][j]])
 
                         prob_product = prob_comp * prob_cov
 
@@ -768,10 +617,10 @@ def runBFS(node, threhold=depth):
             # Get the bin of the current contig
             contig_bin = bin_of_contig[active_node]
             
-            tetramer_dist = distance.euclidean(tetramer_profiles[node], tetramer_profiles[active_node])
+            tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[node], tetramer_profiles[active_node])
                                 
-            prob_comp = normpdf(tetramer_dist, mu_intra, sigma_intra)/(normpdf(tetramer_dist, mu_intra, sigma_intra)+normpdf(tetramer_dist, mu_inter, sigma_inter))
-            prob_cov = poisson.pmf(coverages[node], coverages[active_node])
+            prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+            prob_cov = matching_utils.get_cov_probability(coverages[node], coverages[active_node])
             
             if contig_lengths[node] >= min_length and contig_lengths[active_node] >= min_length:
                 if prob_cov!=0.0 and prob_comp!=0.0:
@@ -906,9 +755,9 @@ def assign(contig):
 
                 if contig_lengths[bins[b][j]] >= min_length:
 
-                    tetramer_dist = distance.euclidean(tetramer_profiles[contig], tetramer_profiles[bins[b][j]])
-                    prob_comp = normpdf(tetramer_dist, mu_intra, sigma_intra)/(normpdf(tetramer_dist, mu_intra, sigma_intra)+normpdf(tetramer_dist, mu_inter, sigma_inter))
-                    prob_cov = poisson.pmf(coverages[contig], coverages[bins[b][j]])
+                    tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[contig], tetramer_profiles[bins[b][j]])
+                    prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+                    prob_cov = matching_utils.get_cov_probability(coverages[contig], coverages[bins[b][j]])
 
                     prob_product = prob_comp * prob_cov
 
