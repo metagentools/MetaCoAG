@@ -152,3 +152,22 @@ MetaCoAG provides the evaluation script [`evaluate.py`](https://github.com/Vini2
 ```
 python evaluate.py --binned /path/to/binning_result.csv --groundtruth /path/to/ground_truth.csv
 ```
+
+## References
+
+[1] Albertsen,  M.,  Hugenholtz,  P.,  Skarshewski,  A.,  Nielsen,  K.L.,  Tyson,  G.W.,Nielsen,  P.H.:  Genome  sequences  of  rare,  uncultured  bacteria  obtained  by  dif-ferential coverage binning of multiple metagenomes. Nature Biotechnology 31(6),533–538 (Jun 2013)
+[2] Alneberg,  J.,  Bjarnason,  B.S.,  de  Bruijn,  I.,  Schirmer,  M.,  Quick,  J.,  Ijaz,  U.Z.,Lahti, L., Loman, N.J., Andersson, A.F., Quince, C.: Binning metagenomic contigsby coverage and composition. Nature Methods 11, 1144–1146 (Sep 2014)
+[3] Bankevich, A., Nurk, S., Antipov, D., Gurevich, A.A., Dvorkin, M., Kulikov, A.S.,Lesin, V.M., Nikolenko, S.I., Pham, S., Prjibelski, A.D., Pyshkin, A.V., Sirotkin,A.V.,  Vyahhi,  N.,  Tesler,  G.,  Alekseyev,  M.A.,  Pevzner,  P.A.:  SPAdes:  A  NewGenome Assembly Algorithm and Its Applications to Single-Cell Sequencing. Jour-nal of Computational Biology 19(5), 455–477 (2012), pMID: 22506599
+[4] Barnum, T.P., Figueroa, I.A., Carlstr ̈om, C.I., Lucas, L.N., Engelbrektson, A.L.,Coates, J.D.: Genome-resolved metagenomics identifies genetic mobility, metabolicinteractions, and unexpected diversity in perchlorate-reducing communities. The ISME Journal 12(6), 1568–1581 (2018)
+[5] Kang, D., Li, F., Kirton, E.S., Thomas, A., Egan, R.S., An, H., Wang, Z.: MetaBAT2:  an  adaptive  binning  algorithm  for  robust  and  efficient  genome  reconstructionfrom metagenome assemblies. PeerJ7, e27522v1 (Feb 2019)
+[6] Karp, R.M.: An algorithm to solve the m×n assignment problem in expectedtime O(mn log n). Networks10(2), 143–152 (1980)
+[7] Kolmogorov, M., Yuan, J., Lin, Y., Pevzner, P.A.: Assembly of long, error-pronereads using repeat graphs. Nature biotechnology 37(5), 540–546 (2019)
+[8] Laczny, C.C., Kiefer, C., Galata, V., Fehlmann, T., Backes, C., Keller, A.: BusyBeeWeb: metagenomic data analysis by bootstrapped supervised binning and annota-tion. Nucleic Acids Research 45(W1), W171–W179 (05 2017)
+[9] Lin, H.H., Liao, Y.C.: Accurate binning of metagenomic contigs via automated clustering sequences using information of genomic signatures and marker genes. Scientific Reports 6(1), 24175 (Apr 2016)
+[10] Mallawaarachchi, V., Wickramarachchi, A., Lin, Y.: GraphBin: Refined binning ofmetagenomic contigs using assembly graphs. Bioinformatics (03 2020)
+[11] Myers,  E.W.:  The  fragment  assembly  string  graph.  Bioinformatics 21(suppl2),ii79–ii85 (09 2005)
+[12] [NetworkX: networkx.algorithms.bipartite.matching.minimumweightfullmatching - NetworkX 2.5 documentation](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.minimum_weight_full_matching.html) (2020)
+[13] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a newversatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
+[14] Strous, M., Kraft, B., Bisdorf, R., Tegetmeyer, H.: The Binning of MetagenomicContigs for Microbial Physiology of Mixed Cultures. Frontiers in Microbiology 3,410 (2012)
+[15] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning al-gorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
+[16] Yu, G., Jiang, Y., Wang, J., Zhang, H., Luo, H.: BMC3C: binning metagenomiccontigs using codon usage, sequence composition and read coverage. Bioinformatics 34(24), 4172–4179 (06 2018)
