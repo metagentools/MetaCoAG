@@ -72,14 +72,14 @@ Once you have obtained the assembly output, you can run MetaCoAG.
 
 
 ## Using MetaCoAG
-You can see the usage options of MetaCoAG by typing `./metacoag.py -h` on the command line. For example,
+You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the command line. For example,
 
 ```
-usage: metacoag.py [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
-                   [--abundance ABUNDANCE] [--paths PATHS] --output OUTPUT
-                   [--prefix PREFIX] [--depth DEPTH] [--min_length MIN_LENGTH]
-                   [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
-                   [--nthreads NTHREADS]
+usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
+                [--abundance ABUNDANCE] [--paths PATHS] --output OUTPUT
+                [--prefix PREFIX] [--depth DEPTH] [--min_length MIN_LENGTH]
+                [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
+                [--nthreads NTHREADS]
 
 MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of
 the connectivity information found in assembly graphs, apart from the
@@ -123,7 +123,7 @@ For the metaSPAdes version, `metacoag` takes in 3 files as inputs (required).
 ## Example Usage
 
 ```
-./metacoag.py --assembler spades --graph /path/to/graph_file.gfa --paths /path/to/paths_file.paths --output /path/to/output_folder
+./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --paths /path/to/paths_file.paths --output /path/to/output_folder
 ```
 
 ## Test Data
