@@ -20,7 +20,7 @@ from collections import defaultdict
 from scipy.spatial import distance
 from scipy.stats import poisson
 from tqdm import tqdm
-from bidirectionalmap.bidirectionalmap import BidirectionalMap
+from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
 #---------------------------------------------------
