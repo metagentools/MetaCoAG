@@ -7,23 +7,21 @@ import argparse
 import re
 import heapq
 import os
-import itertools
 import math
-import numpy as np
 import networkx as nx
-import pathlib
 
 from multiprocessing import Pool
 from Bio import SeqIO
 from igraph import *
 from collections import defaultdict
-from scipy.spatial import distance
-from scipy.stats import poisson
 from tqdm import tqdm
+from itertools import repeat
 
-from metacoag_utils import tetramer_utils
+from metacoag_utils import feature_utils
 from metacoag_utils import marker_gene_utils
 from metacoag_utils import matching_utils
+from metacoag_utils import label_prop_utils
+from metacoag_utils import graph_utils
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
@@ -88,49 +86,11 @@ print("\nMetaCoAG started\n-------------------")
 start_time = time.time()
 
 
-# Build the assembly graph
+# Get segment paths of the assembly graph
 #--------------------------------------------------------
 
-paths = {}
-segment_contigs = {}
-node_count = 0
-
-my_map = BidirectionalMap()
-
-current_contig_num = ""
-
 try:
-    with open(contig_paths) as file:
-        name = file.readline()
-        path = file.readline()
-
-        while name != "" and path != "":
-
-            while ";" in path:
-                path = path[:-2]+","+file.readline()
-
-            start = 'NODE_'
-            end = '_length_'
-            contig_num = str(int(re.search('%s(.*)%s' % (start, end), name).group(1)))
-
-            segments = path.rstrip().split(",")
-
-            if current_contig_num != contig_num:
-                my_map[node_count] = int(contig_num)
-                current_contig_num = contig_num
-                node_count += 1
-
-            if contig_num not in paths:
-                paths[contig_num] = [segments[0], segments[-1]]
-
-            for segment in segments:
-                if segment not in segment_contigs:
-                    segment_contigs[segment] = set([contig_num])
-                else:
-                    segment_contigs[segment].add(contig_num)
-
-            name = file.readline()
-            path = file.readline()
+    paths, segment_contigs, node_count, my_map = graph_utils.get_segment_paths_spades(contig_paths)
 
 except:
     print("Please make sure that the correct path to the contig paths file is provided.")
@@ -139,93 +99,33 @@ except:
 contigs_map = my_map
 contigs_map_rev = my_map.inverse
 
-print("Total number of contigs available: "+str(node_count))
-
-links = []
-links_map = defaultdict(set)
-
-
 ## Construct the assembly graph
 #-------------------------------
 
 try:
-    # Get links from assembly_graph_with_scaffolds.gfa
-    with open(assembly_graph_file) as file:
-        line = file.readline()
-
-        while line != "":
-
-            # Identify lines with link information
-            if "L" in line:
-                strings = line.split("\t")
-                f1, f2 = strings[1]+strings[2], strings[3]+strings[4]
-                links_map[f1].add(f2)
-                links_map[f2].add(f1)
-                links.append(strings[1]+strings[2]+" "+strings[3]+strings[4])
-            line = file.readline()
-
-
     # Create graph
     assembly_graph = Graph()
 
     # Add vertices
     assembly_graph.add_vertices(node_count)
 
-    # Create list of edges
-    edge_list = []
-
     # Name vertices
     for i in range(node_count):
         assembly_graph.vs[i]["id"]= i
         assembly_graph.vs[i]["label"]= "NODE_"+str(contigs_map[i])
 
-    for i in range(len(paths)):
-        segments = paths[str(contigs_map[i])]
-
-        start = segments[0]
-        start_rev = ""
-
-        if start.endswith("+"):
-            start_rev = start[:-1]+"-"
-        else:
-            start_rev = start[:-1]+"+"
-
-        end = segments[1]
-        end_rev = ""
-
-        if end.endswith("+"):
-            end_rev = end[:-1]+"-"
-        else:
-            end_rev = end[:-1]+"+"
-
-        new_links = []
-
-        if start in links_map:
-            new_links.extend(list(links_map[start]))
-        if start_rev in links_map:
-            new_links.extend(list(links_map[start_rev]))
-        if end in links_map:
-            new_links.extend(list(links_map[end]))
-        if end_rev in links_map:
-            new_links.extend(list(links_map[end_rev]))
-
-        for new_link in new_links:
-            if new_link in segment_contigs:
-                for contig in segment_contigs[new_link]:
-                    if i!=contigs_map_rev[int(contig)]:
-                        # Add edge to list of edges
-                        edge_list.append((i,contigs_map_rev[int(contig)]))
+    # Get list of edges
+    edge_list = graph_utils.get_graph_edges_spades(assembly_graph_file, node_count, contigs_map, contigs_map_rev, paths, segment_contigs)
 
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
+    print("Total number of edges in the assembly graph: "+str(len(edge_list)))
+
     assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
 
 except:
     print("Please make sure that the correct path to the assembly graph file is provided.")
     print("Exiting MetaCoAG... Bye...!")
-
-print("Total number of edges in the assembly graph: "+str(len(edge_list)))
-
 
 
 # Get length and coverage of contigs
@@ -233,34 +133,7 @@ print("Total number of edges in the assembly graph: "+str(len(edge_list)))
 
 print("\nObtaining lengths and coverage values of contigs...")
 
-coverages = {}
-
-contig_lengths = {}
-
-i = 0
-
-seqs = []
-
-for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-    
-    start = 'NODE_'
-    end = '_length_'
-    contig_num = contigs_map_rev[int(re.search('%s(.*)%s' % (start, end), record.id).group(1))]
-    
-    start = '_cov_'
-    end = ''
-    coverage = int(float(re.search('%s(.*)%s' % (start, end), record.id).group(1)))
-    
-    start = '_length_'
-    end = '_cov'
-    length = int(re.search('%s(.*)%s' % (start, end), record.id).group(1))
-    
-    coverages[contig_num] = coverage
-    contig_lengths[contig_num] = length
-    
-    seqs.append(str(record.seq))
-    
-    i+=1
+seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file, contigs_map_rev)
 
 
 # Get tetramer composition of contigs
@@ -280,10 +153,10 @@ if os.path.isfile(output_path+"contig_tetramers.txt"):
 
 else:
 
-    kmer_inds_4, kmer_count_len_4 = tetramer_utils.compute_kmer_inds(4)
+    kmer_inds_4, kmer_count_len_4 = feature_utils.compute_kmer_inds(4)
 
     pool = Pool(nthreads)
-    record_tetramers = pool.map(tetramer_utils.count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+    record_tetramers = pool.map(feature_utils.count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
     pool.close()
     
     i=0
@@ -326,7 +199,6 @@ marker_frequencies = marker_gene_utils.count_contigs_with_marker_genes(marker_co
 print("\nDetermining which marker genes to consider...")
 
 my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
-
 my_gene_counts.sort(reverse=True)
 
 
@@ -538,114 +410,14 @@ print("Number of unbinned contigs:", len(unbinned_contigs))
 # Get isolated vertices and components without labels
 #-----------------------------------------------------
 
-isolated=[]
-
-for i in range(node_count):
-    
-    neighbours = assembly_graph.neighbors(i, mode=ALL)
-    
-    if len(neighbours)==0:
-        isolated.append(i)
-
-
-non_isolated = []
-
-for i in range(node_count):
-    
-    if i not in non_isolated and i in binned_contigs:
-
-        component = []
-        component.append(i)
-        length = len(component)
-        neighbours = assembly_graph.neighbors(i, mode=ALL)
-
-        for neighbor in neighbours:
-            if neighbor not in component:
-                component.append(neighbor)
-
-        component = list(set(component))
-
-        while length!= len(component):
-
-            length = len(component)
-
-            for j in component:
-
-                neighbours = assembly_graph.neighbors(j, mode=ALL)
-
-                for neighbor in neighbours:
-                    if neighbor not in component:
-                        component.append(neighbor)
-
-        labelled = False
-        for j in component:
-            if j in binned_contigs:
-                labelled = True
-                break
-
-        if labelled:
-            for j in component:
-                if j not in non_isolated:
-                    non_isolated.append(j)
+isolated = graph_utils.get_isolated(node_count, assembly_graph)
+non_isolated = graph_utils.get_non_isolated(node_count, assembly_graph, binned_contigs)
 
 print("\nNumber of non-isolated contigs:", len(non_isolated))
 
 non_isolated_unbinned = list(set(non_isolated).intersection(set(unbinned_contigs)))
 
 print("Number of non-isolated unbinned contigs:", len(non_isolated_unbinned))
-
-
-# The BFS function to search labelled nodes
-#-----------------------------------------------------
-
-def runBFS(node, threhold=depth):
-    queue = []
-    visited = set()
-    queue.append(node)
-    depth = {}
-    
-    depth[node] = 0
-    
-    labelled_nodes = set()
-    
-    while (len(queue) > 0):
-        active_node = queue.pop(0)
-        visited.add(active_node)
-        
-        if active_node in binned_contigs and len(visited) > 1:
-            
-            # Get the bin of the current contig
-            contig_bin = bin_of_contig[active_node]
-            
-            tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[node], tetramer_profiles[active_node])
-                                
-            prob_comp = matching_utils.get_comp_probability(tetramer_dist)
-            prob_cov = matching_utils.get_cov_probability(coverages[node], coverages[active_node])
-            
-            if contig_lengths[node] >= min_length and contig_lengths[active_node] >= min_length:
-                if prob_cov!=0.0 and prob_comp!=0.0:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], -(math.log(prob_cov, 10)), -math.log(prob_comp, 10)))
-                elif prob_cov==0.0 and prob_comp!=0.0:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], max_weight, -math.log(prob_comp, 10)))
-                elif prob_cov!=0.0 and prob_comp==0.0:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], -math.log(prob_cov, 10), max_weight))
-                else:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], max_weight, max_weight))
-            else:
-                if prob_cov!=0.0:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], -math.log(prob_cov, 10), max_weight))
-                else:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], max_weight, max_weight))
-                
-        else:
-            for neighbour in assembly_graph.neighbors(active_node, mode=ALL):
-                if neighbour not in visited:
-                    depth[neighbour] = depth[active_node] + 1
-                    if depth[neighbour] > threhold:
-                        continue
-                    queue.append(neighbour)
-                    
-    return labelled_nodes
 
 
 # Propagate labels to unlabelled vertices
@@ -655,14 +427,7 @@ print("\nPropagating labels to unlabelled vertices...")
 
 # Initialise progress bar
 pbar = tqdm(total=len(non_isolated_unbinned))
-
-class DataWrap:
-    def __init__(self, data):
-        self.data = data
-        
-    def __lt__(self, other):
-        return (self.data[3], self.data[4], self.data[5])  < (other.data[3], other.data[4], other.data[5]) 
-    
+   
 contigs_to_bin = set()
 
 for contig in binned_contigs:
@@ -672,11 +437,11 @@ for contig in binned_contigs:
 
 
 sorted_node_list = []
-sorted_node_list_ = [list(runBFS(x, threhold=depth)) for x in contigs_to_bin]
+sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
 for data in sorted_node_list_:
-    heapObj = DataWrap(data)
+    heapObj = label_prop_utils.DataWrap(data)
     heapq.heappush(sorted_node_list, heapObj)
 
 
@@ -701,9 +466,9 @@ while sorted_node_list:
         heapq.heapify(sorted_node_list)
     
         for n in unbinned_neighbours:
-            candidates = list(runBFS(n, threhold=depth))
+            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths))
             for c in candidates:
-                heapq.heappush(sorted_node_list, DataWrap(c))
+                heapq.heappush(sorted_node_list, label_prop_utils.DataWrap(c))
 
 # Close progress bar
 pbar.close()
@@ -738,56 +503,11 @@ with open(output_file, mode='w') as output_file:
 
 print("\nPropagating labels to remaining unlabelled vertices...")
 
-def assign(contig):
-
-    if contig_lengths[contig] >= min_length:
-
-        min_log_prob = max_weight
-        min_log_prob_bin = -1
-
-        for b in range(len(bins)):
-            
-            log_prob_final = 0
-            log_prob_sum = 0
-            n_contigs = 0
-
-            for j in range(len(bins[b])):
-
-                if contig_lengths[bins[b][j]] >= min_length:
-
-                    tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[contig], tetramer_profiles[bins[b][j]])
-                    prob_comp = matching_utils.get_comp_probability(tetramer_dist)
-                    prob_cov = matching_utils.get_cov_probability(coverages[contig], coverages[bins[b][j]])
-
-                    prob_product = prob_comp * prob_cov
-
-                    log_prob = 0
-
-                    if prob_product!=0.0:
-                        log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
-                    else:
-                        log_prob = max_weight
-
-                    log_prob_sum += log_prob
-                    n_contigs += 1
-
-            if log_prob_sum != float("inf") and n_contigs!=0:
-                log_prob_final = log_prob_sum/n_contigs
-            else:
-                log_prob_final = max_weight
-
-            if min_log_prob > log_prob_final:
-                min_log_prob = log_prob_final
-                min_log_prob_bin = b
-
-        if min_log_prob_bin !=-1:
-            return contig, min_log_prob_bin
-
-    return None
-
-
 with Pool(nthreads) as p:
-    assigned = list(tqdm(p.imap(assign, unbinned_contigs), total=len(unbinned_contigs)))
+    assigned = list(tqdm(p.starmap(label_prop_utils.assign, 
+                                zip(unbinned_contigs, repeat(min_length), 
+                                    repeat(tetramer_profiles), repeat(coverages),
+                                    repeat(contig_lengths), repeat(bins))), total=len(unbinned_contigs)))
 
 put_to_bins = list(filter(lambda x: x is not None, assigned))
 

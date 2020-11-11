@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import re
 import itertools
+
+from Bio import SeqIO
 
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 nt_bits = {'A':0,'C':1,'G':2,'T':3}
@@ -51,3 +54,37 @@ def count_kmers(args):
     profile = profile/max(1, sum(profile))
     
     return profile
+
+
+def get_cov_len_spades(contigs_file, contigs_map_rev):
+
+    coverages = {}
+
+    contig_lengths = {}
+
+    i = 0
+
+    seqs = []
+
+    for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
+        
+        start = 'NODE_'
+        end = '_length_'
+        contig_num = contigs_map_rev[int(re.search('%s(.*)%s' % (start, end), record.id).group(1))]
+        
+        start = '_cov_'
+        end = ''
+        coverage = int(float(re.search('%s(.*)%s' % (start, end), record.id).group(1)))
+        
+        start = '_length_'
+        end = '_cov'
+        length = int(re.search('%s(.*)%s' % (start, end), record.id).group(1))
+        
+        coverages[contig_num] = coverage
+        contig_lengths[contig_num] = length
+        
+        seqs.append(str(record.seq))
+        
+        i+=1
+    
+    return seqs, coverages, contig_lengths
