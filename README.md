@@ -175,14 +175,16 @@ python evaluate.py --binned /path/to/binning_result.csv --groundtruth /path/to/g
 
 [10] Mallawaarachchi, V., Wickramarachchi, A., Lin, Y.: GraphBin: Refined binning ofmetagenomic contigs using assembly graphs. Bioinformatics 36(11), 3307-3313, (03 2020)
 
-[11] Myers,  E.W.:  The  fragment  assembly  string  graph.  Bioinformatics 21(suppl2),ii79–ii85 (09 2005)
+[11] Mallawaarachchi, V.G., Wickramarachchi, A.S., Lin, Y.: GraphBin2: Refined andOverlapped Binning of Metagenomic Contigs Using Assembly Graphs. In: Kings-ford, C., Pisanti, N. (eds.) 20th International Workshop on Algorithms in Bioinfor-matics (WABI 2020). Leibniz International Proceedings in Informatics (LIPIcs),vol. 172, pp. 8:1–8:21. Schloss Dagstuhl–Leibniz-Zentrum f ̈ur Informatik, Dagstuhl,Germany (2020)
 
-[12] [NetworkX: networkx.algorithms.bipartite.matching.minimumweightfullmatching - NetworkX 2.5 documentation](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.minimum_weight_full_matching.html) (2020)
+[12] Myers,  E.W.:  The  fragment  assembly  string  graph.  Bioinformatics 21(suppl2), ii79–ii85 (09 2005)
 
-[13] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a newversatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
+[13] [NetworkX: networkx.algorithms.bipartite.matching.minimumweightfullmatching - NetworkX 2.5 documentation](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.minimum_weight_full_matching.html) (2020)
 
-[14] Strous, M., Kraft, B., Bisdorf, R., Tegetmeyer, H.: The Binning of MetagenomicContigs for Microbial Physiology of Mixed Cultures. Frontiers in Microbiology 3,410 (2012)
+[14] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a newversatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
 
-[15] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning al-gorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
+[15] Strous, M., Kraft, B., Bisdorf, R., Tegetmeyer, H.: The Binning of MetagenomicContigs for Microbial Physiology of Mixed Cultures. Frontiers in Microbiology 3,410 (2012)
 
-[16] Yu, G., Jiang, Y., Wang, J., Zhang, H., Luo, H.: BMC3C: binning metagenomiccontigs using codon usage, sequence composition and read coverage. Bioinformatics 34(24), 4172–4179 (06 2018)
+[16] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning al-gorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
+
+[17] Yu, G., Jiang, Y., Wang, J., Zhang, H., Luo, H.: BMC3C: binning metagenomiccontigs using codon usage, sequence composition and read coverage. Bioinformatics 34(24), 4172–4179 (06 2018)
