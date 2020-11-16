@@ -125,7 +125,7 @@ For the metaSPAdes version, `metacoag` takes in 3 files as inputs (required).
 ## Example Usage
 
 ```
-./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --paths /path/to/paths_file.paths --output /path/to/output_folder
+./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --output /path/to/output_folder
 ```
 
 ## Test Data
