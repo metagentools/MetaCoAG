@@ -23,6 +23,7 @@ from metacoag_utils import marker_gene_utils
 from metacoag_utils import matching_utils
 from metacoag_utils import label_prop_utils
 from metacoag_utils import graph_utils
+from metacoag_utils.label_prop_utils import DataWrap
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
@@ -431,7 +432,7 @@ sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_c
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
 for data in sorted_node_list_:
-    heapObj = label_prop_utils.DataWrap(data)
+    heapObj = DataWrap(data)
     heapq.heappush(sorted_node_list, heapObj)
 
 while sorted_node_list:
@@ -456,7 +457,7 @@ while sorted_node_list:
         for n in unbinned_neighbours:
             candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths))
             for c in candidates:
-                heapq.heappush(sorted_node_list, label_prop_utils.DataWrap(c))
+                heapq.heappush(sorted_node_list, DataWrap(c))
 
 # Close progress bar
 pbar.close()
