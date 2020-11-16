@@ -37,7 +37,7 @@ parser.add_argument("--contigs",
 parser.add_argument("--abundance", 
                     required=False,
                     type=str,
-                    help="path to the abundance file")
+                    help="path to the abundance file (not required for SPAdes)")
 
 parser.add_argument("--paths", 
                     required=False,
