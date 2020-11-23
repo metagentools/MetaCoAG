@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="MetaCoAG_logo.png" width="400" title="MetaCoAG logo" alt="MetaCoAG logo">
+  <img src="MetaCoAG_Logo.png" width="400" title="MetaCoAG logo" alt="MetaCoAG logo">
 </p>
 
 # MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
