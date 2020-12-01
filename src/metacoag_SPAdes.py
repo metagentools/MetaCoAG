@@ -474,7 +474,7 @@ output_bins = []
 
 for contig in bin_of_contig:
     line = []
-    line.append(contig_names[contig])
+    line.append("NODE_"+str(contigs_map[contig]))
     line.append(bin_of_contig[contig]+1)
     output_bins.append(line)
 
@@ -537,7 +537,7 @@ output_bins = []
 
 for contig in bin_of_contig:
     line = []
-    line.append(contig_names[contig])
+    line.append("NODE_"+str(contigs_map[contig]))
     line.append(bin_of_contig[contig]+1)
     output_bins.append(line)
 
