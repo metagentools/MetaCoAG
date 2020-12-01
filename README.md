@@ -121,7 +121,7 @@ optional arguments:
 
 ## Input Format
 
-For the metaSPAdes version, `metacoag` takes in 3 files as inputs (required).
+For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs (required).
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
 * Paths of contigs (in `.paths` format)
