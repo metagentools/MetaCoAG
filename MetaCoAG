@@ -85,6 +85,12 @@ parser.add_argument("--d_limit",
                     default=10, 
                     help="distance limit for contig matching. [default: 10]")
 
+parser.add_argument("--delimiter", 
+                    required=False, 
+                    type=str, 
+                    default=",", 
+                    help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) [default: , (comma)]")
+
 parser.add_argument("--nthreads", 
                     required=False, 
                     type=int, 
@@ -107,6 +113,7 @@ min_length = args["min_length"]
 w_intra = args["w_intra"]
 w_inter = args["w_inter"]
 d_limit = args["d_limit"]
+delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
 
@@ -196,6 +203,14 @@ if d_limit <= 0:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
+# Validate delimiter
+delimiters = [",", ";", " ", "\t", "|"]
+
+if delimiter not in delimiters:
+    print("\nPlease enter a valid delimiter")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
 # Validate number of threads
 if nthreads <= 0:
     print("\nPlease enter a valid number for the number of threads")
@@ -207,7 +222,7 @@ if nthreads <= 0:
 #---------------------------------------------------
 
 if assembler.lower()=="spades":
-    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --output "{4}" --prefix "{5}" --depth "{6}" --min_length "{7}" --w_intra "{8}" --w_inter "{9}" --d_limit "{10}" --nthreads "{11}" """.format(
+    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --output "{4}" --prefix "{5}" --depth "{6}" --min_length "{7}" --w_intra "{8}" --w_inter "{9}" --d_limit "{10}" --delimiter "{11}" --nthreads "{12}" """.format(
         os.path.dirname(__file__), 
         assembly_graph_file,
         contigs,
@@ -219,6 +234,7 @@ if assembler.lower()=="spades":
         w_intra,
         w_inter,
         d_limit,
+        delimiter,
         nthreads)
 
 

@@ -51,6 +51,7 @@ ap.add_argument("--min_length", required=False, type=int, default=1000, help="mi
 ap.add_argument("--w_intra", required=False, type=int, default=2, help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
 ap.add_argument("--w_inter", required=False, type=int, default=80, help="minimum weight of an edge matching to create a new bin. [default: 80]")
 ap.add_argument("--d_limit", required=False, type=int, default=10, help="distance limit for contig matching. [default: 10]")
+ap.add_argument("--delimiter", required=False, type=str, default=",", help="delimiter for output results. [default: , (comma)]")
 ap.add_argument("--nthreads", required=False, type=int, default=8, help="number of threads to use. [default: 8]")
 
 args = vars(ap.parse_args())
@@ -65,6 +66,7 @@ min_length = args["min_length"]
 w_intra = args["w_intra"]
 w_inter = args["w_inter"]
 d_limit = args["d_limit"]
+delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
 n_bins = 0
@@ -481,7 +483,7 @@ for contig in bin_of_contig:
 output_file = output_path + prefix + 'metacoag_intermediate_output.csv'
 
 with open(output_file, mode='w') as output_file:
-    output_writer = csv.writer(output_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer = csv.writer(output_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
     
     for row in output_bins:
         output_writer.writerow(row)
@@ -544,7 +546,7 @@ for contig in bin_of_contig:
 output_file = output_path + prefix + 'metacoag_output.csv'
 
 with open(output_file, mode='w') as output_file:
-    output_writer = csv.writer(output_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    output_writer = csv.writer(output_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
     
     for row in output_bins:
         output_writer.writerow(row)
