@@ -146,7 +146,7 @@ For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs (required).
 
 ## Test Data
 
-Three metaSPAdes datasets used to test MetaCoAG can be found in the `test_data` folder. The test data for each of the datasets include the following files.
+Three metaSPAdes datasets used to test MetaCoAG can be found in the [`test_data`](https://github.com/Vini2/MetaCoAG/tree/master/test_data) folder. The test data for each of the datasets include the following files.
 * Contigs file
 * Assembly graph file
 * Contigs file
