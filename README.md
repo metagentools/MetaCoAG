@@ -85,7 +85,7 @@ usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 [--abundance ABUNDANCE] [--paths PATHS] --output OUTPUT
                 [--prefix PREFIX] [--depth DEPTH] [--min_length MIN_LENGTH]
                 [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
-                [--nthreads NTHREADS]
+                [--delimiter DELIMITER] [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of
 the connectivity information found in assembly graphs, apart from the
@@ -100,7 +100,7 @@ optional arguments:
   --graph GRAPH         path to the assembly graph file
   --contigs CONTIGS     path to the contigs file
   --abundance ABUNDANCE
-                        path to the abundance file
+                        path to the abundance file (not required for SPAdes)
   --paths PATHS         path to the contigs.paths file
   --output OUTPUT       path to the output folder
   --prefix PREFIX       prefix for the output file
@@ -114,10 +114,22 @@ optional arguments:
   --w_inter W_INTER     minimum weight of an edge matching to create a new
                         bin. [default: 80]
   --d_limit D_LIMIT     distance limit for contig matching. [default: 10]
+  --delimiter DELIMITER
+                        delimiter for output results. Supports a comma (,), a
+                        semicolon (;), a tab ($'\t'), a space (" ") and a pipe
+                        (|) [default: , (comma)]
   --nthreads NTHREADS   number of threads to use. [default: 8]
+  -v, --version         show program's version number and exit
 ```
 
 `min_length`, `w_intra`, `w_inter`, `d_limit`, and `nthreads` parameters are set by default to `1000`, `2`, `80`, `10`, and `8` respectively. However, the user can specify them when running MetaCoAG.
+
+You can specify the delimiter for the final binning output file using the `delimiter` paramter. Enter the following values for different delimiters; 
+* `,` for a comma
+* `;` for a semicolon
+* `$'\t'` for a tab
+* `" "` for a space 
+* `|` for a pipe.
 
 ## Input Format
 
