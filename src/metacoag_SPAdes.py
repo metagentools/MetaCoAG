@@ -91,7 +91,8 @@ logger.addHandler(fileHandler)
 logger.info("Welcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs.")
 logger.info("This version of MetaCoAG makes use of the assembly graph produced by SPAdes which is based on the de Bruijn graph approach.")
 
-logger.info("Input arguments: "+contigs_file)
+logger.info("Input arguments:")
+logger.info("Contigs file: "+contigs_file)
 logger.info("Assembly graph file: "+assembly_graph_file)
 logger.info("Contig paths file: "+contig_paths)
 logger.info("Final binning output file: "+output_path)
@@ -111,7 +112,7 @@ start_time = time.time()
 #--------------------------------------------------------
 
 try:
-    paths, segment_contigs, node_count, my_map = graph_utils.get_segment_paths_spades(contig_paths)
+    paths, segment_contigs, node_count, my_map, contig_names = graph_utils.get_segment_paths_spades(contig_paths)
 
 except:
     logger.error("Please make sure that the correct path to the contig paths file is provided.")
@@ -473,7 +474,7 @@ output_bins = []
 
 for contig in bin_of_contig:
     line = []
-    line.append("NODE_"+str(contigs_map[contig]))
+    line.append(contig_names[contig])
     line.append(bin_of_contig[contig]+1)
     output_bins.append(line)
 
@@ -536,7 +537,7 @@ output_bins = []
 
 for contig in bin_of_contig:
     line = []
-    line.append("NODE_"+str(contigs_map[contig]))
+    line.append(contig_names[contig])
     line.append(bin_of_contig[contig]+1)
     output_bins.append(line)
 

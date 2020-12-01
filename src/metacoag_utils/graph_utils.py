@@ -13,6 +13,8 @@ def get_segment_paths_spades(contig_paths):
 
     my_map = BidirectionalMap()
 
+    contig_names = {}
+
     current_contig_num = ""
 
     with open(contig_paths) as file:
@@ -32,6 +34,7 @@ def get_segment_paths_spades(contig_paths):
 
             if current_contig_num != contig_num:
                 my_map[node_count] = int(contig_num)
+                contig_names[node_count] = name.strip()
                 current_contig_num = contig_num
                 node_count += 1
 
@@ -47,7 +50,7 @@ def get_segment_paths_spades(contig_paths):
             name = file.readline()
             path = file.readline()
 
-    return paths, segment_contigs, node_count, my_map
+    return paths, segment_contigs, node_count, my_map, contig_names
 
 
 
