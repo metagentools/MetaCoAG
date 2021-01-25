@@ -43,6 +43,10 @@ Now go in to the MetaCoAG folder using the command
 ```
 cd MetaCoAG/
 ```
+Extract the `auxiliary` folder using the following command.
+```
+unzip auxiliary.zip
+```
 
 ### Setting up the environment
 We recommend that you use [Conda](https://docs.conda.io/en/latest/) to run MetaCoAG. You can download [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which contains Conda.
