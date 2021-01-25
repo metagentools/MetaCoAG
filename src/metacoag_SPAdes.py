@@ -31,7 +31,8 @@ from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 max_weight = sys.float_info.max
 mg_length_threshold = 0.5
-seed_mg_threshold = 0.33333
+seed_mg_threshold = 0.333333
+depth = 1
 
 
 # Setup argument parser
@@ -46,9 +47,8 @@ ap.add_argument("--graph", required=True, help="path to the assembly graph file"
 ap.add_argument("--paths", required=True, help="path to the contigs.paths file")
 ap.add_argument("--output", required=True, help="path to the output folder")
 ap.add_argument("--prefix", required=False, default='', help="prefix for the output file")
-ap.add_argument("--depth", required=False, type=int, default=5, help="maximum depth for the breadth-first-search. [default: 5]")
 ap.add_argument("--min_length", required=False, type=int, default=1000, help="minimum length of contigs to consider for compositional probability. [default: 1000]")
-ap.add_argument("--w_intra", required=False, type=int, default=2, help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
+ap.add_argument("--w_intra", required=False, type=float, default=2, help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
 ap.add_argument("--w_inter", required=False, type=int, default=80, help="minimum weight of an edge matching to create a new bin. [default: 80]")
 ap.add_argument("--d_limit", required=False, type=int, default=10, help="distance limit for contig matching. [default: 10]")
 ap.add_argument("--delimiter", required=False, type=str, default=",", help="delimiter for output results. [default: , (comma)]")
@@ -61,7 +61,6 @@ assembly_graph_file = args["graph"]
 contig_paths = args["paths"]
 output_path = args["output"]
 prefix = args["prefix"]
-depth = args["depth"]
 min_length = args["min_length"]
 w_intra = args["w_intra"]
 w_inter = args["w_inter"]
@@ -166,7 +165,7 @@ seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file,
 
 logger.info("Obtaining tetranucleotide frequencies of contigs")
 
-tetramer_profiles = feature_utils.get_tetramer_profiles(output_path, seqs, nthreads)
+tetramer_profiles, normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(output_path, seqs, nthreads)
 
 
 # Get contigs with marker genes
@@ -292,7 +291,7 @@ for i in range(len(seed_iter)):
 
                     for j in range(n_contigs):
 
-                        tetramer_dist = matching_utils.get_tetramer_distance(tetramer_profiles[contigid], tetramer_profiles[bins[b][j]])
+                        tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid], normalized_tetramer_profiles[bins[b][j]])
                         prob_comp = matching_utils.get_comp_probability(tetramer_dist)
                         prob_cov = matching_utils.get_cov_probability(coverages[contigid], coverages[bins[b][j]])
 
@@ -391,6 +390,26 @@ for b in bins:
     logger.debug(str(b)+ ": "+str(bins[b]))
 
 
+# Write intermediate result to output file
+#-----------------------------------
+
+output_bins = []
+
+for contig in bin_of_contig:
+    line = []
+    line.append("NODE_"+str(contigs_map[contig]))
+    line.append(bin_of_contig[contig]+1)
+    output_bins.append(line)
+
+output_file = output_path + prefix + 'metacoag_seedmg_output.csv'
+
+with open(output_file, mode='w') as output_file:
+    output_writer = csv.writer(output_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    
+    for row in output_bins:
+        output_writer.writerow(row)
+
+
 # Get binned and unbinned contigs
 #-----------------------------------------------------
 
@@ -431,7 +450,7 @@ for contig in binned_contigs:
         contigs_to_bin.update(closest_neighbours)
 
 sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
+sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
 for data in sorted_node_list_:
@@ -440,7 +459,7 @@ for data in sorted_node_list_:
 
 while sorted_node_list:
     best_choice = heapq.heappop(sorted_node_list)    
-    to_bin, binned, bin_, dist, cov_diff, comp_diff = best_choice.data
+    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
     
     if to_bin in unbinned_contigs:
         bins[bin_].append(to_bin)
@@ -458,7 +477,7 @@ while sorted_node_list:
         heapq.heapify(sorted_node_list)
     
         for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, tetramer_profiles, coverages, contig_lengths))
+            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
             for c in candidates:
                 heapq.heappush(sorted_node_list, DataWrap(c))
 
@@ -497,7 +516,7 @@ logger.info("Propagating labels to remaining unlabelled vertices")
 with Pool(nthreads) as p:
     assigned = list(tqdm(p.starmap(label_prop_utils.assign, 
                                 zip(unbinned_contigs, repeat(min_length), 
-                                    repeat(tetramer_profiles), repeat(coverages),
+                                    repeat(tetramer_profiles), repeat(normalized_tetramer_profiles), repeat(coverages),
                                     repeat(contig_lengths), repeat(bins))), total=len(unbinned_contigs)))
 
 put_to_bins = list(filter(lambda x: x is not None, assigned))
@@ -517,6 +536,46 @@ for contig, contig_bin in put_to_bins:
 logger.info("Remaining number of unbinned contigs: "+str(len(unbinned_contigs)))
 logger.info("Total number of binned contigs: "+str(len(binned_contigs)))
 
+
+non_isolated = graph_utils.get_non_isolated(node_count, assembly_graph, binned_contigs)
+
+contigs_to_bin = set()
+
+for contig in binned_contigs:
+    if contig in non_isolated:
+        closest_neighbours = filter(lambda x: x not in binned_contigs, assembly_graph.neighbors(contig, mode=ALL))
+        contigs_to_bin.update(closest_neighbours)
+
+sorted_node_list = []
+sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
+sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
+
+for data in sorted_node_list_:
+    heapObj = DataWrap(data)
+    heapq.heappush(sorted_node_list, heapObj)
+
+while sorted_node_list:
+    best_choice = heapq.heappop(sorted_node_list)    
+    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+    
+    if to_bin in unbinned_contigs:
+        bins[bin_].append(to_bin)
+        bin_of_contig[to_bin] = bin_
+        binned_contigs.append(to_bin)
+        unbinned_contigs.remove(to_bin)
+        
+        # Discover to_bin's neighbours
+        unbinned_neighbours = set(filter(lambda x: x not in binned_contigs, assembly_graph.neighbors(to_bin, mode=ALL)))
+        sorted_node_list = list(filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
+        heapq.heapify(sorted_node_list)
+    
+        for n in unbinned_neighbours:
+            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
+            for c in candidates:
+                heapq.heappush(sorted_node_list, DataWrap(c))
+
+logger.info("Remaining number of unbinned contigs: "+str(len(unbinned_contigs)))
+logger.info("Total number of binned contigs: "+str(len(binned_contigs)))
 
 # Get elapsed time
 #-----------------------------------
