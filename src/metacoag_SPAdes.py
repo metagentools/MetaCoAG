@@ -10,6 +10,7 @@ import os
 import math
 import networkx as nx
 import logging
+import numpy as np
 
 from multiprocessing import Pool
 from Bio import SeqIO
@@ -513,11 +514,28 @@ with open(output_file, mode='w') as output_file:
 
 logger.info("Propagating labels to remaining unlabelled vertices")
 
+# Obtain tetramer profiles of contigs in bins
+bin_tetramer_profiles = {}
+
+for b in range(len(bins)):
+    n_contigs = 0
+
+    bin_tetramer_profile = np.zeros(len(tetramer_profiles[0]))
+
+    for j in range(len(bins[b])):
+
+        if contig_lengths[bins[b][j]] >= min_length:
+
+            bin_tetramer_profile = np.add(bin_tetramer_profile, np.array(tetramer_profiles[bins[b][j]]))
+            n_contigs += 1
+
+    bin_tetramer_profiles[b] = bin_tetramer_profile/max(1, sum(bin_tetramer_profile))
+
+# Assign contigs
 with Pool(nthreads) as p:
     assigned = list(tqdm(p.starmap(label_prop_utils.assign, 
-                                zip(unbinned_contigs, repeat(min_length), 
-                                    repeat(tetramer_profiles), repeat(normalized_tetramer_profiles), repeat(coverages),
-                                    repeat(contig_lengths), repeat(bins))), total=len(unbinned_contigs)))
+                                zip(unbinned_contigs, repeat(min_length), repeat(contig_lengths), repeat(normalized_tetramer_profiles),
+                                    repeat(bin_tetramer_profiles), repeat(len(bins)))), total=len(unbinned_contigs)))
 
 put_to_bins = list(filter(lambda x: x is not None, assigned))
 
