@@ -21,7 +21,9 @@ def get_tetramer_distance(seq1, seq2):
 
 
 def get_comp_probability(tetramer_dist):
-    return normpdf(tetramer_dist, mu_intra, sigma_intra)/(normpdf(tetramer_dist, mu_intra, sigma_intra)+normpdf(tetramer_dist, mu_inter, sigma_inter))
+    gaus_intra = normpdf(tetramer_dist, mu_intra, sigma_intra)
+    gaus_inter = normpdf(tetramer_dist, mu_inter, sigma_inter)
+    return gaus_intra/(gaus_intra+gaus_inter)
 
 
 def get_cov_probability(cov1, cov2):

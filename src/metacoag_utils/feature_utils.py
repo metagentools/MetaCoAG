@@ -17,7 +17,7 @@ def get_rc(seq):
 
 
 def mer2bits(kmer):
-    bit_mer=nt_bits[kmer[0]]
+    bit_mer = nt_bits[kmer[0]]
     for c in kmer[1:]:
         bit_mer = (bit_mer << 2) | nt_bits[c]
     return bit_mer
@@ -63,37 +63,39 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
     tetramer_profiles = {}
     normalized_tetramer_profiles = {}
 
-    if os.path.isfile(output_path+"contig_tetramers.txt") and os.path.isfile(output_path+"normalized_contig_tetramers.txt"):
-        i=0
+    if os.path.isfile(output_path+"contig_tetramers.txt") and 
+            os.path.isfile(output_path+"normalized_contig_tetramers.txt"):
+        i = 0
         with open(output_path+"contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
                 f_list = [float(i) for i in line.split(" ") if i.strip()]
                 tetramer_profiles[i] = f_list
-                i+=1
+                i += 1
 
-        i=0
+        i = 0
         with open(output_path+"normalized_contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
                 f_list = [float(i) for i in line.split(" ") if i.strip()]
                 normalized_tetramer_profiles[i] = f_list
-                i+=1
+                i += 1
 
     else:
 
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
 
         pool = Pool(nthreads)
-        record_tetramers = pool.map(count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+        record_tetramers = pool.map(count_kmers, 
+                                    [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
         unnormalized = [x[0] for x in record_tetramers]
         
-        i=0
+        i = 0
 
         for l in range(len(unnormalized)):
             tetramer_profiles[i] = unnormalized[l]
-            i+=1
+            i += 1
         
         with open(output_path+"contig_tetramers.txt", "w+") as myfile:
             for l in range(len(unnormalized)):
@@ -101,11 +103,11 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
                     myfile.write(str(unnormalized[l][j])+" ")
                 myfile.write("\n")
 
-        i=0
+        i = 0
 
         for l in range(len(normalized)):
             normalized_tetramer_profiles[i] = normalized[l]
-            i+=1
+            i += 1
         
         with open(output_path+"normalized_contig_tetramers.txt", "w+") as myfile:
             for l in range(len(normalized)):
@@ -145,6 +147,6 @@ def get_cov_len_spades(contigs_file, contigs_map_rev):
         
         seqs.append(str(record.seq))
         
-        i+=1
+        i += 1
     
     return seqs, coverages, contig_lengths

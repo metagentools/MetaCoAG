@@ -54,7 +54,9 @@ def get_segment_paths_spades(contig_paths):
 
 
 
-def get_graph_edges_spades(assembly_graph_file, node_count, contigs_map, contigs_map_rev, paths, segment_contigs):
+def get_graph_edges_spades(
+        assembly_graph_file, node_count, contigs_map, 
+        contigs_map_rev, paths, segment_contigs):
 
     links = []
     links_map = defaultdict(set)
@@ -110,7 +112,7 @@ def get_graph_edges_spades(assembly_graph_file, node_count, contigs_map, contigs
         for new_link in new_links:
             if new_link in segment_contigs:
                 for contig in segment_contigs[new_link]:
-                    if i!=contigs_map_rev[int(contig)]:
+                    if i != contigs_map_rev[int(contig)]:
                         # Add edge to list of edges
                         edge_list.append((i,contigs_map_rev[int(contig)]))
 
