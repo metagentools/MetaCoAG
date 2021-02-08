@@ -174,7 +174,8 @@ for i in bins_1:
         bins_species[bins_1[i]][ground_truth_bins_1[i]] += 1
 
 
-print("Number of contigs available in the binning result that are present in the ground truth:", total_binned, ground_truth_count, (ground_truth_count-total_binned))
+print("Number of contigs available in the binning result that are present in the ground truth:", 
+      total_binned, ground_truth_count, (ground_truth_count-total_binned))
 
 print()
 print("KxS Matrix:")

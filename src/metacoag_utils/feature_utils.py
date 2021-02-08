@@ -9,7 +9,7 @@ from Bio import SeqIO
 from multiprocessing import Pool
 
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
-nt_bits = {'A':0,'C':1,'G':2,'T':3}
+nt_bits = {'A':0, 'C':1, 'G':2, 'T':3}
 
 def get_rc(seq):
     rev = reversed(seq)
