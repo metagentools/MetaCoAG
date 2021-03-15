@@ -48,6 +48,7 @@ def get_contigs_with_marker_genes(contigs_file, mg_length_threshold):
 
     marker_contigs = {}
     marker_contig_counts = {}
+    contig_markers = {}
 
     with open(contigs_file+".hmmout", "r") as myfile:
         for line in myfile.readlines():
@@ -66,6 +67,11 @@ def get_contigs_with_marker_genes(contigs_file, mg_length_threshold):
                 
                 if mapped_marker_length > marker_gene_length*mg_length_threshold:
                     
+                    if contig_num not in contig_markers:
+                        contig_markers[contig_num] = [marker_gene]
+                    else:
+                        contig_markers[contig_num].append(marker_gene)
+                        
                     if marker_gene not in marker_contigs:
                         marker_contigs[marker_gene] = [contig_num]
                     else:
@@ -76,7 +82,7 @@ def get_contigs_with_marker_genes(contigs_file, mg_length_threshold):
                     else:
                         marker_contig_counts[marker_gene] += 1
     
-    return marker_contigs, marker_contig_counts
+    return marker_contigs, marker_contig_counts, contig_markers
 
 
 def count_contigs_with_marker_genes(marker_contig_counts):

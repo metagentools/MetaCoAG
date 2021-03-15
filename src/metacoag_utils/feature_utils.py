@@ -63,8 +63,7 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
     tetramer_profiles = {}
     normalized_tetramer_profiles = {}
 
-    if os.path.isfile(output_path+"contig_tetramers.txt") and 
-            os.path.isfile(output_path+"normalized_contig_tetramers.txt"):
+    if os.path.isfile(output_path+"contig_tetramers.txt") and os.path.isfile(output_path+"normalized_contig_tetramers.txt"):
         i = 0
         with open(output_path+"contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
@@ -84,8 +83,7 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
 
         pool = Pool(nthreads)
-        record_tetramers = pool.map(count_kmers, 
-                                    [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+        record_tetramers = pool.map(count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
