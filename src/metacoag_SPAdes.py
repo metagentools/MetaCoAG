@@ -198,11 +198,36 @@ logger.info("Determining seed marker genes")
 my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
 my_gene_counts.sort(reverse=True)
 
+# Get the marker genes with maximum count and sort them by the total contig length
+total_mg_contig_lengths = {}
+
+for item in marker_contig_counts:
+
+    if marker_contig_counts[item] == my_gene_counts[0]:
+
+        total_contig_lengths = 0
+
+        for contig in marker_contigs[item]:
+            start = 'NODE_'
+            end = ''
+            contig_num = int(re.search('%s(.*)%s' % (start, end), contig).group(1))
+
+            length = contig_lengths[contig_num]
+            total_contig_lengths += length
+
+        total_mg_contig_lengths[item] = total_contig_lengths
+
+total_mg_contig_lengths_sorted = sorted(total_mg_contig_lengths.items(),key=operator.itemgetter(1),reverse=True)
+
 # Get contigs containing each marker gene for each iteration
 seed_iter = {}
 
 n = 0
-for i in range(len(my_gene_counts)):
+for item in total_mg_contig_lengths_sorted:
+    seed_iter[n] = marker_contigs[item[0]]
+    n += 1
+
+for i in range(1,len(my_gene_counts)):
     for item in marker_contig_counts:
         if marker_contig_counts[item] == my_gene_counts[i]:
             seed_iter[n] = marker_contigs[item]
@@ -240,7 +265,7 @@ logger.debug("Initialised bins:")
 logger.debug(bins)
 
 
-# Assign to bins
+# Assign contigs with marker genes to bins
 #-----------------------------------------------------
 
 edge_weights_per_iteration = {}
@@ -397,8 +422,8 @@ for i in range(len(seed_iter)):
                         bin_of_contig[nb] = n_bins
                         binned_contigs.append(nb)
                         
-                        n_bins += 1
                         bin_markers[n_bins] = contig_markers["NODE_"+str(contigs_map[nb])]
+                        n_bins += 1
                         binned_contigs_with_markers.append("NODE_"+str(contigs_map[nb]))
 
 logger.debug("Bins with contigs containing seed marker genes")
@@ -408,7 +433,7 @@ for b in bins:
 
 
 # Write intermediate result to output file
-#-----------------------------------
+#------------------------------------------
 
 output_bins = []
 
@@ -426,6 +451,117 @@ with open(output_file, mode='w') as output_file:
     for row in output_bins:
         output_writer.writerow(row)
 
+
+# Further assign contigs with seed marker genes
+#-------------------------------------------------
+
+unbinned_mg_contigs = list(set(contig_markers.keys()) - set(binned_contigs_with_markers))
+
+unbinned_mg_contig_lengths = {}
+
+for contig in unbinned_mg_contigs:
+    start = 'NODE_'
+    end = ''
+    contig_num = int(re.search('%s(.*)%s' % (start, end), contig).group(1))
+
+    unbinned_mg_contig_lengths[contig] = contig_lengths[contig_num]
+
+unbinned_mg_contig_lengths_sorted = sorted(unbinned_mg_contig_lengths.items(),key=operator.itemgetter(1),reverse=True)
+
+unbinned_contig_possible_bins = {}
+
+for contig in unbinned_mg_contig_lengths_sorted:
+
+    if contig[1] >= min_length:
+
+        possible_bins = []
+
+        for b in bin_markers:
+            common_mgs = list(set(bin_markers[b]).intersection(set(contig_markers[contig[0]])))
+            if len(common_mgs) == 0:
+                possible_bins.append(b)
+
+        if len(possible_bins) != 0:
+
+            start = 'NODE_'
+            end = ''
+            contig_num = int(re.search('%s(.*)%s' % (start, end), contig[0]).group(1))
+
+            contigid = contigs_map_rev[contig_num]
+
+            bin_weights = []
+
+            bin_path_lens = []
+
+            for b in possible_bins:
+        
+                log_prob_sum = 0
+                n_contigs = len(bins[b])
+
+                path_len_sum = 0
+
+                for j in range(n_contigs):
+
+                    tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid], 
+                                                                            normalized_tetramer_profiles[bins[b][j]])
+                    prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+                    prob_cov = matching_utils.get_cov_probability(coverages[contigid], coverages[bins[b][j]])
+
+                    prob_product = prob_comp * prob_cov
+
+                    log_prob = 0
+
+                    if prob_product != 0.0:
+                        log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
+                    else:
+                        log_prob = max_weight
+
+                    log_prob_sum += log_prob
+
+                    shortest_paths = assembly_graph.get_shortest_paths(contigid, to=bins[b][j])
+                                
+                    if len(shortest_paths) != 0:
+                        path_len_sum += len(shortest_paths[0])
+
+                if path_len_sum != 0:
+                    bin_path_lens.append(path_len_sum/len(bins[b]))
+                else:
+                    bin_path_lens.append(max_weight)
+
+                if log_prob_sum != float("inf"):
+                    bin_weights.append(log_prob_sum/n_contigs)
+                else:
+                    bin_weights.append(max_weight)
+
+            min_b_index = -1
+            min_dist_index = -1
+
+            min_b_index, min_b_value = min(enumerate(bin_weights), key=operator.itemgetter(1))
+            min_dist_index, min_dist_value = min(enumerate(bin_path_lens), key=operator.itemgetter(1))
+
+            if len(assembly_graph.neighbors(contigid)) != 0:
+                    
+                if min_b_index != -1 and min_dist_index != -1 and min_b_value <= w_intra:
+                    bins[possible_bins[min_b_index]].append(contigid)
+                    bin_of_contig[contigid] = possible_bins[min_b_index]
+
+                    bin_markers[possible_bins[min_b_index]] = list(set(bin_markers[possible_bins[min_b_index]] + contig_markers["NODE_"+str(contigs_map[contigid])]))
+                    
+                    binned_contigs.append(contigid)
+
+                    # print(contig, min_b_index, possible_bins[min_b_index], min_b_value, bin_weights, bin_path_lens, "\n")
+
+            else:
+                if min_b_index != -1 and min_b_value <= w_intra:
+                    bins[possible_bins[min_b_index]].append(contigid)
+                    bin_of_contig[contigid] = possible_bins[min_b_index]
+
+                    bin_markers[possible_bins[min_b_index]] = list(set(bin_markers[possible_bins[min_b_index]] + contig_markers["NODE_"+str(contigs_map[contigid])]))
+                    
+                    binned_contigs.append(contigid)
+
+                    # print(contig, min_b_index, possible_bins[min_b_index], min_b_value, bin_weights, bin_path_lens, "\n")
+        
 
 # Get binned and unbinned contigs
 #-----------------------------------------------------
