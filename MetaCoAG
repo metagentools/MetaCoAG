@@ -35,9 +35,9 @@ parser.add_argument("--contigs",
                     help="path to the contigs file")
 
 parser.add_argument("--abundance", 
-                    required=False,
+                    required=True,
                     type=str,
-                    help="path to the abundance file (not required for SPAdes)")
+                    help="path to the abundance file")
 
 parser.add_argument("--paths", 
                     required=False,
@@ -143,8 +143,8 @@ if assembler.lower()=="spades" and not os.path.isfile(contig_paths):
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Check if abundance file is provided when the assembler type is MEGAHIT
-if assembler.lower() == "megahit" and abundance is None:
+# Check if abundance file is provided
+if abundance is None:
     print("\nPlease make sure to provide the path to the abundance file.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
@@ -209,11 +209,12 @@ if nthreads <= 0:
 #---------------------------------------------------
 
 if assembler.lower()=="spades":
-    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --output "{4}" --prefix "{5}" --min_length "{6}" --w_intra "{7}" --w_inter "{8}" --d_limit "{9}" --delimiter "{10}" --nthreads "{11}" """.format(
+    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --abundance "{4}" --output "{5}" --prefix "{6}" --min_length "{7}" --w_intra "{8}" --w_inter "{9}" --d_limit "{10}" --delimiter "{11}" --nthreads "{12}" """.format(
         os.path.dirname(__file__), 
         assembly_graph_file,
         contigs,
-        contig_paths, 
+        contig_paths,
+        abundance,
         output_path,
         prefix,
         min_length,

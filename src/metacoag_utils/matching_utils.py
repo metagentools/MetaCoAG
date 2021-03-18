@@ -27,4 +27,10 @@ def get_comp_probability(tetramer_dist):
 
 
 def get_cov_probability(cov1, cov2):
-    return poisson.pmf(cov1, cov2)
+
+    poisson_prod = 1
+
+    for i in range(len(cov1)):
+        poisson_prod = poisson_prod * poisson.pmf(cov1[i], cov2[i])
+    
+    return poisson_prod

@@ -116,7 +116,7 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
     return tetramer_profiles, normalized_tetramer_profiles
 
 
-def get_cov_len_spades(contigs_file, contigs_map_rev):
+def get_cov_len_spades(contigs_file, contigs_map_rev, abundance_file):
 
     coverages = {}
 
@@ -132,19 +132,28 @@ def get_cov_len_spades(contigs_file, contigs_map_rev):
         end = '_length_'
         contig_num = contigs_map_rev[int(re.search('%s(.*)%s' % (start, end), record.id).group(1))]
         
-        start = '_cov_'
-        end = ''
-        coverage = int(float(re.search('%s(.*)%s' % (start, end), record.id).group(1)))
+        length = len(record.seq)
         
-        start = '_length_'
-        end = '_cov'
-        length = int(re.search('%s(.*)%s' % (start, end), record.id).group(1))
-        
-        coverages[contig_num] = coverage
         contig_lengths[contig_num] = length
         
         seqs.append(str(record.seq))
         
         i += 1
+
+    with open(abundance_file, "r") as my_abundance:
+        for line in my_abundance:
+            strings = line.strip().split("\t")
+            
+            start = 'NODE_'
+            end = '_length_'
+            contig_num = contigs_map_rev[int(re.search('%s(.*)%s' % (start, end), strings[0]).group(1))]
+
+            for i in range(1, len(strings)):
+
+                if contig_num not in coverages:
+                    coverages[contig_num] = [int(strings[i])]
+                else:
+                    coverages[contig_num].append(int(strings[i]))
+
     
     return seqs, coverages, contig_lengths

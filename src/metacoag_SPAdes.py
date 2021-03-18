@@ -47,6 +47,7 @@ MetaCoAG makes use of single-copy marker genes along with a graph matching techn
 ap.add_argument("--contigs", required=True, help="path to the contigs file")
 ap.add_argument("--graph", required=True, help="path to the assembly graph file")
 ap.add_argument("--paths", required=True, help="path to the contigs.paths file")
+ap.add_argument("--abundance", required=True, help="path to the abundance file")
 ap.add_argument("--output", required=True, help="path to the output folder")
 ap.add_argument("--prefix", required=False, default='', help="prefix for the output file")
 ap.add_argument("--min_length", required=False, type=int, default=1000, help="minimum length of contigs to consider for compositional probability. [default: 1000]")
@@ -60,7 +61,8 @@ args = vars(ap.parse_args())
 
 contigs_file = args["contigs"]
 assembly_graph_file = args["graph"]
-contig_paths = args["paths"]
+contig_paths_file = args["paths"]
+abundance_file = args["abundance"]
 output_path = args["output"]
 prefix = args["prefix"]
 min_length = args["min_length"]
@@ -97,7 +99,7 @@ logger.info("This version of MetaCoAG makes use of the assembly graph produced b
 logger.info("Input arguments:")
 logger.info("Contigs file: "+contigs_file)
 logger.info("Assembly graph file: "+assembly_graph_file)
-logger.info("Contig paths file: "+contig_paths)
+logger.info("Contig paths file: "+contig_paths_file)
 logger.info("Final binning output file: "+output_path)
 logger.info("Minimum length of contigs to consider for compositional probability: "+str(min_length))
 logger.info("Depth: "+str(depth))
@@ -115,7 +117,7 @@ start_time = time.time()
 #--------------------------------------------------------
 
 try:
-    paths, segment_contigs, node_count, my_map, contig_names = graph_utils.get_segment_paths_spades(contig_paths)
+    paths, segment_contigs, node_count, my_map, contig_names = graph_utils.get_segment_paths_spades(contig_paths_file)
 
 except:
     logger.error("Please make sure that the correct path to the contig paths file is provided.")
@@ -160,7 +162,7 @@ except:
 
 logger.info("Obtaining lengths and coverage values of contigs")
 
-seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file, contigs_map_rev)
+seqs, coverages, contig_lengths = feature_utils.get_cov_len_spades(contigs_file, contigs_map_rev, abundance_file)
 
 
 # Get tetramer composition of contigs
