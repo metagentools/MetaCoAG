@@ -12,13 +12,14 @@ import networkx as nx
 import logging
 import numpy as np
 import operator
+import gc
 
 from multiprocessing import Pool
 from Bio import SeqIO
 from igraph import *
 from collections import defaultdict
 from tqdm import tqdm
-from itertools import repeat
+from functools import partial
 
 from metacoag_utils import feature_utils
 from metacoag_utils import marker_gene_utils
@@ -189,8 +190,6 @@ logger.info("Obtaining contigs with single-copy marker genes")
 
 marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(contigs_file, mg_length_threshold)
 
-marker_frequencies = marker_gene_utils.count_contigs_with_marker_genes(marker_contig_counts)
-
 
 # Get marker gene counts to make bins
 #-----------------------------------------------------
@@ -241,7 +240,6 @@ for i in range(1,len(my_gene_counts)):
 
 bins = {}
 bin_of_contig = {}
-binned_contigs = []
 bin_markers = {}
 
 binned_contigs_with_markers = []
@@ -257,7 +255,6 @@ for i in range(len(seed_iter[0])):
     
     bins[i] = [contigs_map_rev[contig_num]]
     bin_of_contig[contigs_map_rev[contig_num]] = i
-    binned_contigs.append(contigs_map_rev[contig_num])
 
     bin_markers[i] = contig_markers[seed_iter[0][i]]
 
@@ -286,8 +283,6 @@ for i in range(len(seed_iter)):
         
         to_bin = list(set(seed_iter[i]) - common)
         
-        my_seeds = []
-        
         n_bins = len(bins)
         
         bottom_nodes = []
@@ -301,8 +296,6 @@ for i in range(len(seed_iter)):
         edges = []
         
         if len(to_bin) != 0:
-
-            n_bins = len(bins)
         
             for contig in to_bin:
 
@@ -314,8 +307,6 @@ for i in range(len(seed_iter)):
 
                 if contigid not in top_nodes:
                     top_nodes.append(contigid)
-
-                my_seeds.append(contigid)
 
                 for b in range(n_bins):
 
@@ -365,8 +356,6 @@ for i in range(len(seed_iter)):
 
             not_binned = {}
 
-            matched_in_seed_iter = []
-
             for l in my_matching:
 
                 if l in bin_of_contig:
@@ -391,9 +380,7 @@ for i in range(len(seed_iter)):
 
                                 bins[b].append(my_matching[l])
                                 bin_of_contig[my_matching[l]] = b
-                                matched_in_seed_iter.append(my_matching[l])
                                 binned_contigs_with_markers.append("NODE_"+str(contigs_map[my_matching[l]]))
-                                binned_contigs.append(my_matching[l])
                                 
                                 bin_markers[b] = list(set(bin_markers[b] + contig_markers["NODE_"+str(contigs_map[my_matching[l]])]))
 
@@ -422,7 +409,6 @@ for i in range(len(seed_iter)):
                         logger.debug("Creating new bin...")
                         bins[n_bins] = [nb]
                         bin_of_contig[nb] = n_bins
-                        binned_contigs.append(nb)
                         
                         bin_markers[n_bins] = contig_markers["NODE_"+str(contigs_map[nb])]
                         n_bins += 1
@@ -432,6 +418,26 @@ logger.debug("Bins with contigs containing seed marker genes")
 
 for b in bins:
     logger.debug(str(b)+ ": "+str(bins[b]))
+
+
+if len(seed_iter) > 0:
+    del edge_weights_per_iteration
+    del B
+    del my_matching
+    del not_binned
+    del edge_weights
+    del common
+    del to_bin
+    del top_nodes
+    del bottom_nodes
+    del edges
+
+del seed_iter
+del my_gene_counts
+del marker_contigs
+del marker_contig_counts
+del total_mg_contig_lengths
+gc.collect()
 
 
 # Write intermediate result to output file
@@ -470,7 +476,6 @@ for contig in unbinned_mg_contigs:
 
 unbinned_mg_contig_lengths_sorted = sorted(unbinned_mg_contig_lengths.items(),key=operator.itemgetter(1),reverse=True)
 
-unbinned_contig_possible_bins = {}
 
 for contig in unbinned_mg_contig_lengths_sorted:
 
@@ -548,10 +553,6 @@ for contig in unbinned_mg_contig_lengths_sorted:
                     bin_of_contig[contigid] = possible_bins[min_b_index]
 
                     bin_markers[possible_bins[min_b_index]] = list(set(bin_markers[possible_bins[min_b_index]] + contig_markers["NODE_"+str(contigs_map[contigid])]))
-                    
-                    binned_contigs.append(contigid)
-
-                    # print(contig, min_b_index, possible_bins[min_b_index], min_b_value, bin_weights, bin_path_lens, "\n")
 
             else:
                 if min_b_index != -1 and min_b_value <= w_intra:
@@ -559,11 +560,16 @@ for contig in unbinned_mg_contig_lengths_sorted:
                     bin_of_contig[contigid] = possible_bins[min_b_index]
 
                     bin_markers[possible_bins[min_b_index]] = list(set(bin_markers[possible_bins[min_b_index]] + contig_markers["NODE_"+str(contigs_map[contigid])]))
-                    
-                    binned_contigs.append(contigid)
-
-                    # print(contig, min_b_index, possible_bins[min_b_index], min_b_value, bin_weights, bin_path_lens, "\n")
         
+
+del contig_markers
+del bin_markers
+del binned_contigs_with_markers
+del unbinned_mg_contigs
+del unbinned_mg_contig_lengths
+del unbinned_mg_contig_lengths_sorted
+gc.collect()
+
 
 # Get binned and unbinned contigs
 #-----------------------------------------------------
@@ -674,26 +680,28 @@ logger.info("Propagating labels to remaining unlabelled vertices")
 bin_tetramer_profiles = {}
 
 for b in range(len(bins)):
-    n_contigs = 0
 
     bin_tetramer_profile = np.zeros(len(tetramer_profiles[0]))
 
     for j in range(len(bins[b])):
 
         if contig_lengths[bins[b][j]] >= min_length:
-
             bin_tetramer_profile = np.add(bin_tetramer_profile, np.array(tetramer_profiles[bins[b][j]]))
-            n_contigs += 1
 
     bin_tetramer_profiles[b] = bin_tetramer_profile/max(1, sum(bin_tetramer_profile))
 
 # Assign contigs
 with Pool(nthreads) as p:
-    assigned = list(tqdm(p.starmap(label_prop_utils.assign, 
-                                   zip(unbinned_contigs, repeat(min_length), repeat(contig_lengths), 
-                                   repeat(normalized_tetramer_profiles), repeat(bin_tetramer_profiles), 
-                                   repeat(len(bins)))), 
-                    total=len(unbinned_contigs)))
+
+    assigned = p.map(partial(label_prop_utils.assign, min_length=min_length, contig_lengths=contig_lengths, 
+                             normalized_tetramer_profiles=normalized_tetramer_profiles, 
+                             bin_tetramer_profiles=bin_tetramer_profiles, n_bins=len(bins)), unbinned_contigs)
+
+p.close()
+p.join()
+
+del bin_tetramer_profiles
+gc.collect()
 
 put_to_bins = list(filter(lambda x: x is not None, assigned))
 
@@ -763,10 +771,6 @@ elapsed_time = time.time() - start_time
 
 # Print elapsed time for the process
 logger.info("Elapsed time: "+str(elapsed_time)+" seconds")
-
-# Sort contigs in bins
-for i in range(n_bins):
-    bins[i].sort()
 
 
 # Write result to output file

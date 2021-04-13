@@ -67,14 +67,14 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
         i = 0
         with open(output_path+"contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
-                f_list = [float(i) for i in line.split(" ") if i.strip()]
+                f_list = np.array([float(i) for i in line.split(" ") if i.strip()])
                 tetramer_profiles[i] = f_list
                 i += 1
 
         i = 0
         with open(output_path+"normalized_contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
-                f_list = [float(i) for i in line.split(" ") if i.strip()]
+                f_list = np.array([float(i) for i in line.split(" ") if i.strip()])
                 normalized_tetramer_profiles[i] = f_list
                 i += 1
 
