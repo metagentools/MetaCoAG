@@ -32,10 +32,10 @@ from metacoag_utils.bidirectionalmap import BidirectionalMap
 # Set paramters
 #---------------------------------------------------
 
-max_weight = sys.float_info.max
-mg_length_threshold = 0.5
-seed_mg_threshold = 0.333333
-depth = 1
+MAX_WEIGHT = sys.float_info.max
+MG_LENGTH_THRESHOLD = 0.5
+SEED_MG_THRESHOLD = 0.333333
+DEPTH = 1
 
 
 # Setup argument parser
@@ -103,7 +103,7 @@ logger.info("Assembly graph file: "+assembly_graph_file)
 logger.info("Contig paths file: "+contig_paths_file)
 logger.info("Final binning output file: "+output_path)
 logger.info("Minimum length of contigs to consider for compositional probability: "+str(min_length))
-logger.info("Depth: "+str(depth))
+logger.info("Depth: "+str(DEPTH))
 logger.info("w_intra: "+str(w_intra))
 logger.info("w_inter: "+str(w_inter))
 logger.info("d_limit: "+str(d_limit))
@@ -188,7 +188,7 @@ else:
 
 logger.info("Obtaining contigs with single-copy marker genes")
 
-marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(contigs_file, mg_length_threshold)
+marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(contigs_file, MG_LENGTH_THRESHOLD)
 
 
 # Get marker gene counts to make bins
@@ -196,7 +196,7 @@ marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_con
 
 logger.info("Determining seed marker genes")
 
-my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, seed_mg_threshold)
+my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(marker_contig_counts, SEED_MG_THRESHOLD)
 my_gene_counts.sort(reverse=True)
 
 # Get the marker genes with maximum count and sort them by the total contig length
@@ -274,6 +274,7 @@ logger.info("Matching and assigning contigs with marker genes to bins")
 for i in range(len(seed_iter)):
     
     logger.debug("Iteration "+str(i)+": "+str(len(seed_iter[i]))+" contigs")
+    # print("\nIteration "+str(i)+": "+str(len(seed_iter[i]))+" contigs")
     
     if i>0:
         
@@ -327,14 +328,14 @@ for i in range(len(seed_iter)):
                         if prob_product != 0.0:
                             log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
                         else:
-                            log_prob = max_weight
+                            log_prob = MAX_WEIGHT
 
                         log_prob_sum += log_prob
 
                     if log_prob_sum != float("inf"):
                         edges.append((bins[b][0], contigid, log_prob_sum/n_contigs))
                     else:
-                        edges.append((bins[b][0], contigid, max_weight))
+                        edges.append((bins[b][0], contigid, MAX_WEIGHT))
 
             B.add_nodes_from(top_nodes, bipartite=0)
             B.add_nodes_from(bottom_nodes, bipartite=1)
@@ -373,6 +374,8 @@ for i in range(len(seed_iter)):
                                 path_len_sum += len(shortest_paths[0])
 
                         avg_path_len = path_len_sum/len(bins[b])
+
+                        # print(l, my_matching[l], edge_weights[(l, my_matching[l])], avg_path_len)
                                                
                         if edge_weights[(l, my_matching[l])] <= w_intra and math.floor(avg_path_len) <= d_limit:
                             
@@ -521,7 +524,7 @@ for contig in unbinned_mg_contig_lengths_sorted:
                     if prob_product != 0.0:
                         log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
                     else:
-                        log_prob = max_weight
+                        log_prob = MAX_WEIGHT
 
                     log_prob_sum += log_prob
 
@@ -533,12 +536,12 @@ for contig in unbinned_mg_contig_lengths_sorted:
                 if path_len_sum != 0:
                     bin_path_lens.append(path_len_sum/len(bins[b]))
                 else:
-                    bin_path_lens.append(max_weight)
+                    bin_path_lens.append(MAX_WEIGHT)
 
                 if log_prob_sum != float("inf"):
                     bin_weights.append(log_prob_sum/n_contigs)
                 else:
-                    bin_weights.append(max_weight)
+                    bin_weights.append(MAX_WEIGHT)
 
             min_b_index = -1
             min_dist_index = -1
@@ -612,7 +615,7 @@ for contig in binned_contigs:
         contigs_to_bin.update(closest_neighbours)
 
 sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, 
+sorted_node_list_ = [list(label_prop_utils.runBFS(x, DEPTH, min_length, binned_contigs, bin_of_contig, 
                                                   assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
@@ -639,7 +642,7 @@ while sorted_node_list:
         heapq.heapify(sorted_node_list)
     
         for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, 
+            candidates = list(label_prop_utils.runBFS(n, DEPTH, min_length, binned_contigs, bin_of_contig, 
                                                       assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
             for c in candidates:
                 heapq.heappush(sorted_node_list, DataWrap(c))
@@ -731,7 +734,7 @@ for contig in binned_contigs:
         contigs_to_bin.update(closest_neighbours)
 
 sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFS(x, depth, min_length, binned_contigs, bin_of_contig, 
+sorted_node_list_ = [list(label_prop_utils.runBFS(x, DEPTH, min_length, binned_contigs, bin_of_contig, 
                                                   assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
 sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
@@ -755,7 +758,7 @@ while sorted_node_list:
         heapq.heapify(sorted_node_list)
     
         for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFS(n, depth, min_length, binned_contigs, bin_of_contig, 
+            candidates = list(label_prop_utils.runBFS(n, DEPTH, min_length, binned_contigs, bin_of_contig, 
                                                       assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
             for c in candidates:
                 heapq.heappush(sorted_node_list, DataWrap(c))

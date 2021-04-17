@@ -151,9 +151,9 @@ def get_cov_len_spades(contigs_file, contigs_map_rev, abundance_file):
             for i in range(1, len(strings)):
 
                 if contig_num not in coverages:
-                    coverages[contig_num] = [int(strings[i])]
+                    coverages[contig_num] = [float(strings[i])]
                 else:
-                    coverages[contig_num].append(int(strings[i]))
+                    coverages[contig_num].append(float(strings[i]))
 
     
     return seqs, coverages, contig_lengths
