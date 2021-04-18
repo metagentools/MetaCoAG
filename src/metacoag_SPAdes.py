@@ -13,6 +13,7 @@ import logging
 import numpy as np
 import operator
 import gc
+import subprocess
 
 from multiprocessing import Pool
 from Bio import SeqIO
@@ -779,23 +780,20 @@ logger.info("Elapsed time: "+str(elapsed_time)+" seconds")
 # Write result to output file
 #-----------------------------------
 
-output_bins = []
+output_bins_path = output_path + prefix + "bins/"
 
-for contig in bin_of_contig:
-    line = []
-    line.append("NODE_"+str(contigs_map[contig]))
-    line.append(bin_of_contig[contig]+1)
-    output_bins.append(line)
+if not os.path.isdir(output_bins_path):
+    subprocess.run("mkdir -p "+output_bins_path, shell=True)
 
-output_file = output_path + prefix + 'metacoag_output.csv'
+for b in range(len(bins)):
 
-with open(output_file, mode='w') as output_file:
-    output_writer = csv.writer(output_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    
-    for row in output_bins:
-        output_writer.writerow(row)
+    with open(output_bins_path + "bin_" + str(b+1) + "_ids.txt", "w") as bin_file:
+        for contig in bins[b]:
+            bin_file.write(contig_names[contig]+"\n")
 
-logger.info("Final binning results can be found at "+str(output_file.name))
+    subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(b+1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" +str(b+1) +"_seqs.fasta", shell=True)
+
+logger.info("Final binning results can be found in "+str(output_bins_path))
 
 
 # Exit program
