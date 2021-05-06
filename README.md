@@ -8,7 +8,7 @@
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
 ![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
 
-MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coabundance information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG supports binning contigs obtained from both next-generation sequencing (NGS) and third-generation sequencing (TGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and metaFlye.
+MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coabundance information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes.
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
@@ -69,7 +69,7 @@ conda deactivate
 
 ## Preprocessing
 
-Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes for NGS reads or metaFlye for TGS reads as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
+Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
 
 ### metaSPAdes
 [**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
@@ -77,14 +77,6 @@ Firstly, you will have to assemble your set of reads into contigs. For this purp
 ```
 spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 ```
-
-### metaFlye
-[**Flye**](https://github.com/fenderglass/Flye) is a long-read assembler based on the de Bruijn graph approach. [**metaFlye**](https://www.nature.com/articles/s41592-020-00971-x) is the dedicated metagenomic assembler of Flye. Use metaFlye (Flye in metagenomics mode) software to assemble long reads into contigs. A sample command is given below.
-
-```
-flye --meta --pacbio-raw reads.fasta --genome-size estimated_metagenome_size --out-dir /path/output_folder --threads 16
-```
-
 
 Once you have obtained the assembly output, you can run MetaCoAG.
 
