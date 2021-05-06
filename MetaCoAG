@@ -22,7 +22,7 @@ MetaCoAG makes use of single-copy marker genes along with a graph matching techn
 parser.add_argument("--assembler",
                     required=True,
                     type=str,
-                    help="name of the assembler used. (Supports SPAdes and Flye)")
+                    help="name of the assembler used. (Supports SPAdes, MEGAHIT and Flye)")
 
 parser.add_argument("--graph",
                     required=True,
