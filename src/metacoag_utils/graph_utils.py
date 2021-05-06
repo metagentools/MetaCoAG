@@ -5,6 +5,7 @@ import re
 from collections import defaultdict
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
+
 def get_segment_paths_spades(contig_paths):
 
     paths = {}
@@ -13,7 +14,7 @@ def get_segment_paths_spades(contig_paths):
 
     my_map = BidirectionalMap()
 
-    contig_names = {}
+    contig_names = BidirectionalMap()
 
     current_contig_num = ""
 
@@ -28,7 +29,8 @@ def get_segment_paths_spades(contig_paths):
 
             start = 'NODE_'
             end = '_length_'
-            contig_num = str(int(re.search('%s(.*)%s' % (start, end), name).group(1)))
+            contig_num = str(
+                int(re.search('%s(.*)%s' % (start, end), name).group(1)))
 
             segments = path.rstrip().split(",")
 
@@ -53,9 +55,8 @@ def get_segment_paths_spades(contig_paths):
     return paths, segment_contigs, node_count, my_map, contig_names
 
 
-
 def get_graph_edges_spades(
-        assembly_graph_file, node_count, contigs_map, 
+        assembly_graph_file, node_count, contigs_map,
         contigs_map_rev, paths, segment_contigs):
 
     links = []
@@ -114,21 +115,72 @@ def get_graph_edges_spades(
                 for contig in segment_contigs[new_link]:
                     if i != contigs_map_rev[int(contig)]:
                         # Add edge to list of edges
-                        edge_list.append((i,contigs_map_rev[int(contig)]))
+                        edge_list.append((i, contigs_map_rev[int(contig)]))
 
     return edge_list
 
 
+def get_links_flye(assembly_graph_file):
+
+    my_map = BidirectionalMap()
+
+    node_count = 0
+
+    links = []
+
+    # Get contig connections from .gfa file
+    with open(assembly_graph_file) as file:
+        line = file.readline()
+
+        while line != "":
+
+            # Count the number of contigs
+            if "S" in line:
+                strings = line.split("\t")
+                my_node = strings[1]
+                my_map[node_count] = my_node
+                node_count += 1
+
+            # Identify lines with link information
+            elif "L" in line:
+
+                link = []
+                strings = line.split("\t")
+
+                if strings[1] != strings[3]:
+                    start = strings[1]
+                    end = strings[3]
+                    link.append(start)
+                    link.append(end)
+                    links.append(link)
+
+            line = file.readline()
+
+    return node_count, links, my_map
+
+
+def get_graph_edges_flye(links, contig_names_rev):
+
+    edge_list = []
+
+    for link in links:
+        # Remove self loops
+        if link[0] != link[1]:
+            # Add edge to list of edges
+            edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
+
+    return edge_list
+
 
 def get_isolated(node_count, assembly_graph):
-    
-    isolated=[]
+
+    isolated = []
 
     for i in range(node_count):
-        
+
         neighbours = assembly_graph.neighbors(i, mode="ALL")
-        
-        if len(neighbours)==0:
+
+        if len(neighbours) == 0:
             isolated.append(i)
 
     return isolated
@@ -139,7 +191,7 @@ def get_non_isolated(node_count, assembly_graph, binned_contigs):
     non_isolated = []
 
     for i in range(node_count):
-    
+
         if i not in non_isolated and i in binned_contigs:
 
             component = []
@@ -153,7 +205,7 @@ def get_non_isolated(node_count, assembly_graph, binned_contigs):
 
             component = list(set(component))
 
-            while length!= len(component):
+            while length != len(component):
 
                 length = len(component)
 

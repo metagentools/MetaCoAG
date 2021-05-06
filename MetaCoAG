@@ -15,83 +15,90 @@ __maintainer__ = "Vijini Mallawaarachchi"
 __email__ = "vijini.mallawaarachchi@anu.edu.au"
 __status__ = "Prototype"
 
-parser = argparse.ArgumentParser(description="""MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of the 
+parser = argparse.ArgumentParser(description="""MetaCoAG is a metagenomic contig binning tool that makes use of the 
 connectivity information found in assembly graphs, apart from the composition and coverage information. 
 MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs.""")
 
-parser.add_argument("--assembler", 
+parser.add_argument("--assembler",
                     required=True,
                     type=str,
-                    help="name of the assembler used")
+                    help="name of the assembler used. (Supports SPAdes and Flye)")
 
-parser.add_argument("--graph", 
+parser.add_argument("--graph",
                     required=True,
                     type=str,
                     help="path to the assembly graph file")
 
-parser.add_argument("--contigs", 
+parser.add_argument("--contigs",
                     required=True,
                     type=str,
                     help="path to the contigs file")
 
-parser.add_argument("--abundance", 
+parser.add_argument("--abundance",
                     required=True,
                     type=str,
                     help="path to the abundance file")
 
-parser.add_argument("--paths", 
+parser.add_argument("--paths",
                     required=False,
                     type=str,
                     help="path to the contigs.paths file")
 
-parser.add_argument("--output", 
+parser.add_argument("--output",
                     required=True,
                     type=str,
                     help="path to the output folder")
 
-parser.add_argument("--prefix", 
+parser.add_argument("--prefix",
                     required=False,
                     type=str,
                     default='',
                     help="prefix for the output file")
 
-parser.add_argument("--min_length", 
-                    required=False, 
-                    type=int, 
-                    default=1000, 
-                    help="minimum length of contigs to consider for compositional probability. [default: 1000]")
+parser.add_argument("--min_length",
+                    required=False,
+                    type=int,
+                    default=1000,
+                    help="minimum length of contigs to consider for binning. [default: 1000]")
 
-parser.add_argument("--w_intra", 
-                    required=False, 
-                    type=float, 
-                    default=2, 
+parser.add_argument("--w_intra",
+                    required=False,
+                    type=float,
+                    default=2,
                     help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
 
-parser.add_argument("--w_inter", 
-                    required=False, 
-                    type=int, 
-                    default=80, 
+parser.add_argument("--w_inter",
+                    required=False,
+                    type=int,
+                    default=80,
                     help="minimum weight of an edge matching to create a new bin. [default: 80]")
 
-parser.add_argument("--d_limit", 
-                    required=False, 
-                    type=int, 
-                    default=10, 
+parser.add_argument("--depth",
+                    required=False,
+                    type=int,
+                    default=10,
+                    help="depth to consider for label propagation. [default: 10]")
+
+parser.add_argument("--d_limit",
+                    required=False,
+                    type=int,
+                    default=10,
                     help="distance limit for contig matching. [default: 10]")
 
-parser.add_argument("--delimiter", 
-                    required=False, 
-                    type=str, 
-                    default=",", 
+parser.add_argument("--delimiter",
+                    required=False,
+                    type=str,
+                    default=",",
                     help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) [default: , (comma)]")
 
-parser.add_argument("--nthreads", 
-                    required=False, 
-                    type=int, 
-                    default=8, 
+parser.add_argument("--nthreads",
+                    required=False,
+                    type=int,
+                    default=8,
                     help="number of threads to use. [default: 8]")
 
-parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__)
+parser.add_argument('-v', '--version', action='version',
+                    version='%(prog)s ' + __version__)
 
 args = vars(parser.parse_args())
 
@@ -105,16 +112,17 @@ prefix = args["prefix"]
 min_length = args["min_length"]
 w_intra = args["w_intra"]
 w_inter = args["w_inter"]
+depth = args["depth"]
 d_limit = args["d_limit"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
 
 # Validation of inputs
-#---------------------------------------------------
+# ---------------------------------------------------
 
 # Check assembler name
-if not (assembler.lower() == "spades"):
+if not (assembler.lower() == "spades" or assembler.lower() == "flye"):
     print("\nPlease make sure to provide the correct assembler type.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
@@ -132,13 +140,13 @@ if not os.path.isfile(contigs):
     sys.exit(1)
 
 # Check if paths file is provided when the assembler type is SPAdes
-if assembler.lower()=="spades" and contig_paths is None:
+if assembler.lower() == "spades" and contig_paths is None:
     print("\nPlease make sure to provide the path to the contigs.paths file.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
 # Check contigs.paths file for SPAdes
-if assembler.lower()=="spades" and not os.path.isfile(contig_paths):
+if assembler.lower() == "spades" and not os.path.isfile(contig_paths):
     print("\nFailed to open the contigs.paths file.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
@@ -184,6 +192,12 @@ if w_inter <= 0:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
+# Validate depth
+if depth <= 0:
+    print("\nPlease enter a valid number for depth")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
 # Validate d_limit
 if d_limit <= 0:
     print("\nPlease enter a valid number for d_limit")
@@ -206,23 +220,24 @@ if nthreads <= 0:
 
 
 # Run MetaCoAG
-#---------------------------------------------------
+# ---------------------------------------------------
 
-if assembler.lower()=="spades":
-    cmdMetaCoAG = """python "{0}/src/metacoag_SPAdes.py" --graph "{1}" --contigs "{2}" --paths "{3}" --abundance "{4}" --output "{5}" --prefix "{6}" --min_length "{7}" --w_intra "{8}" --w_inter "{9}" --d_limit "{10}" --delimiter "{11}" --nthreads "{12}" """.format(
-        os.path.dirname(__file__), 
-        assembly_graph_file,
-        contigs,
-        contig_paths,
-        abundance,
-        output_path,
-        prefix,
-        min_length,
-        w_intra,
-        w_inter,
-        d_limit,
-        delimiter,
-        nthreads)
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --depth "{12}" --delimiter "{13}" --nthreads "{14}" """.format(
+    os.path.dirname(__file__),
+    assembler.lower(),
+    assembly_graph_file,
+    contigs,
+    contig_paths,
+    abundance,
+    output_path,
+    prefix,
+    min_length,
+    w_intra,
+    w_inter,
+    depth,
+    d_limit,
+    delimiter,
+    nthreads)
 
 
 os.system(cmdMetaCoAG)
