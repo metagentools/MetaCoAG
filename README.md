@@ -8,7 +8,7 @@
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
 ![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
 
-MetaCoAG is a metagenomic contig binning tool that makes use of theconnectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs.
+MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG supports binning contigs obtained from both next-generation sequencing (NGS) and third-generation sequencing (TGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and metaFlye.
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
@@ -69,7 +69,7 @@ conda deactivate
 
 ## Preprocessing
 
-Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes as MetaCoAG currently supports assembly graphs produced from the metaSPAdes assembler. Support for other assemblers will be added in future.
+Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes for NGS reads or metaFlye for TGS reads as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
 
 ### metaSPAdes
 [**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
@@ -77,6 +77,14 @@ Firstly, you will have to assemble your set of reads into contigs. For this purp
 ```
 spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 ```
+
+### metaFlye
+[**Flye**](https://github.com/fenderglass/Flye) is a long-read assembler based on the de Bruijn graph approach. [**metaFlye**](https://www.nature.com/articles/s41592-020-00971-x) is the dedicated metagenomic assembler of Flye. Use metaFlye (Flye in metagenomics mode) software to assemble long reads into contigs. A sample command is given below.
+
+```
+flye --meta --pacbio-raw reads.fasta --genome-size estimated_metagenome_size --out-dir /path/output_folder --threads 16
+```
+
 
 Once you have obtained the assembly output, you can run MetaCoAG.
 
@@ -135,40 +143,15 @@ You can specify the delimiter for the final binning output file using the `delim
 
 ## Input Format
 
-For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs (required).
+For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs.
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
-* Paths of contigs (in `.paths` format)
+* Abundance file with coverage of each contig in each sample
 
 ## Example Usage
 
 ```
 ./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --output /path/to/output_folder
-```
-
-## Test Data
-
-Three metaSPAdes datasets used to test MetaCoAG can be found in the [`test_data`](https://github.com/Vini2/MetaCoAG/tree/master/test_data) folder. The test data for each of the datasets include the following files.
-* Contigs file
-* Assembly graph file
-* Contigs file
-* Paths file for the assembly graph
-* Initial binning result from [MaxBin 2.0](https://sourceforge.net/projects/maxbin2/)
-* Initial binning result from [MetaWatt](https://sourceforge.net/p/metawatt/wiki/Home/)
-* Initial binning result from [CONCOCT](https://concoct.readthedocs.io/en/latest/)
-* Initial binning result from [MetaBAT 2](https://bitbucket.org/berkeleylab/metabat/src/master/)
-* Initial binning result from [SolidBin](https://github.com/sufforest/SolidBin)
-* Initial binning result from [BusyBee Web](https://ccb-microbe.cs.uni-saarland.de/busybee/) (Not available for metaSPAdes assemblies)
-* Ground truth labelling of contigs
-
-You can try running MetaCoAG using these test data files.
-
-## Support Scripts
-
-MetaCoAG provides the evaluation script [`evaluate.py`](https://github.com/Vini2/MetaCoAG/blob/master/evaluation_scripts/evaluate.py) to evaluate binning results against a known ground truth.
-
-```
-python evaluate.py --binned /path/to/binning_result.csv --groundtruth /path/to/ground_truth.csv
 ```
 
 ## References
