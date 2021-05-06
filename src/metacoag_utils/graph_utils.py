@@ -172,6 +172,65 @@ def get_graph_edges_flye(links, contig_names_rev):
     return edge_list
 
 
+def get_links_megahit(assembly_graph_file):
+
+    node_count = 0
+
+    graph_contigs = {}
+
+    links = []
+
+    my_map = BidirectionalMap()
+
+    # Get links from .gfa file
+    with open(assembly_graph_file) as file:
+
+        line = file.readline()
+
+        while line != "":
+
+            # Identify lines with link information
+            if line.startswith("L"):
+                link = []
+
+                strings = line.split("\t")
+
+                link1 = strings[1]
+                link2 = strings[3]
+
+                link.append(link1)
+                link.append(link2)
+                links.append(link)
+
+            elif line.startswith("S"):
+                strings = line.split()
+
+                my_map[node_count] = strings[1]
+
+                graph_contigs[strings[1]] = strings[2]
+
+                node_count += 1
+
+            line = file.readline()
+
+    return node_count, graph_contigs, links, my_map
+
+
+def get_graph_edges_megahit(links, contig_names_rev):
+
+    edge_list = []
+
+    # Iterate links
+    for link in links:
+        # Remove self loops
+        # print("Link-----------", link[0], link[1])
+        if link[0] != link[1]:
+            # Add edge to list of edges
+            edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
+    
+    return edge_list
+
+
 def get_isolated(node_count, assembly_graph):
 
     isolated = []

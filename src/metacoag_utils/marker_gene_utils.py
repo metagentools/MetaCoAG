@@ -92,6 +92,51 @@ def get_contigs_with_marker_genes(contigs_file, contig_names_rev, mg_length_thre
     return marker_contigs, marker_contig_counts, contig_markers
 
 
+def get_contigs_with_marker_genes_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, mg_length_threshold, contig_lengths, min_length):
+
+    marker_contigs = {}
+    marker_contig_counts = {}
+    contig_markers = {}
+
+    with open(contigs_file+".hmmout", "r") as myfile:
+        for line in myfile.readlines():
+            if not line.startswith("#"):
+                strings = line.strip().split()
+
+                contig = strings[0]
+                marker_gene = strings[3]
+                marker_gene_length = int(strings[5])
+
+                mapped_marker_length = int(strings[16]) - int(strings[15])
+
+                name_strings = contig.split("_")
+                name_strings = name_strings[:len(name_strings)-3]
+
+                contig_name = "_".join(name_strings)
+
+                contig_num = contig_names_rev[graph_to_contig_map_rev[contig_name]]
+                contig_length = contig_lengths[contig_num]
+
+                if contig_length >= min_length and mapped_marker_length > marker_gene_length*mg_length_threshold:
+
+                    if contig_num not in contig_markers:
+                        contig_markers[contig_num] = [marker_gene]
+                    else:
+                        contig_markers[contig_num].append(marker_gene)
+
+                    if marker_gene not in marker_contigs:
+                        marker_contigs[marker_gene] = [contig_num]
+                    else:
+                        marker_contigs[marker_gene].append(contig_num)
+
+                    if marker_gene not in marker_contig_counts:
+                        marker_contig_counts[marker_gene] = 1
+                    else:
+                        marker_contig_counts[marker_gene] += 1
+
+    return marker_contigs, marker_contig_counts, contig_markers
+
+
 def count_contigs_with_marker_genes(marker_contig_counts):
 
     marker_frequencies = {}

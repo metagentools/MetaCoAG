@@ -143,6 +143,19 @@ try:
         contigs_map_rev = contigs_map.inverse
         contig_names_rev = contig_names.inverse
 
+    if assembler == "megahit":
+
+        original_contigs = {}
+        contig_descriptions = {}
+
+        for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
+            original_contigs[record.id] = str(record.seq)
+            contig_descriptions[record.id] = record.description
+
+        node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(assembly_graph_file)
+
+        contig_names_rev = contig_names.inverse
+
     if assembler == "flye":
         node_count, links, contig_names = graph_utils.get_links_flye(assembly_graph_file)
         contig_names_rev = contig_names.inverse
@@ -177,6 +190,9 @@ try:
     if assembler == "flye":
         edge_list = graph_utils.get_graph_edges_flye(links, contig_names_rev)
 
+    if assembler == "megahit":
+        edge_list = graph_utils.get_graph_edges_megahit(links, contig_names_rev)
+
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
     logger.info("Total number of edges in the assembly graph: " +
@@ -190,13 +206,32 @@ except:
     logger.info("Exiting MetaCoAG... Bye...!")
 
 
+if assembler == "megahit":
+
+    # Map original contig IDs to contig IDS of assembly graph
+    #--------------------------------------------------------
+
+    graph_to_contig_map = BidirectionalMap()    
+
+    for (n,m), (n2,m2) in zip(graph_contigs.items(), original_contigs.items()):
+        if m==m2:
+            graph_to_contig_map[n] = n2
+    
+    graph_to_contig_map_rev = graph_to_contig_map.inverse
+
+
 # Get length and coverage of contigs
 # --------------------------------------------------------
 
 logger.info("Obtaining lengths and coverage values of contigs")
 
-seqs, coverages, contig_lengths, zero_cov_contigs = feature_utils.get_cov_len(
-    contigs_file, contig_names_rev, abundance_file)
+if assembler == "megahit":
+    seqs, coverages, contig_lengths, zero_cov_contigs = feature_utils.get_cov_len_megahit(
+        contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file)
+
+else:
+    seqs, coverages, contig_lengths, zero_cov_contigs = feature_utils.get_cov_len(
+        contigs_file, contig_names_rev, abundance_file)
 
 
 # Get tetramer composition of contigs
@@ -222,8 +257,13 @@ else:
 
 logger.info("Obtaining contigs with single-copy marker genes")
 
-marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(
-    contigs_file, contig_names_rev, MG_LENGTH_THRESHOLD, contig_lengths, min_length)
+if assembler == "megahit":
+    marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes_megahit(
+        contigs_file, contig_names_rev, graph_to_contig_map_rev, MG_LENGTH_THRESHOLD, contig_lengths, min_length)
+
+else:
+    marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(
+        contigs_file, contig_names_rev, MG_LENGTH_THRESHOLD, contig_lengths, min_length)
 
 
 # Get marker gene counts to make bins
@@ -367,9 +407,7 @@ for i in range(len(seed_iter)):
                             log_prob = 0
 
                             if prob_product != 0.0:
-                                log_prob = - \
-                                    (math.log(prob_comp, 10) +
-                                     math.log(prob_cov, 10))
+                                log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
                             else:
                                 log_prob = MAX_WEIGHT
 
@@ -397,77 +435,79 @@ for i in range(len(seed_iter)):
                 data=True) if d['bipartite'] == 0}
             bottom_nodes = set(B) - top_nodes
 
-            my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(
-                B, top_nodes, "weight")
 
-            not_binned = {}
+            if len(top_nodes) > 0:
 
-            for l in my_matching:
+                my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(B, top_nodes, "weight")
 
-                if l in bin_of_contig:
+                not_binned = {}
 
-                    b = bin_of_contig[l]
+                for l in my_matching:
 
-                    if my_matching[l] not in bins[b] and (l, my_matching[l]) in edge_weights:
+                    if l in bin_of_contig:
 
-                        path_len_sum = 0
+                        b = bin_of_contig[l]
 
-                        for contig_in_bin in bins[b]:
-                            shortest_paths = assembly_graph.get_shortest_paths(
-                                my_matching[l], to=contig_in_bin)
+                        if my_matching[l] not in bins[b] and (l, my_matching[l]) in edge_weights:
 
-                            if len(shortest_paths) != 0:
-                                path_len_sum += len(shortest_paths[0])
+                            path_len_sum = 0
 
-                        avg_path_len = path_len_sum/len(bins[b])
+                            for contig_in_bin in bins[b]:
+                                shortest_paths = assembly_graph.get_shortest_paths(
+                                    my_matching[l], to=contig_in_bin)
 
-                        logger.debug("Contig with seed MG: " + str(l) + ", Contig to assign: " + str(
-                            my_matching[l]) + ", Weight: " + str(edge_weights[(l, my_matching[l])]))
+                                if len(shortest_paths) != 0:
+                                    path_len_sum += len(shortest_paths[0])
 
-                        if edge_weights[(l, my_matching[l])] <= w_intra and math.floor(avg_path_len) <= d_limit:
+                            avg_path_len = path_len_sum/len(bins[b])
 
-                            if len(set(bin_markers[b]).intersection(set(contig_markers[my_matching[l]]))) == 0:
+                            logger.debug("Contig with seed MG: " + str(l) + ", Contig to assign: " + str(
+                                my_matching[l]) + ", Weight: " + str(edge_weights[(l, my_matching[l])]))
 
-                                bins[b].append(my_matching[l])
-                                bin_of_contig[my_matching[l]] = b
-                                binned_contigs_with_markers.append(
-                                    my_matching[l])
-                                binned_count += 1
+                            if edge_weights[(l, my_matching[l])] <= w_intra and math.floor(avg_path_len) <= d_limit:
 
-                                bin_markers[b] = list(
-                                    set(bin_markers[b] + contig_markers[my_matching[l]]))
+                                if len(set(bin_markers[b]).intersection(set(contig_markers[my_matching[l]]))) == 0:
+
+                                    bins[b].append(my_matching[l])
+                                    bin_of_contig[my_matching[l]] = b
+                                    binned_contigs_with_markers.append(
+                                        my_matching[l])
+                                    binned_count += 1
+
+                                    bin_markers[b] = list(
+                                        set(bin_markers[b] + contig_markers[my_matching[l]]))
+
+                                else:
+                                    not_binned[my_matching[l]] = (l, b)
 
                             else:
                                 not_binned[my_matching[l]] = (l, b)
 
-                        else:
-                            not_binned[my_matching[l]] = (l, b)
+                for nb in not_binned:
 
-            for nb in not_binned:
+                    if edge_weights_per_iteration[i][(not_binned[nb][0], nb)] >= w_inter:
 
-                if edge_weights_per_iteration[i][(not_binned[nb][0], nb)] >= w_inter:
+                        path_len_sum = 0
 
-                    path_len_sum = 0
+                        for contig_in_bin in bins[not_binned[nb][1]]:
 
-                    for contig_in_bin in bins[not_binned[nb][1]]:
+                            shortest_paths = assembly_graph.get_shortest_paths(
+                                nb, to=contig_in_bin)
 
-                        shortest_paths = assembly_graph.get_shortest_paths(
-                            nb, to=contig_in_bin)
+                            if len(shortest_paths) != 0:
+                                path_len_sum += len(shortest_paths[0])
 
-                        if len(shortest_paths) != 0:
-                            path_len_sum += len(shortest_paths[0])
+                        avg_path_len = path_len_sum/len(bins[not_binned[nb][1]])
 
-                    avg_path_len = path_len_sum/len(bins[not_binned[nb][1]])
+                        if math.floor(avg_path_len) >= d_limit:
+                            logger.debug("Creating new bin...")
+                            bins[n_bins] = [nb]
+                            bin_of_contig[nb] = n_bins
+                            binned_count += 1
 
-                    if math.floor(avg_path_len) >= d_limit:
-                        logger.debug("Creating new bin...")
-                        bins[n_bins] = [nb]
-                        bin_of_contig[nb] = n_bins
-                        binned_count += 1
-
-                        bin_markers[n_bins] = contig_markers[nb]
-                        n_bins += 1
-                        binned_contigs_with_markers.append(nb)
+                            bin_markers[n_bins] = contig_markers[nb]
+                            n_bins += 1
+                            binned_contigs_with_markers.append(nb)
 
         logger.debug(str(binned_count)+" contigs binned in the iteration")
 
@@ -862,7 +902,11 @@ for b in range(len(bins)):
 
     with open(output_bins_path + "bin_" + str(b+1) + "_ids.txt", "w") as bin_file:
         for contig in bins[b]:
-            bin_file.write(contig_names[contig]+"\n")
+
+            if assembler == "megahit":
+                bin_file.write(contig_descriptions[graph_to_contig_map[contig_names[contig]]]+"\n")
+            else:
+                bin_file.write(contig_names[contig]+"\n")
 
     subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(
         b+1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b+1) + "_seqs.fasta", shell=True)

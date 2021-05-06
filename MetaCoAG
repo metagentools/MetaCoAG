@@ -122,7 +122,8 @@ nthreads = args["nthreads"]
 # ---------------------------------------------------
 
 # Check assembler name
-if not (assembler.lower() == "spades" or assembler.lower() == "flye"):
+assemblers = ["spades", "megahit", "flye"]
+if assembler.lower() not in assemblers:
     print("\nPlease make sure to provide the correct assembler type.")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
