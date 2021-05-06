@@ -2,13 +2,13 @@
   <img src="MetaCoAG_Logo.png" width="500" title="MetaCoAG logo" alt="MetaCoAG logo">
 </p>
 
-# MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
+# MetaCoAG: Binning Metagenomic Contigs via Composition, Coabundance and Assembly Graphs
 
 ![GitHub](https://img.shields.io/github/license/Vini2/MetaBAG)
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
 ![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
 
-MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG supports binning contigs obtained from both next-generation sequencing (NGS) and third-generation sequencing (TGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and metaFlye.
+MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coabundance information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG supports binning contigs obtained from both next-generation sequencing (NGS) and third-generation sequencing (TGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and metaFlye.
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
@@ -96,8 +96,9 @@ You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the comma
 usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
                 [--prefix PREFIX] [--min_length MIN_LENGTH]
-                [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
-                [--delimiter DELIMITER] [--nthreads NTHREADS] [-v]
+                [--w_intra W_INTRA] [--w_inter W_INTER] [--depth DEPTH]
+                [--d_limit D_LIMIT] [--delimiter DELIMITER]
+                [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the
 connectivity information found in assembly graphs, apart from the composition
@@ -117,12 +118,13 @@ optional arguments:
   --output OUTPUT       path to the output folder
   --prefix PREFIX       prefix for the output file
   --min_length MIN_LENGTH
-                        minimum length of contigs to consider for
-                        compositional probability. [default: 1000]
+                        minimum length of contigs to consider for binning.
+                        [default: 1000]
   --w_intra W_INTRA     maximum weight of an edge matching to assign to the
                         same bin. [default: 2]
   --w_inter W_INTER     minimum weight of an edge matching to create a new
                         bin. [default: 80]
+  --depth DEPTH         depth to consider for label propagation. [default: 10]
   --d_limit D_LIMIT     distance limit for contig matching. [default: 10]
   --delimiter DELIMITER
                         delimiter for output results. Supports a comma (,), a
