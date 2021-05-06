@@ -86,30 +86,28 @@ You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the comma
 
 ```
 usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
-                [--abundance ABUNDANCE] [--paths PATHS] --output OUTPUT
-                [--prefix PREFIX] [--depth DEPTH] [--min_length MIN_LENGTH]
+                --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
+                [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--w_intra W_INTRA] [--w_inter W_INTER] [--d_limit D_LIMIT]
                 [--delimiter DELIMITER] [--nthreads NTHREADS] [-v]
 
-MetaCoAG is a NGS data-based metagenomic contig binning tool that makes use of
-the connectivity information found in assembly graphs, apart from the
-composition and coverage information. MetaCoAG makes use of single-copy marker
-genes along with a graph matching technique and a label propagation technique
-to bin contigs.
+MetaCoAG is a metagenomic contig binning tool that makes use of the
+connectivity information found in assembly graphs, apart from the composition
+and coverage information. MetaCoAG makes use of single-copy marker genes along
+with a graph matching technique and a label propagation technique to bin
+contigs.
 
 optional arguments:
   -h, --help            show this help message and exit
   --assembler ASSEMBLER
-                        name of the assembler used
+                        name of the assembler used. (Supports SPAdes and Flye)
   --graph GRAPH         path to the assembly graph file
   --contigs CONTIGS     path to the contigs file
   --abundance ABUNDANCE
-                        path to the abundance file (not required for SPAdes)
+                        path to the abundance file
   --paths PATHS         path to the contigs.paths file
   --output OUTPUT       path to the output folder
   --prefix PREFIX       prefix for the output file
-  --depth DEPTH         maximum depth for the breadth-first-search. [default:
-                        5]
   --min_length MIN_LENGTH
                         minimum length of contigs to consider for
                         compositional probability. [default: 1000]
