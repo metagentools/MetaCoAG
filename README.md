@@ -8,7 +8,7 @@
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
 ![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
 
-MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coabundance information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes.
+MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coabundance information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and MEGAHIT.
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
@@ -69,13 +69,20 @@ conda deactivate
 
 ## Preprocessing
 
-Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
+Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes and MEGAHIT as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
 
 ### metaSPAdes
 [**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
 
 ```
 spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
+```
+
+### MEGAHIT
+[**MEGAHIT**](https://github.com/voutcn/megahit) is an assembler based on the de Bruijn graph approach. Use MEGAHIT software to assemble reads into contigs. A sample command is given below.
+
+```
+megahit -1 Reads_1.fastq -2 Reads_2.fastq --k-min 21 --k-max 77 -o /path/output_folder -t 8
 ```
 
 Once you have obtained the assembly output, you can run MetaCoAG.
@@ -101,8 +108,8 @@ contigs.
 optional arguments:
   -h, --help            show this help message and exit
   --assembler ASSEMBLER
-                        name of the assembler used. (Supports SPAdes and Flye)
-  --graph GRAPH         path to the assembly graph file
+                        name of the assembler used. (Supports SPAdes, MEGAHIT
+                        and Flye)
   --contigs CONTIGS     path to the contigs file
   --abundance ABUNDANCE
                         path to the abundance file
