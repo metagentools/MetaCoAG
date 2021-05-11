@@ -152,12 +152,14 @@ try:
             original_contigs[record.id] = str(record.seq)
             contig_descriptions[record.id] = record.description
 
-        node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(assembly_graph_file)
+        node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(
+            assembly_graph_file)
 
         contig_names_rev = contig_names.inverse
 
     if assembler == "flye":
-        node_count, links, contig_names = graph_utils.get_links_flye(assembly_graph_file)
+        node_count, links, contig_names = graph_utils.get_links_flye(
+            assembly_graph_file)
         contig_names_rev = contig_names.inverse
 
 except:
@@ -185,13 +187,14 @@ try:
     # Get list of edges
     if assembler == "spades":
         edge_list = graph_utils.get_graph_edges_spades(assembly_graph_file, node_count,
-                                                        contigs_map, contigs_map_rev, paths, segment_contigs)
+                                                       contigs_map, contigs_map_rev, paths, segment_contigs)
 
     if assembler == "flye":
         edge_list = graph_utils.get_graph_edges_flye(links, contig_names_rev)
 
     if assembler == "megahit":
-        edge_list = graph_utils.get_graph_edges_megahit(links, contig_names_rev)
+        edge_list = graph_utils.get_graph_edges_megahit(
+            links, contig_names_rev)
 
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
@@ -209,14 +212,14 @@ except:
 if assembler == "megahit":
 
     # Map original contig IDs to contig IDS of assembly graph
-    #--------------------------------------------------------
+    # --------------------------------------------------------
 
-    graph_to_contig_map = BidirectionalMap()    
+    graph_to_contig_map = BidirectionalMap()
 
-    for (n,m), (n2,m2) in zip(graph_contigs.items(), original_contigs.items()):
-        if m==m2:
+    for (n, m), (n2, m2) in zip(graph_contigs.items(), original_contigs.items()):
+        if m == m2:
             graph_to_contig_map[n] = n2
-    
+
     graph_to_contig_map_rev = graph_to_contig_map.inverse
 
 
@@ -285,11 +288,6 @@ for item in marker_contig_counts:
         total_contig_lengths = 0
 
         for contig in marker_contigs[item]:
-            # start = 'NODE_'
-            # end = ''
-            # contig_num = int(re.search('%s(.*)%s' %
-            #                  (start, end), contig).group(1))
-
             length = contig_lengths[contig]
             total_contig_lengths += length
 
@@ -407,7 +405,9 @@ for i in range(len(seed_iter)):
                             log_prob = 0
 
                             if prob_product != 0.0:
-                                log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
+                                log_prob = - \
+                                    (math.log(prob_comp, 10) +
+                                     math.log(prob_cov, 10))
                             else:
                                 log_prob = MAX_WEIGHT
 
@@ -435,10 +435,10 @@ for i in range(len(seed_iter)):
                 data=True) if d['bipartite'] == 0}
             bottom_nodes = set(B) - top_nodes
 
-
             if len(top_nodes) > 0:
 
-                my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(B, top_nodes, "weight")
+                my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(
+                    B, top_nodes, "weight")
 
                 not_binned = {}
 
@@ -497,7 +497,8 @@ for i in range(len(seed_iter)):
                             if len(shortest_paths) != 0:
                                 path_len_sum += len(shortest_paths[0])
 
-                        avg_path_len = path_len_sum/len(bins[not_binned[nb][1]])
+                        avg_path_len = path_len_sum / \
+                            len(bins[not_binned[nb][1]])
 
                         if math.floor(avg_path_len) >= d_limit:
                             logger.debug("Creating new bin...")
@@ -837,7 +838,7 @@ exec_args = []
 
 for n, contig in enumerate(long_unbinned):
     exec_args.append((n, contig, coverages, normalized_tetramer_profiles,
-                     bins, assembly_graph, w_intra, d_limit))
+                      bins, assembly_graph, w_intra, d_limit))
 
 for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=len(long_unbinned)):
     pass
@@ -904,7 +905,8 @@ for b in range(len(bins)):
         for contig in bins[b]:
 
             if assembler == "megahit":
-                bin_file.write(contig_descriptions[graph_to_contig_map[contig_names[contig]]]+"\n")
+                bin_file.write(
+                    contig_descriptions[graph_to_contig_map[contig_names[contig]]]+"\n")
             else:
                 bin_file.write(contig_names[contig]+"\n")
 

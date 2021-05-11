@@ -223,7 +223,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --depth "{12}" --delimiter "{13}" --nthreads "{14}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --d_limit "{12}" --delimiter "{13}" --nthreads "{14}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
