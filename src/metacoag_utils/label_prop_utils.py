@@ -125,7 +125,7 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
 
     queu_l = [graph.neighbors(node, mode='ALL')]
     visited_l = [node]
-    labelled = []
+    unlabelled = []
 
     while len(queu_l) > 0:
         active_level = queu_l.pop(0)
@@ -135,9 +135,9 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
         for n in active_level:
             if contig_lengths[n] >= min_length and n not in binned_contigs:
                 is_finish = True
-                labelled.append(n)
+                unlabelled.append(n)
         if is_finish:
-            return labelled
+            return unlabelled
         else:
             temp = []
             for n in active_level:
@@ -150,7 +150,7 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
                     temp2.append(n)
             if len(temp2) > 0:
                 queu_l.append(temp2)
-    return labelled
+    return unlabelled
 
 
 def assignLong(

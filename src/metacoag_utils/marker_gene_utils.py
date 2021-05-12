@@ -77,12 +77,14 @@ def get_contigs_with_marker_genes(contigs_file, contig_names_rev, mg_length_thre
                     if contig_num not in contig_markers:
                         contig_markers[contig_num] = [marker_gene]
                     else:
-                        contig_markers[contig_num].append(marker_gene)
+                        if marker_gene not in contig_markers[contig_num]:
+                            contig_markers[contig_num].append(marker_gene)
 
                     if marker_gene not in marker_contigs:
                         marker_contigs[marker_gene] = [contig_num]
                     else:
-                        marker_contigs[marker_gene].append(contig_num)
+                        if contig_num not in marker_contigs[marker_gene]:
+                            marker_contigs[marker_gene].append(contig_num)
 
                     if marker_gene not in marker_contig_counts:
                         marker_contig_counts[marker_gene] = 1

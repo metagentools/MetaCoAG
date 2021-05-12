@@ -85,6 +85,18 @@ parser.add_argument("--d_limit",
                     default=10,
                     help="distance limit for contig matching. [default: 10]")
 
+parser.add_argument("--mg_threshold",
+                    required=False,
+                    type=float,
+                    default=0.3,
+                    help="length threshold to consider marker genes. [default: 0.3]")
+
+parser.add_argument("--seed_threshold",
+                    required=False,
+                    type=float,
+                    default=0.1,
+                    help="threshold to consider contigs with seed marker genes. [default: 0.1]")
+
 parser.add_argument("--delimiter",
                     required=False,
                     type=str,
@@ -114,6 +126,8 @@ w_intra = args["w_intra"]
 w_inter = args["w_inter"]
 depth = args["depth"]
 d_limit = args["d_limit"]
+mg_threshold = args["mg_threshold"]
+seed_threshold = args["seed_threshold"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
@@ -188,6 +202,18 @@ if w_intra <= 0:
     sys.exit(1)
 
 # Validate w_inter
+if mg_threshold <= 0 or mg_threshold > 1:
+    print("\nPlease enter a valid number for mg_threshold")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
+# Validate w_inter
+if seed_threshold <= 0 or seed_threshold > 1:
+    print("\nPlease enter a valid number for seed_threshold")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
+# Validate w_inter
 if w_inter <= 0:
     print("\nPlease enter a valid number for w_inter")
     print("Exiting MetaCoAG...\nBye...!\n")
@@ -223,7 +249,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --d_limit "{12}" --delimiter "{13}" --nthreads "{14}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --mg_threshold "{12}" --seed_threshold "{13}" --d_limit "{14}" --delimiter "{15}" --nthreads "{16}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
@@ -236,6 +262,8 @@ cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2
     w_intra,
     w_inter,
     depth,
+    mg_threshold,
+    seed_threshold,
     d_limit,
     delimiter,
     nthreads)
