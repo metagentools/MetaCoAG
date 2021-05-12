@@ -155,7 +155,7 @@ You can specify the delimiter for the final binning output file using the `delim
 For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs.
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
-* Abundance file with coverage of each contig in each sample
+* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample.
 
 ## Example Usage
 
