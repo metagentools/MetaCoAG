@@ -812,7 +812,7 @@ logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
 
 
 # Propagate labels to vertices of unlabelled long contigs in isolated components
-# -----------------------------------------------------
+# -------------------------------------------------------------------------------
 
 logger.info("Further propagating labels to vertices of unlabelled long contigs")
 
@@ -841,13 +841,13 @@ for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=le
 
 executor.shutdown(wait=True)
 
-put_to_bins = list(filter(lambda x: x is not None, assigned))
+put_to_bins = [x for x in assigned if x is not None]
 
 if len(put_to_bins) == 0:
     logger.info("No further contigs were binned")
 
 # Assign contigs to bins
-for contig, contig_bin in put_to_bins:
+for contig, contig_bin, contig_bin_weight in put_to_bins:
 
     has_mg = False
 

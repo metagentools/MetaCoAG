@@ -49,26 +49,16 @@ def runBFSLong(
             prob_cov = matching_utils.get_cov_probability(
                 coverages[node], coverages[active_node])
 
-            if contig_lengths[node] >= min_length and contig_lengths[active_node] >= min_length:
-                if prob_cov != 0.0 and prob_comp != 0.0:
-                    labelled_nodes.add((node, active_node, contig_bin, depth[active_node], -(
-                        math.log(prob_cov, 10)+math.log(prob_comp, 10))))
-                elif prob_cov == 0.0 and prob_comp != 0.0:
-                    labelled_nodes.add(
-                        (node, active_node, contig_bin, depth[active_node], -math.log(prob_comp, 10)))
-                elif prob_cov != 0.0 and prob_comp == 0.0:
-                    labelled_nodes.add(
-                        (node, active_node, contig_bin, depth[active_node], -math.log(prob_cov, 10)))
-                else:
-                    labelled_nodes.add(
-                        (node, active_node, contig_bin, depth[active_node], MAX_WEIGHT))
+            prob_product = prob_comp * prob_cov
+
+            log_prob = 0
+
+            if prob_product != 0.0:
+                log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
             else:
-                if prob_cov != 0.0:
-                    labelled_nodes.add(
-                        (node, active_node, contig_bin, depth[active_node], -math.log(prob_cov, 10)))
-                else:
-                    labelled_nodes.add(
-                        (node, active_node, contig_bin, depth[active_node], MAX_WEIGHT))
+                log_prob = MAX_WEIGHT
+
+            labelled_nodes.add((node, active_node, contig_bin, depth[active_node], log_prob))
 
         else:
             for neighbour in assembly_graph.neighbors(active_node, mode="ALL"):
@@ -82,43 +72,43 @@ def runBFSLong(
 
 
 # The BFS function to search labelled nodes
-def runBFS(
-        node, threhold, binned_contigs, bin_of_contig,
-        assembly_graph, coverages):
+# def runBFS(
+#         node, threhold, binned_contigs, bin_of_contig,
+#         assembly_graph, coverages):
 
-    queue = []
-    visited = set()
-    queue.append(node)
-    depth = {}
+#     queue = []
+#     visited = set()
+#     queue.append(node)
+#     depth = {}
 
-    depth[node] = 0
+#     depth[node] = 0
 
-    labelled_nodes = set()
+#     labelled_nodes = set()
 
-    while (len(queue) > 0):
-        active_node = queue.pop(0)
-        visited.add(active_node)
+#     while (len(queue) > 0):
+#         active_node = queue.pop(0)
+#         visited.add(active_node)
 
-        if active_node in binned_contigs and len(visited) > 1:
+#         if active_node in binned_contigs and len(visited) > 1:
 
-            # Get the bin of the current contig
-            contig_bin = bin_of_contig[active_node]
+#             # Get the bin of the current contig
+#             contig_bin = bin_of_contig[active_node]
 
-            dist = np.linalg.norm(
-                np. array(coverages[node]) - np. array(coverages[active_node]))
+#             dist = np.linalg.norm(
+#                 np. array(coverages[node]) - np. array(coverages[active_node]))
 
-            labelled_nodes.add(
-                (node, active_node, contig_bin, depth[active_node], dist))
+#             labelled_nodes.add(
+#                 (node, active_node, contig_bin, depth[active_node], dist))
 
-        else:
-            for neighbour in assembly_graph.neighbors(active_node, mode="ALL"):
-                if neighbour not in visited:
-                    depth[neighbour] = depth[active_node] + 1
-                    if depth[neighbour] > threhold:
-                        continue
-                    queue.append(neighbour)
+#         else:
+#             for neighbour in assembly_graph.neighbors(active_node, mode="ALL"):
+#                 if neighbour not in visited:
+#                     depth[neighbour] = depth[active_node] + 1
+#                     if depth[neighbour] > threhold:
+#                         continue
+#                     queue.append(neighbour)
 
-    return labelled_nodes
+#     return labelled_nodes
 
 
 def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_length):
@@ -168,8 +158,6 @@ def assignLong(
         else:
             n_contigs = len(bins[b])
 
-        path_len_sum = 0
-
         for j in range(n_contigs):
 
             tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid],
@@ -180,10 +168,8 @@ def assignLong(
 
             prob_product = prob_comp * prob_cov
 
-            log_prob = 0
-
             if prob_product != 0.0:
-                log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
+                log_prob_sum += - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
             else:
                 log_prob_sum = MAX_WEIGHT
                 break
@@ -194,12 +180,11 @@ def assignLong(
             bin_weights.append(MAX_WEIGHT)
 
     min_b_index = -1
-    min_dist_index = -1
 
     min_b_index, min_b_value = min(
         enumerate(bin_weights), key=operator.itemgetter(1))
 
     if min_b_index != -1 and min_b_value <= w_intra:
-        return contigid, min_b_index
+        return contigid, min_b_index, min_b_value
 
     return None

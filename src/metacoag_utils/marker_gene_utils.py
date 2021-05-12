@@ -47,6 +47,7 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
                      fragResultURL + " does not exist.")
 
 
+# Get contigs containing marker genes
 def get_contigs_with_marker_genes(contigs_file, contig_names_rev, mg_length_threshold, contig_lengths, min_length):
 
     marker_contigs = {}
@@ -59,14 +60,20 @@ def get_contigs_with_marker_genes(contigs_file, contig_names_rev, mg_length_thre
                 strings = line.strip().split()
 
                 contig = strings[0]
+
+                # Marker gene name
                 marker_gene = strings[3]
+
+                # Marker gene length
                 marker_gene_length = int(strings[5])
 
+                # Mapped marker gene length
                 mapped_marker_length = int(strings[16]) - int(strings[15])
 
                 name_strings = contig.split("_")
                 name_strings = name_strings[:len(name_strings)-3]
 
+                # Contig name
                 contig_name = "_".join(name_strings)
 
                 contig_num = contig_names_rev[contig_name]
@@ -74,12 +81,14 @@ def get_contigs_with_marker_genes(contigs_file, contig_names_rev, mg_length_thre
 
                 if contig_length >= min_length and mapped_marker_length > marker_gene_length*mg_length_threshold:
 
+                    # Get marker genes in each contig
                     if contig_num not in contig_markers:
                         contig_markers[contig_num] = [marker_gene]
                     else:
                         if marker_gene not in contig_markers[contig_num]:
                             contig_markers[contig_num].append(marker_gene)
 
+                    # Get contigs containing each marker gene
                     if marker_gene not in marker_contigs:
                         marker_contigs[marker_gene] = [contig_num]
 
