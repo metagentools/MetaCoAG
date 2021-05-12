@@ -96,7 +96,8 @@ usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
                 [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--w_intra W_INTRA] [--w_inter W_INTER] [--depth DEPTH]
-                [--d_limit D_LIMIT] [--delimiter DELIMITER]
+                [--d_limit D_LIMIT] [--mg_threshold MG_THRESHOLD]
+                [--seed_threshold SEED_THRESHOLD] [--delimiter DELIMITER]
                 [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the
@@ -110,6 +111,7 @@ optional arguments:
   --assembler ASSEMBLER
                         name of the assembler used. (Supports SPAdes, MEGAHIT
                         and Flye)
+  --graph GRAPH         path to the assembly graph file
   --contigs CONTIGS     path to the contigs file
   --abundance ABUNDANCE
                         path to the abundance file
@@ -125,6 +127,12 @@ optional arguments:
                         bin. [default: 80]
   --depth DEPTH         depth to consider for label propagation. [default: 10]
   --d_limit D_LIMIT     distance limit for contig matching. [default: 10]
+  --mg_threshold MG_THRESHOLD
+                        length threshold to consider marker genes. [default:
+                        0.3]
+  --seed_threshold SEED_THRESHOLD
+                        threshold to consider contigs with seed marker genes.
+                        [default: 0.1]
   --delimiter DELIMITER
                         delimiter for output results. Supports a comma (,), a
                         semicolon (;), a tab ($'\t'), a space (" ") and a pipe
