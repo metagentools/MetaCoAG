@@ -63,9 +63,9 @@ ap.add_argument("--w_inter", required=False, type=int, default=80,
                 help="minimum weight of an edge matching to create a new bin. [default: 80]")
 ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")
-ap.add_argument("--mg_threshold", required=False, type=int, default=0.3,
+ap.add_argument("--mg_threshold", required=False, type=float, default=0.3,
                 help="length threshold to consider marker genes. [default: 0.3]")
-ap.add_argument("--seed_threshold", required=False, type=int, default=0.1,
+ap.add_argument("--seed_threshold", required=False, type=float, default=0.1,
                 help="threshold to consider contigs with seed marker genes. [default: 0.1]")
 ap.add_argument("--d_limit", required=False, type=int, default=10,
                 help="distance limit for contig matching. [default: 10]")
