@@ -59,7 +59,7 @@ ap.add_argument("--min_length", required=False, type=int, default=1000,
                 help="minimum length of contigs to consider for compositional probability. [default: 1000]")
 ap.add_argument("--w_intra", required=False, type=float, default=2,
                 help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
-ap.add_argument("--w_inter", required=False, type=int, default=80,
+ap.add_argument("--w_inter", required=False, type=float, default=80,
                 help="minimum weight of an edge matching to create a new bin. [default: 80]")
 ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")

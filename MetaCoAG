@@ -69,7 +69,7 @@ parser.add_argument("--w_intra",
 
 parser.add_argument("--w_inter",
                     required=False,
-                    type=int,
+                    type=float,
                     default=80,
                     help="minimum weight of an edge matching to create a new bin. [default: 80]")
 
