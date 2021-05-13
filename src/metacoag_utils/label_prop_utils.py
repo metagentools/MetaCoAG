@@ -145,7 +145,7 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
 
 def assignLong(
         contigid, coverages, normalized_tetramer_profiles,
-        bins, contig_lengths, seed_iters):
+        bins):
 
     bin_weights = []
 
@@ -154,13 +154,14 @@ def assignLong(
         log_prob_sum = 0
 
         n_contigs = 0
+        bin_n_contigs = 0
 
-        if len(bins[b]) > seed_iters:
-            n_contigs = seed_iters
+        if len(bins[b]) > 20:
+            n_contigs = 20
         else:
             n_contigs = len(bins[b])
 
-        for j in range(len(bins[b])):
+        for j in range(n_contigs):
 
             tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid],
                                                                 normalized_tetramer_profiles[bins[b][j]])
@@ -172,12 +173,12 @@ def assignLong(
 
             if prob_product > 0.0:
                 log_prob_sum += - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
-                n_contigs += 1
+                bin_n_contigs += 1
             else:
                 log_prob_sum = MAX_WEIGHT
 
-        if log_prob_sum != float("inf") and n_contigs!=0:
-            bin_weights.append(log_prob_sum/n_contigs)
+        if log_prob_sum != float("inf") and bin_n_contigs!=0:
+            bin_weights.append(log_prob_sum/bin_n_contigs)
         else:
             bin_weights.append(MAX_WEIGHT)
 

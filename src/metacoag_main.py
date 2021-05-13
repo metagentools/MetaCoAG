@@ -824,17 +824,17 @@ assigned = [None for itr in long_unbinned]
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
 
-def thread_function(n, contig, coverages, normalized_tetramer_profiles, bins, contig_lengths, seed_iters):
+def thread_function(n, contig, coverages, normalized_tetramer_profiles, bins):
     bin_result = label_prop_utils.assignLong(
-        contig, coverages, normalized_tetramer_profiles, bins, contig_lengths, seed_iters)
+        contig, coverages, normalized_tetramer_profiles, bins)
     assigned[n] = bin_result
 
 
 exec_args = []
 
 for n, contig in enumerate(long_unbinned):
-    exec_args.append((n, contig, coverages, normalized_tetramer_profiles,
-                      bins, contig_lengths, seed_iters))
+    exec_args.append(
+        (n, contig, coverages, normalized_tetramer_profiles, bins))
 
 for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=len(long_unbinned)):
     pass
@@ -849,7 +849,8 @@ if len(put_to_bins) == 0:
 # Assign contigs to bins
 for contig, contig_bin, contig_bin_weight in put_to_bins:
 
-    logger.info("To assign long: contig "+str(contig)+" to bin "+str(contig_bin+1)+" with weight="+str(contig_bin_weight))
+    logger.info("To assign long: contig "+str(contig)+" to bin " +
+                str(contig_bin+1)+" with weight="+str(contig_bin_weight))
 
     has_mg = False
 
@@ -900,7 +901,6 @@ for b in range(len(bins)):
         b+1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b+1) + "_seqs.fasta", shell=True)
 
 logger.info("Final binning results can be found in "+str(output_bins_path))
-
 
 
 # Propagate labels to vertices of unlabelled long contigs
@@ -962,7 +962,6 @@ while sorted_node_list:
                 heapq.heappush(sorted_node_list, DataWrap(c))
 
 logger.info("Total number of binned contigs: "+str(len(bin_of_contig)))
-
 
 
 # Get elapsed time
