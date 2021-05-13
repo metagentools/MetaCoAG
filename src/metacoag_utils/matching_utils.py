@@ -30,6 +30,8 @@ def get_cov_probability(cov1, cov2):
 
     poisson_prod = 1
 
+    multiplied = False
+
     for i in range(len(cov1)):
 
         if cov1[i] != 0.0 and cov2[i] != 0.0:
@@ -43,7 +45,9 @@ def get_cov_probability(cov1, cov2):
 
             poisson_prod = poisson_prod * poisson_pmf
 
-    if poisson_prod == 1:
-        poisson_prod = VERY_SMALL_DOUBLE
+            multiplied = True
+
+    if not multiplied:
+        poisson_prod = -1
 
     return poisson_prod

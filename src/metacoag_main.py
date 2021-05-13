@@ -219,8 +219,6 @@ except:
 if assembler == "megahit":
 
     # Map original contig IDs to contig IDS of assembly graph
-    # --------------------------------------------------------
-
     graph_to_contig_map = BidirectionalMap()
 
     for (n, m), (n2, m2) in zip(graph_contigs.items(), original_contigs.items()):
@@ -352,7 +350,9 @@ edge_weights_per_iteration = {}
 
 logger.info("Matching and assigning contigs with marker genes to bins")
 
-for i in range(len(seed_iter)):
+seed_iters = len(seed_iter)
+
+for i in range(seed_iters):
 
     logger.debug("Iteration "+str(i)+": " +
                  str(len(seed_iter[i]))+" contigs with seed marker genes")
@@ -411,7 +411,7 @@ for i in range(len(seed_iter)):
 
                             log_prob = 0
 
-                            if prob_product != 0.0:
+                            if prob_product > 0.0:
                                 log_prob = - \
                                     (math.log(prob_comp, 10) +
                                      math.log(prob_cov, 10))
@@ -606,7 +606,7 @@ for contig in unbinned_mg_contig_lengths_sorted:
 
                     log_prob = 0
 
-                    if prob_product != 0.0:
+                    if prob_product > 0.0:
                         log_prob = - (math.log(prob_comp, 10) +
                                       math.log(prob_cov, 10))
                     else:
@@ -824,9 +824,9 @@ assigned = [None for itr in long_unbinned]
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
 
-def thread_function(n, contig, coverages, normalized_tetramer_profiles, bins, assembly_graph, w_intra, d_limit):
+def thread_function(n, contig, coverages, normalized_tetramer_profiles, bins, contig_lengths, seed_iters):
     bin_result = label_prop_utils.assignLong(
-        contig, coverages, normalized_tetramer_profiles, bins, assembly_graph, w_intra, d_limit)
+        contig, coverages, normalized_tetramer_profiles, bins, contig_lengths, seed_iters)
     assigned[n] = bin_result
 
 
@@ -834,7 +834,7 @@ exec_args = []
 
 for n, contig in enumerate(long_unbinned):
     exec_args.append((n, contig, coverages, normalized_tetramer_profiles,
-                      bins, assembly_graph, w_intra, d_limit))
+                      bins, contig_lengths, seed_iters))
 
 for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=len(long_unbinned)):
     pass
@@ -849,6 +849,8 @@ if len(put_to_bins) == 0:
 # Assign contigs to bins
 for contig, contig_bin, contig_bin_weight in put_to_bins:
 
+    logger.info("To assign long: contig "+str(contig)+" to bin "+str(contig_bin+1)+" with weight="+str(contig_bin_weight))
+
     has_mg = False
 
     common_mgs = []
@@ -858,10 +860,12 @@ for contig, contig_bin, contig_bin_weight in put_to_bins:
         common_mgs = list(set(bin_markers[contig_bin]).intersection(
             set(contig_markers[contig])))
 
-    if len(common_mgs) == 0 and contig not in bin_of_contig:
+    if len(common_mgs) == 0 and contig not in bin_of_contig and contig_bin_weight <= w_intra:
 
         bins[contig_bin].append(contig)
         bin_of_contig[contig] = contig_bin
+
+        logger.info("Assigned-------------------------------------")
 
         if has_mg:
             binned_contigs_with_markers.append(contig)
@@ -869,6 +873,96 @@ for contig, contig_bin, contig_bin_weight in put_to_bins:
                 set(bin_markers[contig_bin] + contig_markers[contig]))
 
 logger.info("Total number of binned contigs: "+str(len(bin_of_contig)))
+
+
+# Write intermediate result to output file
+# -----------------------------------
+
+logger.info("Writing the Intermediate Binning result to file")
+
+output_bins_path = output_path + prefix + "intermediate_bins/"
+
+if not os.path.isdir(output_bins_path):
+    subprocess.run("mkdir -p "+output_bins_path, shell=True)
+
+for b in range(len(bins)):
+
+    with open(output_bins_path + "bin_" + str(b+1) + "_ids.txt", "w") as bin_file:
+        for contig in bins[b]:
+
+            if assembler == "megahit":
+                bin_file.write(
+                    contig_descriptions[graph_to_contig_map[contig_names[contig]]]+"\n")
+            else:
+                bin_file.write(contig_names[contig]+"\n")
+
+    subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(
+        b+1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b+1) + "_seqs.fasta", shell=True)
+
+logger.info("Final binning results can be found in "+str(output_bins_path))
+
+
+
+# Propagate labels to vertices of unlabelled long contigs
+# -----------------------------------------------------
+
+logger.info(
+    "Further propagating labels to connected vertices of unlabelled long contigs")
+
+contigs_to_bin = set()
+
+for contig in bin_of_contig:
+    if contig in non_isolated and contig_lengths[contig] >= min_length:
+        closest_neighbours = filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
+            assembly_graph, contig, bin_of_contig.keys(), contig_lengths, min_length))
+        contigs_to_bin.update(closest_neighbours)
+
+sorted_node_list = []
+sorted_node_list_ = [list(label_prop_utils.runBFSLong(x, depth, min_length, bin_of_contig.keys(), bin_of_contig,
+                                                      assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
+sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
+
+for data in sorted_node_list_:
+    heapObj = DataWrap(data)
+    heapq.heappush(sorted_node_list, heapObj)
+
+while sorted_node_list:
+    best_choice = heapq.heappop(sorted_node_list)
+    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+
+    has_mg = False
+
+    common_mgs = []
+
+    if to_bin in contig_markers:
+        has_mg = True
+        common_mgs = list(set(bin_markers[bin_]).intersection(
+            set(contig_markers[to_bin])))
+
+    if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff != MAX_WEIGHT:
+        bins[bin_].append(to_bin)
+        bin_of_contig[to_bin] = bin_
+
+        if has_mg:
+            binned_contigs_with_markers.append(to_bin)
+            bin_markers[bin_] = list(
+                set(bin_markers[bin_] + contig_markers[to_bin]))
+
+        # Discover to_bin's neighbours
+        unbinned_neighbours = set(filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
+            assembly_graph, to_bin, bin_of_contig.keys(), contig_lengths, min_length)))
+        sorted_node_list = list(
+            filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
+        heapq.heapify(sorted_node_list)
+
+        for n in unbinned_neighbours:
+            candidates = list(label_prop_utils.runBFSLong(n, depth, min_length, bin_of_contig.keys(), bin_of_contig,
+                                                          assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
+            for c in candidates:
+                heapq.heappush(sorted_node_list, DataWrap(c))
+
+logger.info("Total number of binned contigs: "+str(len(bin_of_contig)))
+
 
 
 # Get elapsed time

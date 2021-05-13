@@ -53,7 +53,7 @@ def runBFSLong(
 
             log_prob = 0
 
-            if prob_product != 0.0:
+            if prob_product > 0.0:
                 log_prob = - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
             else:
                 log_prob = MAX_WEIGHT
@@ -145,7 +145,7 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
 
 def assignLong(
         contigid, coverages, normalized_tetramer_profiles,
-        bins, assembly_graph, w_intra, d_limit):
+        bins, contig_lengths, seed_iters):
 
     bin_weights = []
 
@@ -153,28 +153,30 @@ def assignLong(
 
         log_prob_sum = 0
 
-        if len(bins[b]) > 20:
-            n_contigs = 20
+        n_contigs = 0
+
+        if len(bins[b]) > seed_iters:
+            n_contigs = seed_iters
         else:
             n_contigs = len(bins[b])
 
-        for j in range(n_contigs):
+        for j in range(len(bins[b])):
 
             tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                 normalized_tetramer_profiles[bins[b][j]])
+                                                                normalized_tetramer_profiles[bins[b][j]])
             prob_comp = matching_utils.get_comp_probability(tetramer_dist)
             prob_cov = matching_utils.get_cov_probability(
                 coverages[contigid], coverages[bins[b][j]])
 
             prob_product = prob_comp * prob_cov
 
-            if prob_product != 0.0:
+            if prob_product > 0.0:
                 log_prob_sum += - (math.log(prob_comp, 10) + math.log(prob_cov, 10))
+                n_contigs += 1
             else:
                 log_prob_sum = MAX_WEIGHT
-                break
 
-        if log_prob_sum != MAX_WEIGHT:
+        if log_prob_sum != float("inf") and n_contigs!=0:
             bin_weights.append(log_prob_sum/n_contigs)
         else:
             bin_weights.append(MAX_WEIGHT)
@@ -184,7 +186,7 @@ def assignLong(
     min_b_index, min_b_value = min(
         enumerate(bin_weights), key=operator.itemgetter(1))
 
-    if min_b_index != -1 and min_b_value <= w_intra:
+    if min_b_index != -1 and min_b_value != MAX_WEIGHT:
         return contigid, min_b_index, min_b_value
 
     return None
