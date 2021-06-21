@@ -61,17 +61,17 @@ parser.add_argument("--min_length",
                     default=1000,
                     help="minimum length of contigs to consider for binning. [default: 1000]")
 
-parser.add_argument("--w_intra",
+parser.add_argument("--p_intra",
                     required=False,
                     type=float,
-                    default=2,
-                    help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
+                    default=0.1,
+                    help="minimum probability of an edge matching to assign to the same bin. [default: 0.1]")
 
-parser.add_argument("--w_inter",
+parser.add_argument("--p_inter",
                     required=False,
                     type=float,
-                    default=80,
-                    help="minimum weight of an edge matching to create a new bin. [default: 80]")
+                    default=0.01,
+                    help="maximum probability of an edge matching to create a new bin. [default: 0.01]")
 
 parser.add_argument("--depth",
                     required=False,
@@ -82,20 +82,26 @@ parser.add_argument("--depth",
 parser.add_argument("--d_limit",
                     required=False,
                     type=int,
-                    default=10,
-                    help="distance limit for contig matching. [default: 10]")
+                    default=20,
+                    help="distance limit for contig matching. [default: 20]")
 
 parser.add_argument("--mg_threshold",
                     required=False,
                     type=float,
-                    default=0.3,
-                    help="length threshold to consider marker genes. [default: 0.3]")
+                    default=0.5,
+                    help="length threshold to consider marker genes. [default: 0.5]")
 
 parser.add_argument("--seed_threshold",
                     required=False,
                     type=float,
                     default=0.1,
                     help="threshold to consider contigs with seed marker genes. [default: 0.1]")
+
+parser.add_argument("--break_step",
+                    required=False,
+                    type=float,
+                    default=0.0005,
+                    help="Probability step to stop breaking bins. [default: 0.0005]")
 
 parser.add_argument("--delimiter",
                     required=False,
@@ -122,9 +128,10 @@ contig_paths = args["paths"]
 output_path = args["output"]
 prefix = args["prefix"]
 min_length = args["min_length"]
-w_intra = args["w_intra"]
-w_inter = args["w_inter"]
+p_intra = args["p_intra"]
+p_inter = args["p_inter"]
 depth = args["depth"]
+break_step = args["break_step"]
 d_limit = args["d_limit"]
 mg_threshold = args["mg_threshold"]
 seed_threshold = args["seed_threshold"]
@@ -195,33 +202,45 @@ if min_length <= 0:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate w_intra
-if w_intra <= 0:
-    print("\nPlease enter a valid number for w_intra")
+# Validate p_intra
+if p_intra <= 0 or p_intra > 1:
+    print("\nPlease enter a valid number for p_intra")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate w_inter
+# Validate p_inter
+if p_inter <= 0 or p_inter > 1:
+    print("\nPlease enter a valid number for p_inter")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
+# Validate difference of p_intra and p_inter
+if p_inter <= 0:
+    print("\np_inter cannot be larger than p_intra. Please enter valid numbers for p_intra and p_inter")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
+# Validate mg_threshold
 if mg_threshold <= 0 or mg_threshold > 1:
     print("\nPlease enter a valid number for mg_threshold")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate w_inter
+# Validate seed_threshold
 if seed_threshold <= 0 or seed_threshold > 1:
     print("\nPlease enter a valid number for seed_threshold")
-    print("Exiting MetaCoAG...\nBye...!\n")
-    sys.exit(1)
-
-# Validate w_inter
-if w_inter <= 0:
-    print("\nPlease enter a valid number for w_inter")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
 # Validate depth
 if depth <= 0:
     print("\nPlease enter a valid number for depth")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
+# Validate break_step
+if break_step < 0:
+    print("\nPlease enter a valid number for break_step")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
@@ -249,7 +268,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --w_intra "{9}" --w_inter "{10}" --depth "{11}" --mg_threshold "{12}" --seed_threshold "{13}" --d_limit "{14}" --delimiter "{15}" --nthreads "{16}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --seed_threshold "{13}" --d_limit "{14}" --break_step "{15}" --delimiter "{16}" --nthreads "{17}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
@@ -259,12 +278,13 @@ cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2
     output_path,
     prefix,
     min_length,
-    w_intra,
-    w_inter,
+    p_intra,
+    p_inter,
     depth,
     mg_threshold,
     seed_threshold,
     d_limit,
+    break_step,
     delimiter,
     nthreads)
 

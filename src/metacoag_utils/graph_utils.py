@@ -18,9 +18,11 @@ def get_segment_paths_spades(contig_paths):
 
     current_contig_num = ""
 
+    contig_segments = {}
+
     with open(contig_paths) as file:
-        name = file.readline()
-        path = file.readline()
+        name = file.readline().strip()
+        path = file.readline().strip()
 
         while name != "" and path != "":
 
@@ -44,15 +46,31 @@ def get_segment_paths_spades(contig_paths):
                 paths[contig_num] = [segments[0], segments[-1]]
 
             for segment in segments:
+                
+                if name not in contig_segments:
+                    contig_segments[name] = set([segment[:-1]])
+                else:
+                    contig_segments[name].add(segment[:-1])
+
+            # if segments[0] not in segment_contigs:
+            #     segment_contigs[segments[0]] = set([contig_num])
+            # else:
+            #     segment_contigs[segments[0]].add(contig_num)
+
+            # if segments[-1] not in segment_contigs:
+            #     segment_contigs[segments[-1]] = set([contig_num])
+            # else:
+            #     segment_contigs[segments[-1]].add(contig_num)
+
                 if segment not in segment_contigs:
                     segment_contigs[segment] = set([contig_num])
                 else:
                     segment_contigs[segment].add(contig_num)
 
-            name = file.readline()
-            path = file.readline()
+            name = file.readline().strip()
+            path = file.readline().strip()
 
-    return paths, segment_contigs, node_count, my_map, contig_names
+    return paths, segment_contigs, contig_segments, node_count, my_map, contig_names
 
 
 def get_graph_edges_spades(
@@ -223,7 +241,6 @@ def get_graph_edges_megahit(links, contig_names_rev):
     # Iterate links
     for link in links:
         # Remove self loops
-        # print("Link-----------", link[0], link[1])
         if link[0] != link[1]:
             # Add edge to list of edges
             edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
@@ -288,3 +305,4 @@ def get_non_isolated(node_count, assembly_graph, binned_contigs):
                         non_isolated.append(j)
 
     return non_isolated
+

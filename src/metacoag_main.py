@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
-import csv
 import time
 import argparse
-import re
-import heapq
 import os
 import math
-import networkx as nx
 import logging
-import numpy as np
 import operator
 import gc
 import subprocess
 import concurrent.futures
 
-from multiprocessing import Pool
 from Bio import SeqIO
 from igraph import *
-from collections import defaultdict
 from tqdm import tqdm
 
 from metacoag_utils import feature_utils
@@ -57,18 +50,20 @@ ap.add_argument("--prefix", required=False, default='',
                 help="prefix for the output file")
 ap.add_argument("--min_length", required=False, type=int, default=1000,
                 help="minimum length of contigs to consider for compositional probability. [default: 1000]")
-ap.add_argument("--w_intra", required=False, type=float, default=2,
-                help="maximum weight of an edge matching to assign to the same bin. [default: 2]")
-ap.add_argument("--w_inter", required=False, type=float, default=80,
-                help="minimum weight of an edge matching to create a new bin. [default: 80]")
+ap.add_argument("--p_intra", required=False, type=float, default=0.1,
+                help="minimum probability of an edge matching to assign to the same bin. [default: 0.1]")
+ap.add_argument("--p_inter", required=False, type=float, default=0.01,
+                help="maximum probability of an edge matching to create a new bin. [default: 0.01]")
 ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")
-ap.add_argument("--mg_threshold", required=False, type=float, default=0.3,
-                help="length threshold to consider marker genes. [default: 0.3]")
+ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
+                help="length threshold to consider marker genes. [default: 0.5]")
 ap.add_argument("--seed_threshold", required=False, type=float, default=0.1,
                 help="threshold to consider contigs with seed marker genes. [default: 0.1]")
-ap.add_argument("--d_limit", required=False, type=int, default=10,
-                help="distance limit for contig matching. [default: 10]")
+ap.add_argument("--d_limit", required=False, type=int, default=20,
+                help="distance limit for contig matching. [default: 20]")
+ap.add_argument("--break_step", required=False, type=float, default=0.0005,
+                help="Probability step to stop breaking bins. [default: 0.0005]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
                 help="delimiter for output results. [default: , (comma)]")
 ap.add_argument("--nthreads", required=False, type=int, default=8,
@@ -84,14 +79,18 @@ abundance_file = args["abundance"]
 output_path = args["output"]
 prefix = args["prefix"]
 min_length = args["min_length"]
-w_intra = args["w_intra"]
-w_inter = args["w_inter"]
+p_intra = args["p_intra"]
+p_inter = args["p_inter"]
 depth = args["depth"]
 mg_threshold = args["mg_threshold"]
 seed_threshold = args["seed_threshold"]
 d_limit = args["d_limit"]
+break_step = args["break_step"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
+
+bin_threshold = -math.log(p_intra, 10)
+break_threshold = -math.log(p_inter, 10)
 
 n_bins = 0
 
@@ -128,11 +127,14 @@ logger.info("Final binning output file: "+output_path)
 logger.info(
     "Minimum length of contigs to consider for compositional probability: "+str(min_length))
 logger.info("Depth to consider for label propagation: "+str(depth))
-logger.info("w_intra: "+str(w_intra))
-logger.info("w_inter: "+str(w_inter))
+logger.info("p_intra: "+str(p_intra))
+logger.info("p_inter: "+str(p_inter))
+logger.debug("bin_threshold: "+str(bin_threshold))
+logger.debug("break_threshold: "+str(break_threshold))
 logger.info("mg_threshold: "+str(mg_threshold))
 logger.info("seed_threshold: "+str(seed_threshold))
 logger.info("d_limit: "+str(d_limit))
+logger.info("depth: "+str(depth))
 logger.info("Number of threads: "+str(nthreads))
 
 logger.info("MetaCoAG started")
@@ -145,7 +147,7 @@ start_time = time.time()
 
 try:
     if assembler == "spades":
-        paths, segment_contigs, node_count, contigs_map, contig_names = graph_utils.get_segment_paths_spades(
+        paths, segment_contigs, contig_segments, node_count, contigs_map, contig_names = graph_utils.get_segment_paths_spades(
             contig_paths_file)
         contigs_map_rev = contigs_map.inverse
         contig_names_rev = contig_names.inverse
@@ -205,10 +207,11 @@ try:
 
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
-    logger.info("Total number of edges in the assembly graph: " +
-                str(len(edge_list)))
 
     assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
+
+    logger.info("Total number of edges in the assembly graph: " +
+                str(len(list(assembly_graph.es))))
 
 except:
     logger.error(
@@ -234,12 +237,22 @@ if assembler == "megahit":
 logger.info("Obtaining lengths and coverage values of contigs")
 
 if assembler == "megahit":
-    seqs, coverages, contig_lengths, zero_cov_contigs = feature_utils.get_cov_len_megahit(
-        contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file)
+    seqs, coverages, contig_lengths, n_samples = feature_utils.get_cov_len_megahit(
+        contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file, min_length)
 
 else:
-    seqs, coverages, contig_lengths, zero_cov_contigs = feature_utils.get_cov_len(
-        contigs_file, contig_names_rev, abundance_file)
+    seqs, coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
+        contigs_file, contig_names_rev, abundance_file, min_length)
+
+
+# Set intra weight and inter weight
+# --------------------------------------------------------
+
+w_intra = bin_threshold * (n_samples+1)
+w_inter = break_threshold * (n_samples+1)
+
+logger.debug("w_intra: "+str(w_intra))
+logger.debug("w_inter: "+str(w_inter))
 
 
 # Get tetramer composition of contigs
@@ -273,47 +286,55 @@ else:
     marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes(
         contigs_file, contig_names_rev, mg_threshold, contig_lengths, min_length)
 
+    all_mg_contigs = marker_gene_utils.get_all_contigs_with_marker_genes(
+        contigs_file, contig_names_rev)
+
 
 # Get marker gene counts to make bins
 # -----------------------------------------------------
 
-logger.info("Determining seed marker genes")
+logger.info("Determining contig counts for each single-copy marker gene")
 
-my_gene_counts = marker_gene_utils.get_seed_marker_gene_counts(
-    marker_contig_counts, seed_threshold)
+my_gene_counts = list(marker_contig_counts.values())
 my_gene_counts.sort(reverse=True)
 
-# Get the marker genes with maximum count and sort them by the total contig length
-total_mg_contig_lengths = {}
+logger.debug("Contig counts of single-copy marker genes:")
+logger.debug(str(my_gene_counts))
 
-for item in marker_contig_counts:
 
-    if marker_contig_counts[item] == my_gene_counts[0]:
+# Get contigs containing each single-copy marker gene for each iteration
+# -----------------------------------------------------
 
-        total_contig_lengths = 0
-
-        for contig in marker_contigs[item]:
-            length = contig_lengths[contig]
-            total_contig_lengths += length
-
-        total_mg_contig_lengths[item] = total_contig_lengths
-
-total_mg_contig_lengths_sorted = sorted(
-    total_mg_contig_lengths.items(), key=operator.itemgetter(1), reverse=True)
-
-# Get contigs containing each marker gene for each iteration
 seed_iter = {}
 
 n = 0
-for item in total_mg_contig_lengths_sorted:
-    seed_iter[n] = marker_contigs[item[0]]
-    n += 1
 
-for i in range(1, len(my_gene_counts)):
+unique_my_gene_counts = list(set(my_gene_counts))
+unique_my_gene_counts.sort(reverse=True)
+
+for g_count in unique_my_gene_counts:
+
+    # Get the marker genes with maximum count and sort them by the total contig length
+    total_contig_mgs = {}
+
     for item in marker_contig_counts:
-        if marker_contig_counts[item] == my_gene_counts[i]:
-            seed_iter[n] = marker_contigs[item]
-            n += 1
+
+        if marker_contig_counts[item] == g_count:
+
+            total_contig_lengths = 0
+
+            for contig in marker_contigs[item]:
+                contig_mg_counts = len(contig_markers[contig])
+                total_contig_lengths += contig_mg_counts
+
+            total_contig_mgs[item] = total_contig_lengths
+
+    total_contig_mgs_sorted = sorted(
+        total_contig_mgs.items(), key=operator.itemgetter(1), reverse=True)
+
+    for item in total_contig_mgs_sorted:
+        seed_iter[n] = marker_contigs[item[0]]
+        n += 1
 
 
 # Initialise bins
@@ -337,7 +358,7 @@ for i in range(len(seed_iter[0])):
 
     bin_markers[i] = contig_markers[contig_num]
 
-logger.info("Number of initial bins detected: "+str(len(seed_iter[0])))
+logger.debug("Number of initial bins detected: "+str(len(seed_iter[0])))
 
 logger.debug("Initialised bins:")
 logger.debug(bins)
@@ -346,204 +367,24 @@ logger.debug(bins)
 # Assign contigs with marker genes to bins
 # -----------------------------------------------------
 
-edge_weights_per_iteration = {}
+logger.info("Matching and assigning contigs with single-copy marker genes to bins")
 
-logger.info("Matching and assigning contigs with marker genes to bins")
+bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching_utils.match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_markers, bin_markers, contig_markers, contig_lengths, normalized_tetramer_profiles, coverages, assembly_graph, w_intra, w_inter, d_limit)
 
-seed_iters = len(seed_iter)
-
-for i in range(seed_iters):
-
-    logger.debug("Iteration "+str(i)+": " +
-                 str(len(seed_iter[i]))+" contigs with seed marker genes")
-
-    if i > 0:
-
-        B = nx.Graph()
-
-        common = set(binned_contigs_with_markers).intersection(
-            set(seed_iter[i]))
-
-        to_bin = list(set(seed_iter[i]) - common)
-
-        logger.debug(str(len(to_bin))+" contigs to bin in the iteration")
-
-        n_bins = len(bins)
-
-        bottom_nodes = []
-
-        for n in range(n_bins):
-            contigid = bins[n][0]
-            if contigid not in bottom_nodes:
-                bottom_nodes.append(contigid)
-
-        top_nodes = []
-        edges = []
-
-        binned_count = 0
-
-        if len(to_bin) != 0:
-
-            for contig in to_bin:
-
-                contigid = contig
-
-                if contigid not in zero_cov_contigs:
-
-                    if contigid not in top_nodes:
-                        top_nodes.append(contigid)
-
-                    for b in range(n_bins):
-
-                        log_prob_sum = 0
-                        n_contigs = len(bins[b])
-
-                        for j in range(n_contigs):
-
-                            tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                                 normalized_tetramer_profiles[bins[b][j]])
-                            prob_comp = matching_utils.get_comp_probability(
-                                tetramer_dist)
-                            prob_cov = matching_utils.get_cov_probability(
-                                coverages[contigid], coverages[bins[b][j]])
-
-                            prob_product = prob_comp * prob_cov
-
-                            log_prob = 0
-
-                            if prob_product > 0.0:
-                                log_prob = - \
-                                    (math.log(prob_comp, 10) +
-                                     math.log(prob_cov, 10))
-                            else:
-                                log_prob = MAX_WEIGHT
-
-                            log_prob_sum += log_prob
-
-                        if log_prob_sum != float("inf"):
-                            edges.append(
-                                (bins[b][0], contigid, log_prob_sum/n_contigs))
-                        else:
-                            edges.append((bins[b][0], contigid, MAX_WEIGHT))
-
-            B.add_nodes_from(top_nodes, bipartite=0)
-            B.add_nodes_from(bottom_nodes, bipartite=1)
-
-            edge_weights = {}
-
-            # Add edges only between nodes of opposite node sets
-            for edge in edges:
-                edge_weights[(edge[0], edge[1])] = edge[2]
-                B.add_edge(edge[0], edge[1], weight=edge[2])
-
-            edge_weights_per_iteration[i] = edge_weights
-
-            top_nodes = {n for n, d in B.nodes(
-                data=True) if d['bipartite'] == 0}
-            bottom_nodes = set(B) - top_nodes
-
-            if len(top_nodes) > 0:
-
-                my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(
-                    B, top_nodes, "weight")
-
-                not_binned = {}
-
-                for l in my_matching:
-
-                    if l in bin_of_contig:
-
-                        b = bin_of_contig[l]
-
-                        if my_matching[l] not in bins[b] and (l, my_matching[l]) in edge_weights:
-
-                            path_len_sum = 0
-
-                            for contig_in_bin in bins[b]:
-                                shortest_paths = assembly_graph.get_shortest_paths(
-                                    my_matching[l], to=contig_in_bin)
-
-                                if len(shortest_paths) != 0:
-                                    path_len_sum += len(shortest_paths[0])
-
-                            avg_path_len = path_len_sum/len(bins[b])
-
-                            logger.debug("Contig with seed MG: " + str(l) + ", Contig to assign: " + str(
-                                my_matching[l]) + ", Weight: " + str(edge_weights[(l, my_matching[l])]))
-
-                            if edge_weights[(l, my_matching[l])] <= w_intra and math.floor(avg_path_len) <= d_limit:
-
-                                if len(set(bin_markers[b]).intersection(set(contig_markers[my_matching[l]]))) == 0:
-
-                                    bins[b].append(my_matching[l])
-                                    bin_of_contig[my_matching[l]] = b
-                                    binned_contigs_with_markers.append(
-                                        my_matching[l])
-                                    binned_count += 1
-
-                                    bin_markers[b] = list(
-                                        set(bin_markers[b] + contig_markers[my_matching[l]]))
-
-                                else:
-                                    not_binned[my_matching[l]] = (l, b)
-
-                            else:
-                                not_binned[my_matching[l]] = (l, b)
-
-                for nb in not_binned:
-
-                    if edge_weights_per_iteration[i][(not_binned[nb][0], nb)] >= w_inter:
-
-                        path_len_sum = 0
-
-                        for contig_in_bin in bins[not_binned[nb][1]]:
-
-                            shortest_paths = assembly_graph.get_shortest_paths(
-                                nb, to=contig_in_bin)
-
-                            if len(shortest_paths) != 0:
-                                path_len_sum += len(shortest_paths[0])
-
-                        avg_path_len = path_len_sum / \
-                            len(bins[not_binned[nb][1]])
-
-                        if math.floor(avg_path_len) >= d_limit:
-                            logger.debug("Creating new bin...")
-
-                            bins[n_bins] = [nb]
-                            bin_of_contig[nb] = n_bins
-                            binned_count += 1
-
-                            bin_markers[n_bins] = contig_markers[nb]
-                            n_bins += 1
-                            binned_contigs_with_markers.append(nb)
-
-        logger.debug(str(binned_count)+" contigs binned in the iteration")
+logger.debug("Number of bins after matching: " + str(len(bins)))
 
 logger.debug("Bins with contigs containing seed marker genes")
 
 for b in bins:
     logger.debug(str(b) + ": "+str(bins[b]))
 
-logger.debug("Number of seed MG contigs binned: "+str(len(bin_of_contig)))
-
-if len(seed_iter) > 0:
-    del edge_weights_per_iteration
-    del B
-    del my_matching
-    del not_binned
-    del edge_weights
-    del common
-    del to_bin
-    del top_nodes
-    del bottom_nodes
-    del edges
+logger.debug("Number of binned contigs with single-copy marker genes: "+str(len(bin_of_contig)))
 
 del seed_iter
 del my_gene_counts
 del marker_contigs
 del marker_contig_counts
-del total_mg_contig_lengths
+del total_contig_mgs
 gc.collect()
 
 
@@ -556,98 +397,39 @@ unbinned_mg_contigs = list(
 unbinned_mg_contig_lengths = {}
 
 for contig in unbinned_mg_contigs:
-
     contigid = contig
-
-    if contigid not in zero_cov_contigs:
-        unbinned_mg_contig_lengths[contig] = contig_lengths[contigid]
+    unbinned_mg_contig_lengths[contig] = contig_lengths[contigid]
 
 unbinned_mg_contig_lengths_sorted = sorted(
     unbinned_mg_contig_lengths.items(), key=operator.itemgetter(1), reverse=True)
 
-logger.debug("Number of unbinned seed MG contigs: " +
+logger.debug("Number of unbinned contigs with single-copy marker genes: " +
              str(len(unbinned_mg_contigs)))
 
-logger.info("Further assign contigs with seed marker genes")
+logger.info("Further assigning contigs with single-copy marker genes")
 
-for contig in unbinned_mg_contig_lengths_sorted:
+bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching_utils.further_match_contigs(unbinned_mg_contig_lengths_sorted, min_length, bins, n_bins, bin_of_contig, binned_contigs_with_markers, bin_markers, contig_markers, normalized_tetramer_profiles, coverages, w_intra)
 
-    if contig[1] >= min_length:
+unbinned_mg_contigs = list(set(contig_markers.keys()) - set(binned_contigs_with_markers))
 
-        possible_bins = []
-
-        for b in bin_markers:
-            common_mgs = list(set(bin_markers[b]).intersection(
-                set(contig_markers[contig[0]])))
-            if len(common_mgs) == 0:
-                possible_bins.append(b)
-
-        if len(possible_bins) != 0:
-
-            contigid = contig[0]
-
-            bin_weights = []
-
-            for b in possible_bins:
-
-                log_prob_sum = 0
-                n_contigs = len(bins[b])
-
-                for j in range(n_contigs):
-
-                    tetramer_dist = matching_utils.get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                         normalized_tetramer_profiles[bins[b][j]])
-                    prob_comp = matching_utils.get_comp_probability(
-                        tetramer_dist)
-                    prob_cov = matching_utils.get_cov_probability(
-                        coverages[contigid], coverages[bins[b][j]])
-
-                    prob_product = prob_comp * prob_cov
-
-                    log_prob = 0
-
-                    if prob_product > 0.0:
-                        log_prob = - (math.log(prob_comp, 10) +
-                                      math.log(prob_cov, 10))
-                    else:
-                        log_prob = MAX_WEIGHT
-
-                    log_prob_sum += log_prob
-
-                    # shortest_paths = assembly_graph.get_shortest_paths(contigid, to=bins[b][j])
-
-                    if len(shortest_paths) != 0:
-                        path_len_sum += len(shortest_paths[0])
-
-                if log_prob_sum != float("inf"):
-                    bin_weights.append(log_prob_sum/n_contigs)
-                else:
-                    bin_weights.append(MAX_WEIGHT)
-
-            min_b_index = -1
-
-            min_b_index, min_b_value = min(
-                enumerate(bin_weights), key=operator.itemgetter(1))
-
-            if min_b_index != -1 and min_b_value <= w_intra:
-                bins[possible_bins[min_b_index]].append(contigid)
-                bin_of_contig[contigid] = possible_bins[min_b_index]
-                binned_contigs_with_markers.append(contigid)
-
-                bin_markers[possible_bins[min_b_index]] = list(set(
-                    bin_markers[possible_bins[min_b_index]] + contig_markers[contigid]))
-
-unbinned_mg_contigs = list(
-    set(contig_markers.keys()) - set(binned_contigs_with_markers))
-logger.debug("Remaining number of unbinned MG seed contigs: " +
-             str(len(unbinned_mg_contigs)))
-logger.debug(
-    "Number of seed MG contigs binned after further assignment: "+str(len(bin_of_contig)))
+logger.debug("Remaining number of unbinned MG seed contigs: " + str(len(unbinned_mg_contigs)))
+logger.debug("Number of binned contigs with single-copy marker genes: "+str(len(bin_of_contig)))
 
 del unbinned_mg_contigs
 del unbinned_mg_contig_lengths
 del unbinned_mg_contig_lengths_sorted
 gc.collect()
+
+
+# Get seed bin counts and profiles
+# -----------------------------------------------------
+
+seed_bin_count = []
+
+for i in bins:
+    seed_bin_count.append(len(bins[i]))
+
+bin_seed_tetramer_profiles, bin_seed_coverage_profiles = feature_utils.get_bin_profiles(bins, coverages, normalized_tetramer_profiles)
 
 
 # Get binned and unbinned contigs
@@ -679,136 +461,43 @@ non_isolated_long_unbinned = list(filter(
     lambda contig: contig_lengths[contig] >= min_length, non_isolated_unbinned))
 
 logger.debug("Number of non-isolated unbinned contigs: " +
-             str(len(non_isolated_unbinned)))
+            str(len(non_isolated_unbinned)))
 logger.debug("Number of non-isolated long unbinned contigs: " +
-             str(len(non_isolated_long_unbinned)))
+            str(len(non_isolated_long_unbinned)))
 logger.debug("Number of binned contigs with markers: " +
-             str(len(binned_contigs_with_markers)))
+            str(len(binned_contigs_with_markers)))
+
 
 
 # Propagate labels to vertices of unlabelled long contigs
 # -----------------------------------------------------
 
-logger.info("Propagating labels to unlabelled vertices")
+logger.info("Propagating labels to connected vertices of unlabelled long contigs")
 
-contigs_to_bin = set()
-
-for contig in bin_of_contig:
-    if contig in non_isolated and contig_lengths[contig] >= min_length:
-        closest_neighbours = filter(
-            lambda x: x not in bin_of_contig and x not in zero_cov_contigs and contig_lengths[x] >= min_length, assembly_graph.neighbors(contig, mode=ALL))
-        contigs_to_bin.update(closest_neighbours)
-
-sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFSLong(x, 1, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                      assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
-sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
-
-for data in sorted_node_list_:
-    heapObj = DataWrap(data)
-    heapq.heappush(sorted_node_list, heapObj)
-
-while sorted_node_list:
-    best_choice = heapq.heappop(sorted_node_list)
-    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
-
-    has_mg = False
-
-    common_mgs = []
-
-    if to_bin in contig_markers:
-        has_mg = True
-        common_mgs = list(set(bin_markers[bin_]).intersection(
-            set(contig_markers[to_bin])))
-
-    if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff <= w_intra:
-
-        bins[bin_].append(to_bin)
-        bin_of_contig[to_bin] = bin_
-
-        if has_mg:
-            binned_contigs_with_markers.append(to_bin)
-            bin_markers[bin_] = list(
-                set(bin_markers[bin_] + contig_markers[to_bin]))
-
-        # Discover to_bin's neighbours
-        unbinned_neighbours = set(filter(
-            lambda x: x not in bin_of_contig and x not in zero_cov_contigs and contig_lengths[x] >= min_length, assembly_graph.neighbors(to_bin, mode=ALL)))
-        sorted_node_list = list(
-            filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
-        heapq.heapify(sorted_node_list)
-
-        for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFSLong(n, 1, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                          assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
-            for c in candidates:
-                heapq.heappush(sorted_node_list, DataWrap(c))
-
+bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop(bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, seed_bin_count, non_isolated, contig_lengths, min_length, assembly_graph, normalized_tetramer_profiles, coverages, 1, w_intra)
 
 logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
-logger.debug("Number of binned contigs with markers: " +
-             str(len(binned_contigs_with_markers)))
 
 
-# Propagate labels to vertices of unlabelled long contigs
+# Further propagate labels to vertices of unlabelled long contigs
+# ----------------------------------------------------------------
+
+bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop(bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, seed_bin_count, non_isolated, contig_lengths, min_length, assembly_graph, normalized_tetramer_profiles, coverages, depth, w_inter)
+
+logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
+
+
+# Get binned and unbinned contigs
 # -----------------------------------------------------
 
-logger.info(
-    "Further propagating labels to connected vertices of unlabelled long contigs")
+binned_contigs = list(bin_of_contig.keys())
 
-contigs_to_bin = set()
+unbinned_contigs = list(
+    set([x for x in range(node_count)]) - set(binned_contigs))
 
-for contig in bin_of_contig:
-    if contig in non_isolated and contig_lengths[contig] >= min_length:
-        closest_neighbours = filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
-            assembly_graph, contig, bin_of_contig.keys(), contig_lengths, min_length))
-        contigs_to_bin.update(closest_neighbours)
+logger.debug("Number of binned contigs: "+str(len(binned_contigs)))
+logger.debug("Number of unbinned contigs: "+str(len(unbinned_contigs)))
 
-sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFSLong(x, depth, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                      assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
-sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
-
-for data in sorted_node_list_:
-    heapObj = DataWrap(data)
-    heapq.heappush(sorted_node_list, heapObj)
-
-while sorted_node_list:
-    best_choice = heapq.heappop(sorted_node_list)
-    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
-
-    has_mg = False
-
-    common_mgs = []
-
-    if to_bin in contig_markers:
-        has_mg = True
-        common_mgs = list(set(bin_markers[bin_]).intersection(
-            set(contig_markers[to_bin])))
-
-    if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff <= w_intra:
-        bins[bin_].append(to_bin)
-        bin_of_contig[to_bin] = bin_
-
-        if has_mg:
-            binned_contigs_with_markers.append(to_bin)
-            bin_markers[bin_] = list(
-                set(bin_markers[bin_] + contig_markers[to_bin]))
-
-        # Discover to_bin's neighbours
-        unbinned_neighbours = set(filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
-            assembly_graph, to_bin, bin_of_contig.keys(), contig_lengths, min_length)))
-        sorted_node_list = list(
-            filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
-        heapq.heapify(sorted_node_list)
-
-        for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFSLong(n, depth, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                          assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
-            for c in candidates:
-                heapq.heappush(sorted_node_list, DataWrap(c))
-
-logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
 
 
 # Propagate labels to vertices of unlabelled long contigs in isolated components
@@ -823,18 +512,16 @@ assigned = [None for itr in long_unbinned]
 
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
-
-def thread_function(n, contig, coverages, normalized_tetramer_profiles, bins):
-    bin_result = label_prop_utils.assignLong(
-        contig, coverages, normalized_tetramer_profiles, bins)
+def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles):
+    bin_result = label_prop_utils.assign_long(
+        contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles)
     assigned[n] = bin_result
-
 
 exec_args = []
 
 for n, contig in enumerate(long_unbinned):
     exec_args.append(
-        (n, contig, coverages, normalized_tetramer_profiles, bins))
+        (n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles))
 
 for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=len(long_unbinned)):
     pass
@@ -844,124 +531,21 @@ executor.shutdown(wait=True)
 put_to_bins = [x for x in assigned if x is not None]
 
 if len(put_to_bins) == 0:
-    logger.info("No further contigs were binned")
+    logger.debug("No further contigs were binned")
+else:
+    bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.assign_to_bins(put_to_bins, bins, bin_of_contig, bin_markers, binned_contigs_with_markers, contig_markers)
 
-# Assign contigs to bins
-for contig, contig_bin, contig_bin_weight in put_to_bins:
-
-    logger.info("To assign long: contig "+str(contig)+" to bin " +
-                str(contig_bin+1)+" with weight="+str(contig_bin_weight))
-
-    has_mg = False
-
-    common_mgs = []
-
-    if contig in contig_markers:
-        has_mg = True
-        common_mgs = list(set(bin_markers[contig_bin]).intersection(
-            set(contig_markers[contig])))
-
-    if len(common_mgs) == 0 and contig not in bin_of_contig and contig_bin_weight <= w_intra:
-
-        bins[contig_bin].append(contig)
-        bin_of_contig[contig] = contig_bin
-
-        logger.info("Assigned-------------------------------------")
-
-        if has_mg:
-            binned_contigs_with_markers.append(contig)
-            bin_markers[contig_bin] = list(
-                set(bin_markers[contig_bin] + contig_markers[contig]))
-
-logger.info("Total number of binned contigs: "+str(len(bin_of_contig)))
+logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
 
 
-# Write intermediate result to output file
-# -----------------------------------
+#  Further propagate labels to vertices of unlabelled long contigs
+# ----------------------------------------------------------------
 
-logger.info("Writing the Intermediate Binning result to file")
+logger.info("Further propagating labels to connected vertices of unlabelled long contigs")
 
-output_bins_path = output_path + prefix + "intermediate_bins/"
+bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.final_label_prop(bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, seed_bin_count, contig_lengths, min_length, assembly_graph, normalized_tetramer_profiles, coverages, depth, MAX_WEIGHT)
 
-if not os.path.isdir(output_bins_path):
-    subprocess.run("mkdir -p "+output_bins_path, shell=True)
-
-for b in range(len(bins)):
-
-    with open(output_bins_path + "bin_" + str(b+1) + "_ids.txt", "w") as bin_file:
-        for contig in bins[b]:
-
-            if assembler == "megahit":
-                bin_file.write(
-                    contig_descriptions[graph_to_contig_map[contig_names[contig]]]+"\n")
-            else:
-                bin_file.write(contig_names[contig]+"\n")
-
-    subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(
-        b+1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b+1) + "_seqs.fasta", shell=True)
-
-logger.info("Final binning results can be found in "+str(output_bins_path))
-
-
-# Propagate labels to vertices of unlabelled long contigs
-# -----------------------------------------------------
-
-logger.info(
-    "Further propagating labels to connected vertices of unlabelled long contigs")
-
-contigs_to_bin = set()
-
-for contig in bin_of_contig:
-    if contig in non_isolated and contig_lengths[contig] >= min_length:
-        closest_neighbours = filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
-            assembly_graph, contig, bin_of_contig.keys(), contig_lengths, min_length))
-        contigs_to_bin.update(closest_neighbours)
-
-sorted_node_list = []
-sorted_node_list_ = [list(label_prop_utils.runBFSLong(x, depth, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                      assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths)) for x in contigs_to_bin]
-sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
-
-for data in sorted_node_list_:
-    heapObj = DataWrap(data)
-    heapq.heappush(sorted_node_list, heapObj)
-
-while sorted_node_list:
-    best_choice = heapq.heappop(sorted_node_list)
-    to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
-
-    has_mg = False
-
-    common_mgs = []
-
-    if to_bin in contig_markers:
-        has_mg = True
-        common_mgs = list(set(bin_markers[bin_]).intersection(
-            set(contig_markers[to_bin])))
-
-    if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff != MAX_WEIGHT:
-        bins[bin_].append(to_bin)
-        bin_of_contig[to_bin] = bin_
-
-        if has_mg:
-            binned_contigs_with_markers.append(to_bin)
-            bin_markers[bin_] = list(
-                set(bin_markers[bin_] + contig_markers[to_bin]))
-
-        # Discover to_bin's neighbours
-        unbinned_neighbours = set(filter(lambda x: x not in zero_cov_contigs, label_prop_utils.getClosestLongVertices(
-            assembly_graph, to_bin, bin_of_contig.keys(), contig_lengths, min_length)))
-        sorted_node_list = list(
-            filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
-        heapq.heapify(sorted_node_list)
-
-        for n in unbinned_neighbours:
-            candidates = list(label_prop_utils.runBFSLong(n, depth, min_length, bin_of_contig.keys(), bin_of_contig,
-                                                          assembly_graph, normalized_tetramer_profiles, coverages, contig_lengths))
-            for c in candidates:
-                heapq.heappush(sorted_node_list, DataWrap(c))
-
-logger.info("Total number of binned contigs: "+str(len(bin_of_contig)))
+logger.debug("Total number of binned contigs: "+str(len(bin_of_contig)))
 
 
 # Get elapsed time

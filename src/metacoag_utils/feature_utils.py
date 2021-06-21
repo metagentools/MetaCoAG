@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import re
 import itertools
 import os
 import logging
@@ -9,12 +8,14 @@ import logging
 from Bio import SeqIO
 from multiprocessing import Pool
 
+
 # create logger
 logger = logging.getLogger('MetaCoaAG 0.1')
 
 complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
+VERY_SMALL_VAL = 0.0001
 
 def get_rc(seq):
     rev = reversed(seq)
@@ -61,7 +62,6 @@ def count_kmers(args):
         bit_mer = mer2bits(seq[i:i+k])
         index = kmer_inds[bit_mer]
         profile[index] += 1
-    # profile = profile/max(1, sum(profile))
 
     return profile, profile/max(1, sum(profile))
 
@@ -127,7 +127,7 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
     return tetramer_profiles, normalized_tetramer_profiles
 
 
-def get_cov_len(contigs_file, contig_names_rev, abundance_file):
+def get_cov_len(contigs_file, contig_names_rev, abundance_file, min_length):
 
     coverages = {}
 
@@ -159,29 +159,20 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file):
 
                 contig_coverage = float(strings[i])
 
+                if contig_coverage < VERY_SMALL_VAL:
+                    contig_coverage = VERY_SMALL_VAL
+
                 if contig_num not in coverages:
                     coverages[contig_num] = [contig_coverage]
                 else:
                     coverages[contig_num].append(contig_coverage)
 
-    zero_cov_contigs = []
-
     n_samples = len(coverages[0])
 
-    for contig in coverages:
-        nn = len([element for element in coverages[contig]
-                 if element >= 0 and element < 1])
-        if nn == n_samples:
-            if contig_lengths[contig] > 1000:
-                zero_cov_contigs.append(contig)
-
-    logger.debug("Number of contigs with zero coverage in all samples: " +
-                 str(len(zero_cov_contigs)))
-
-    return seqs, coverages, contig_lengths, zero_cov_contigs
+    return seqs, coverages, contig_lengths, n_samples
 
 
-def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file):
+def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file, min_length):
 
     coverages = {}
 
@@ -192,15 +183,10 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
     seqs = []
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-
         contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
-
         length = len(record.seq)
-
         contig_lengths[contig_num] = length
-
         seqs.append(str(record.seq))
-
         i += 1
 
     with open(abundance_file, "r") as my_abundance:
@@ -213,23 +199,38 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
 
                 contig_coverage = float(strings[i])
 
+                if contig_coverage < VERY_SMALL_VAL:
+                    contig_coverage = VERY_SMALL_VAL
+
                 if contig_num not in coverages:
                     coverages[contig_num] = [contig_coverage]
                 else:
                     coverages[contig_num].append(contig_coverage)
 
-    zero_cov_contigs = []
-
     n_samples = len(coverages[0])
 
-    for contig in coverages:
-        nn = len([element for element in coverages[contig]
-                 if element >= 0 and element < 1])
-        if nn == n_samples:
-            if contig_lengths[contig] > 1000:
-                zero_cov_contigs.append(contig)
+    return seqs, coverages, contig_lengths, n_samples
 
-    logger.debug("Number of contigs with zero coverage in all samples: " +
-                 str(len(zero_cov_contigs)))
 
-    return seqs, coverages, contig_lengths, zero_cov_contigs
+
+def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
+
+    bin_tetramer_profile = {}
+    bin_coverage_profile = {}
+
+    for b in bins:
+
+        coverage_b = []
+        tetramer_b = []
+
+        for contig in bins[b]:
+            coverage_b.append(coverages[contig])
+            tetramer_b.append(normalized_tetramer_profiles[contig])
+        
+        coverage_b = np.array(coverage_b)
+        tetramer_b = np.array(tetramer_b)
+
+        bin_coverage_profile[b] = np.mean(coverage_b, axis=0)
+        bin_tetramer_profile[b] = np.mean(tetramer_b, axis=0)
+
+    return bin_tetramer_profile, bin_coverage_profile
