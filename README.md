@@ -181,8 +181,6 @@ For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 
 [7] Kolmogorov, M., Yuan, J., Lin, Y., Pevzner, P.A.: Assembly of long, error-pronereads using repeat graphs. Nature biotechnology 37(5), 540–546 (2019)
 
-[8] Laczny, C.C., Kiefer, C., Galata, V., Fehlmann, T., Backes, C., Keller, A.: BusyBeeWeb: metagenomic data analysis by bootstrapped supervised binning and annota-tion. Nucleic Acids Research 45(W1), W171–W179 (05 2017)
-
 [9] Lin, H.H., Liao, Y.C.: Accurate binning of metagenomic contigs via automated clustering sequences using information of genomic signatures and marker genes. Scientific Reports 6(1), 24175 (Apr 2016)
 
 [10] Mallawaarachchi, V., Wickramarachchi, A., Lin, Y.: GraphBin: Refined binning ofmetagenomic contigs using assembly graphs. Bioinformatics 36(11), 3307-3313, (03 2020)
@@ -193,10 +191,9 @@ For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 
 [13] [NetworkX: networkx.algorithms.bipartite.matching.minimumweightfullmatching - NetworkX 2.5 documentation](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.minimum_weight_full_matching.html) (2020)
 
-[14] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a newversatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
+[14] Nissen, J. N., et al. Improved metagenome binning and assembly using deep variational autoencoders. Nature Biotechnology 39, 555–560 (2021)
 
-[15] Strous, M., Kraft, B., Bisdorf, R., Tegetmeyer, H.: The Binning of MetagenomicContigs for Microbial Physiology of Mixed Cultures. Frontiers in Microbiology 3,410 (2012)
+[15] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a newversatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
 
 [16] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning al-gorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
 
-[17] Yu, G., Jiang, Y., Wang, J., Zhang, H., Luo, H.: BMC3C: binning metagenomiccontigs using codon usage, sequence composition and read coverage. Bioinformatics 34(24), 4172–4179 (06 2018)
