@@ -119,10 +119,8 @@ min_length = args["min_length"]
 p_intra = args["p_intra"]
 p_inter = args["p_inter"]
 depth = args["depth"]
-break_step = args["break_step"]
 d_limit = args["d_limit"]
 mg_threshold = args["mg_threshold"]
-seed_threshold = args["seed_threshold"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
@@ -214,21 +212,9 @@ if mg_threshold <= 0 or mg_threshold > 1:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
-# Validate seed_threshold
-if seed_threshold <= 0 or seed_threshold > 1:
-    print("\nPlease enter a valid number for seed_threshold")
-    print("Exiting MetaCoAG...\nBye...!\n")
-    sys.exit(1)
-
 # Validate depth
 if depth <= 0:
     print("\nPlease enter a valid number for depth")
-    print("Exiting MetaCoAG...\nBye...!\n")
-    sys.exit(1)
-
-# Validate break_step
-if break_step < 0:
-    print("\nPlease enter a valid number for break_step")
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 

@@ -216,7 +216,7 @@ def assign_long(
             bin_weights.append(MAX_WEIGHT)
 
     # Get the bin with minimum weight
-    min_index = [bin_weights.index(x) for x in sorted(bin_weights)[:1]]
+    min_index = [bin_weights.index(x) for x in sorted(bin_weights)[:1]][0]
 
     if bin_weights[min_index] != MAX_WEIGHT:
         return contigid, min_index, bin_weights[min_index]
