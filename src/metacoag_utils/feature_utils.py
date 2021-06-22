@@ -10,7 +10,7 @@ from multiprocessing import Pool
 
 
 # Create logger
-logger = logging.getLogger('MetaCoaAG 0.1')
+logger = logging.getLogger('MetaCoaAG 1.0')
 
 # Set complements of each nucleotide
 complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
