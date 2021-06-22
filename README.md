@@ -2,7 +2,7 @@
   <img src="MetaCoAG_Logo.png" width="500" title="MetaCoAG logo" alt="MetaCoAG logo">
 </p>
 
-# MetaCoAG: Binning Metagenomic Contigs via Composition, Coabundance and Assembly Graphs
+# MetaCoAG: Binning Metagenomic Contigs via Composition, Co-abundance and Assembly Graphs
 
 ![GitHub](https://img.shields.io/github/license/Vini2/MetaBAG)
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
