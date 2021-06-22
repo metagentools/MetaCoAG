@@ -69,8 +69,8 @@ ap.add_argument("--delimiter", required=False, type=str, default=",",
 ap.add_argument("--nthreads", required=False, type=int, default=8,
                 help="number of threads to use. [default: 8]")
 
+# Parse arguments
 args = vars(ap.parse_args())
-
 assembler = args["assembler"]
 contigs_file = args["contigs"]
 assembly_graph_file = args["graph"]
@@ -94,8 +94,10 @@ break_threshold = -math.log(p_inter, 10)
 
 n_bins = 0
 
+
 # Setup logger
 # -----------------------
+
 logger = logging.getLogger('MetaCoaAG 0.1')
 logger.setLevel(logging.DEBUG)
 logging.captureWarnings(True)
@@ -106,8 +108,6 @@ consoleHeader.setLevel(logging.INFO)
 logger.addHandler(consoleHeader)
 
 # Setup output path for log file
-# ---------------------------------------------------
-
 fileHandler = logging.FileHandler(output_path + "/" + prefix + "metacoag.log")
 fileHandler.setLevel(logging.DEBUG)
 fileHandler.setFormatter(formatter)
@@ -143,13 +143,19 @@ start_time = time.time()
 
 
 # Get links of the assembly graph
-# --------------------------------------------------------
+# ------------------------------------------------------------------------
 
 try:
     if assembler == "spades":
+
+        # Get paths, segments, links and contigs of the assembly graph
         paths, segment_contigs, contig_segments, node_count, contigs_map, contig_names = graph_utils.get_segment_paths_spades(
             contig_paths_file)
+
+        # Get reverse mapping of contig map
         contigs_map_rev = contigs_map.inverse
+
+        # Get reverse mapping of contig identifiers
         contig_names_rev = contig_names.inverse
 
     if assembler == "megahit":
@@ -157,18 +163,25 @@ try:
         original_contigs = {}
         contig_descriptions = {}
 
+        # Get mapping of original contig identifiers with descriptions
         for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
             original_contigs[record.id] = str(record.seq)
             contig_descriptions[record.id] = record.description
 
+        # Get links and contigs of the assembly graph
         node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(
             assembly_graph_file)
-
+        
+        # Get reverse mapping of contig identifiers
         contig_names_rev = contig_names.inverse
 
     if assembler == "flye":
+
+        # Get links and contigs of the assembly graph
         node_count, links, contig_names = graph_utils.get_links_flye(
             assembly_graph_file)
+
+        # Get reverse mapping of contig identifiers
         contig_names_rev = contig_names.inverse
 
 except:
@@ -191,7 +204,7 @@ try:
     assembly_graph.add_vertices(node_count)
     logger.info("Total number of contigs available: " + str(node_count))
 
-    # Name vertices
+    # Name vertices with contig identifiers
     for i in range(node_count):
         assembly_graph.vs[i]["id"] = i
         assembly_graph.vs[i]["label"] = contig_names[i]
@@ -219,6 +232,7 @@ try:
     # Add edges to the graph
     assembly_graph.add_edges(edge_list)
 
+    # Simplify the graph
     assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
 
     logger.info("Total number of edges in the assembly graph: " +
@@ -232,7 +246,7 @@ except:
 
 if assembler == "megahit":
 
-    # Map original contig IDs to contig IDS of assembly graph
+    # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
     graph_to_contig_map = BidirectionalMap()
 
     for (n, m), (n2, m2) in zip(graph_contigs.items(), original_contigs.items()):
@@ -242,8 +256,8 @@ if assembler == "megahit":
     graph_to_contig_map_rev = graph_to_contig_map.inverse
 
 
-# Get length and coverage of contigs
-# --------------------------------------------------------
+# Get the number of samples and the length and coverage of contigs
+# ------------------------------------------------------------------------
 
 logger.info("Obtaining lengths and coverage values of contigs")
 
@@ -262,7 +276,7 @@ else:
 
 
 # Set intra weight and inter weight
-# --------------------------------------------------------
+# ------------------------------------------------------------------------
 
 w_intra = bin_threshold * (n_samples + 1)
 w_inter = break_threshold * (n_samples + 1)
@@ -272,11 +286,11 @@ logger.debug("w_inter: " + str(w_inter))
 
 
 # Get tetramer composition of contigs
-# --------------------------------------------------------
+# ------------------------------------------------------------------------
 
 logger.info("Obtaining tetranucleotide frequencies of contigs")
 
-tetramer_profiles, normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(
+normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(
     output_path=output_path,
     sequences=sequences,
     nthreads=nthreads)
@@ -288,14 +302,15 @@ tetramer_profiles, normalized_tetramer_profiles = feature_utils.get_tetramer_pro
 logger.info("Scanning for single-copy marker genes")
 
 if not os.path.exists(contigs_file + ".hmmout"):
+    # Run FragGeneScan and HMMER if .hmmout file is not present
     logger.info("Obtaining hmmout file")
     marker_gene_utils.scan_for_marker_genes(contigs_file, nthreads)
 else:
     logger.info(".hmmout file already exists")
 
-
 logger.info("Obtaining contigs with single-copy marker genes")
 
+# Get contigs with single-copy marker genes and count of contigs for each single-copy marker gene
 if assembler == "megahit":
     marker_contigs, marker_contig_counts, contig_markers = marker_gene_utils.get_contigs_with_marker_genes_megahit(
         contigs_file=contigs_file,
@@ -313,16 +328,16 @@ else:
         contig_lengths=contig_lengths,
         min_length=min_length)
 
-    all_mg_contigs = marker_gene_utils.get_all_contigs_with_marker_genes(
-        contigs_file, contig_names_rev)
 
-
-# Get marker gene counts to make bins
+# Get single-copy marker gene counts to make bins
 # -----------------------------------------------------
 
 logger.info("Determining contig counts for each single-copy marker gene")
 
+# Get the count of contigs for each single-copy marker gene
 my_gene_counts = list(marker_contig_counts.values())
+
+# Sort the counts in the descending order
 my_gene_counts.sort(reverse=True)
 
 logger.debug("Contig counts of single-copy marker genes:")
@@ -332,16 +347,19 @@ logger.debug(str(my_gene_counts))
 # Get contigs containing each single-copy marker gene for each iteration
 # -----------------------------------------------------
 
-seed_iter = {}
+smg_iteration = {}
 
 n = 0
 
 unique_my_gene_counts = list(set(my_gene_counts))
 unique_my_gene_counts.sort(reverse=True)
 
+# Get contigs for each iteration of single-copy marker gene
 for g_count in unique_my_gene_counts:
 
-    # Get the marker genes with maximum count and sort them by the total contig length
+    # Get the single-copy marker genes with maximum count of contigs and 
+    # sort them in the descending order of the total marker genes contained
+
     total_contig_mgs = {}
 
     for item in marker_contig_counts:
@@ -360,7 +378,7 @@ for g_count in unique_my_gene_counts:
         total_contig_mgs.items(), key=operator.itemgetter(1), reverse=True)
 
     for item in total_contig_mgs_sorted:
-        seed_iter[n] = marker_contigs[item[0]]
+        smg_iteration[n] = marker_contigs[item[0]]
         n += 1
 
 
@@ -375,30 +393,33 @@ binned_contigs_with_markers = []
 
 logger.info("Initialising bins")
 
-for i in range(len(seed_iter[0])):
+# Initialise bins with the contigs having the first single-copy 
+# marker gene according to the ordering
 
-    binned_contigs_with_markers.append(seed_iter[0][i])
-    contig_num = seed_iter[0][i]
+for i in range(len(smg_iteration[0])):
+
+    binned_contigs_with_markers.append(smg_iteration[0][i])
+    contig_num = smg_iteration[0][i]
 
     bins[i] = [contig_num]
     bin_of_contig[contig_num] = i
 
     bin_markers[i] = contig_markers[contig_num]
 
-logger.debug("Number of initial bins detected: " + str(len(seed_iter[0])))
-
+logger.debug("Number of initial bins detected: " + str(len(smg_iteration[0])))
 logger.debug("Initialised bins:")
 logger.debug(bins)
 
 
-# Assign contigs with marker genes to bins
+# Assign contigs with single-copy marker genes to bins
 # -----------------------------------------------------
 
 logger.info(
     "Matching and assigning contigs with single-copy marker genes to bins")
 
+# Matching contigs to bins
 bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching_utils.match_contigs(
-    seed_iter=seed_iter,
+    smg_iteration=smg_iteration,
     bins=bins,
     n_bins=n_bins,
     bin_of_contig=bin_of_contig,
@@ -423,7 +444,7 @@ for b in bins:
 logger.debug(
     "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig)))
 
-del seed_iter
+del smg_iteration
 del my_gene_counts
 del marker_contigs
 del marker_contig_counts
@@ -434,15 +455,18 @@ gc.collect()
 # Further assign contigs with seed marker genes
 # -------------------------------------------------
 
+# Get contigs with single-copy marker genes which are not matched to bins
 unbinned_mg_contigs = list(
     set(contig_markers.keys()) - set(binned_contigs_with_markers))
 
 unbinned_mg_contig_lengths = {}
 
+# Get the lengths of the unmatched contigs
 for contig in unbinned_mg_contigs:
     contigid = contig
     unbinned_mg_contig_lengths[contig] = contig_lengths[contigid]
 
+# Sort the unmatched in the the descending order of their contig lengths
 unbinned_mg_contig_lengths_sorted = sorted(
     unbinned_mg_contig_lengths.items(), key=operator.itemgetter(1), reverse=True)
 
@@ -451,6 +475,7 @@ logger.debug("Number of unbinned contigs with single-copy marker genes: " +
 
 logger.info("Further assigning contigs with single-copy marker genes")
 
+# Further assigning unmatched contigs to bins
 bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching_utils.further_match_contigs(
     unbinned_mg_contigs=unbinned_mg_contig_lengths_sorted,
     min_length=min_length,
@@ -464,6 +489,7 @@ bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching
     coverages=coverages,
     w_intra=w_intra)
 
+# Get remaining contigs with single-copy marker genes which are not assigned to bins
 unbinned_mg_contigs = list(
     set(contig_markers.keys()) - set(binned_contigs_with_markers))
 
@@ -481,11 +507,14 @@ gc.collect()
 # Get seed bin counts and profiles
 # -----------------------------------------------------
 
-seed_bin_counts = []
+smg_bin_counts = []
 
+# Get the count of contigs with single-copy marker genes in each bin
 for i in bins:
-    seed_bin_counts.append(len(bins[i]))
+    smg_bin_counts.append(len(bins[i]))
 
+# Get composition and coverage profiles for each bin 
+# based on contigs with single-copy marker genes
 bin_seed_tetramer_profiles, bin_seed_coverage_profiles = feature_utils.get_bin_profiles(
     bins=bins,
     coverages=coverages,
@@ -502,13 +531,17 @@ unbinned_contigs = list(
 
 logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
 logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
+logger.debug("Number of binned contigs with markers: " +
+             str(len(binned_contigs_with_markers)))
 
 
 # Get isolated vertices and components without labels
 # -----------------------------------------------------
 
+# Get isolated contigs with no neighbours
 isolated = graph_utils.get_isolated(node_count, assembly_graph)
 
+# Get connected contigs within the labelled components
 non_isolated = graph_utils.get_non_isolated(
     node_count=node_count,
     assembly_graph=assembly_graph,
@@ -516,18 +549,6 @@ non_isolated = graph_utils.get_non_isolated(
 
 logger.debug("Number of non-isolated contigs: " + str(len(non_isolated)))
 
-non_isolated_unbinned = list(
-    set(non_isolated).intersection(set(unbinned_contigs)))
-
-non_isolated_long_unbinned = list(filter(
-    lambda contig: contig_lengths[contig] >= min_length, non_isolated_unbinned))
-
-logger.debug("Number of non-isolated unbinned contigs: " +
-             str(len(non_isolated_unbinned)))
-logger.debug("Number of non-isolated long unbinned contigs: " +
-             str(len(non_isolated_long_unbinned)))
-logger.debug("Number of binned contigs with markers: " +
-             str(len(binned_contigs_with_markers)))
 
 
 # Propagate labels to vertices of unlabelled long contigs
@@ -535,13 +556,14 @@ logger.debug("Number of binned contigs with markers: " +
 
 logger.info("Propagating labels to connected vertices of unlabelled long contigs")
 
+# Label propagation on connected vertices of unlabelled long contigs
 bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop(
     bin_of_contig=bin_of_contig,
     bins=bins,
     contig_markers=contig_markers,
     bin_markers=bin_markers,
     binned_contigs_with_markers=binned_contigs_with_markers,
-    seed_bin_counts=seed_bin_counts,
+    smg_bin_counts=smg_bin_counts,
     non_isolated=non_isolated,
     contig_lengths=contig_lengths,
     min_length=min_length,
@@ -555,15 +577,16 @@ logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
 
 # Further propagate labels to vertices of unlabelled long contigs
-# ----------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
+# Further label propagation on connected vertices of unlabelled long contigs
 bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop(
     bin_of_contig=bin_of_contig,
     bins=bins,
     contig_markers=contig_markers,
     bin_markers=bin_markers,
     binned_contigs_with_markers=binned_contigs_with_markers,
-    seed_bin_counts=seed_bin_counts,
+    smg_bin_counts=smg_bin_counts,
     non_isolated=non_isolated,
     contig_lengths=contig_lengths,
     min_length=min_length,
@@ -589,18 +612,22 @@ logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
 
 
 # Propagate labels to vertices of unlabelled long contigs in isolated components
-# -------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------
 
 logger.info("Further propagating labels to vertices of unlabelled long contigs")
 
+# Get long unbinned contigs
 long_unbinned = list(
     filter(lambda contig: contig not in bin_of_contig and contig_lengths[contig] >= min_length, all_contigs))
+
+
+# Starting propagation of labels to vertices of unlabelled long contigs
 
 assigned = [None for itr in long_unbinned]
 
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
-
+# Thread function for workers
 def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles):
     bin_result = label_prop_utils.assign_long(
         contigid=contig,
@@ -609,7 +636,6 @@ def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed
         bin_tetramer_profiles=bin_seed_tetramer_profiles,
         bin_coverage_profiles=bin_seed_coverage_profiles)
     assigned[n] = bin_result
-
 
 exec_args = []
 
@@ -622,11 +648,15 @@ for itr in tqdm(executor.map(lambda p: thread_function(*p), exec_args), total=le
 
 executor.shutdown(wait=True)
 
+# End propagation of labels to vertices of unlabelled long contigs
+
+
 put_to_bins = [x for x in assigned if x is not None]
 
 if len(put_to_bins) == 0:
     logger.debug("No further contigs were binned")
 else:
+    # Add contigs to bins according to assignment
     bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.assign_to_bins(
         put_to_bins=put_to_bins,
         bins=bins,
@@ -639,18 +669,19 @@ logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
 
 #  Further propagate labels to vertices of unlabelled long contigs
-# ----------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
 logger.info(
     "Further propagating labels to connected vertices of unlabelled long contigs")
 
+# Further label propagation on connected vertices of unlabelled long contigs
 bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.final_label_prop(
     bin_of_contig=bin_of_contig,
     bins=bins,
     contig_markers=contig_markers,
     bin_markers=bin_markers,
     binned_contigs_with_markers=binned_contigs_with_markers,
-    seed_bin_counts=seed_bin_counts,
+    smg_bin_counts=smg_bin_counts,
     contig_lengths=contig_lengths,
     min_length=min_length,
     assembly_graph=assembly_graph,
@@ -677,13 +708,16 @@ logger.info("Elapsed time: " + str(elapsed_time) + " seconds")
 
 logger.info("Writing the Final Binning result to file")
 
+# Get output path
 output_bins_path = output_path + prefix + "bins/"
 
+# Create output directory for bin files
 if not os.path.isdir(output_bins_path):
     subprocess.run("mkdir -p " + output_bins_path, shell=True)
 
 for b in range(len(bins)):
 
+    # Write contig identifiers of each bin to files
     with open(output_bins_path + "bin_" + str(b + 1) + "_ids.txt", "w") as bin_file:
         for contig in bins[b]:
 
@@ -693,6 +727,7 @@ for b in range(len(bins)):
             else:
                 bin_file.write(contig_names[contig] + "\n")
 
+    # Write contigs of each bin to files
     subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(
         b + 1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b + 1) + "_seqs.fasta", shell=True)
 
