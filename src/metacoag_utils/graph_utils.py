@@ -27,7 +27,7 @@ def get_segment_paths_spades(contig_paths):
         while name != "" and path != "":
 
             while ";" in path:
-                path = path[:-2]+","+file.readline()
+                path = path[:-2] + "," + file.readline()
 
             start = 'NODE_'
             end = '_length_'
@@ -46,7 +46,7 @@ def get_segment_paths_spades(contig_paths):
                 paths[contig_num] = [segments[0], segments[-1]]
 
             for segment in segments:
-                
+
                 if name not in contig_segments:
                     contig_segments[name] = set([segment[:-1]])
                 else:
@@ -89,10 +89,11 @@ def get_graph_edges_spades(
             # Identify lines with link information
             if "L" in line:
                 strings = line.split("\t")
-                f1, f2 = strings[1]+strings[2], strings[3]+strings[4]
+                f1, f2 = strings[1] + strings[2], strings[3] + strings[4]
                 links_map[f1].add(f2)
                 links_map[f2].add(f1)
-                links.append(strings[1]+strings[2]+" "+strings[3]+strings[4])
+                links.append(strings[1] + strings[2] +
+                             " " + strings[3] + strings[4])
             line = file.readline()
 
     # Create list of edges
@@ -105,17 +106,17 @@ def get_graph_edges_spades(
         start_rev = ""
 
         if start.endswith("+"):
-            start_rev = start[:-1]+"-"
+            start_rev = start[:-1] + "-"
         else:
-            start_rev = start[:-1]+"+"
+            start_rev = start[:-1] + "+"
 
         end = segments[1]
         end_rev = ""
 
         if end.endswith("+"):
-            end_rev = end[:-1]+"-"
+            end_rev = end[:-1] + "-"
         else:
-            end_rev = end[:-1]+"+"
+            end_rev = end[:-1] + "+"
 
         new_links = []
 
@@ -185,7 +186,8 @@ def get_graph_edges_flye(links, contig_names_rev):
         # Remove self loops
         if link[0] != link[1]:
             # Add edge to list of edges
-            edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
+            edge_list.append(
+                (contig_names_rev[link[0]], contig_names_rev[link[1]]))
 
     return edge_list
 
@@ -243,8 +245,9 @@ def get_graph_edges_megahit(links, contig_names_rev):
         # Remove self loops
         if link[0] != link[1]:
             # Add edge to list of edges
-            edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
-    
+            edge_list.append(
+                (contig_names_rev[link[0]], contig_names_rev[link[1]]))
+
     return edge_list
 
 
@@ -305,4 +308,3 @@ def get_non_isolated(node_count, assembly_graph, binned_contigs):
                         non_isolated.append(j)
 
     return non_isolated
-

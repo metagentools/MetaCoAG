@@ -17,6 +17,7 @@ nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
 VERY_SMALL_VAL = 0.0001
 
+
 def get_rc(seq):
     rev = reversed(seq)
     return "".join([complements.get(i, i) for i in rev])
@@ -59,32 +60,32 @@ def count_kmers(args):
     seq = list(seq.strip())
 
     for i in range(0, len(seq) - k + 1):
-        bit_mer = mer2bits(seq[i:i+k])
+        bit_mer = mer2bits(seq[i:(i + k)])
         index = kmer_inds[bit_mer]
         profile[index] += 1
 
     return profile, profile/max(1, sum(profile))
 
 
-def get_tetramer_profiles(output_path, seqs, nthreads):
+def get_tetramer_profiles(output_path, sequences, nthreads):
 
     tetramer_profiles = {}
     normalized_tetramer_profiles = {}
 
-    if os.path.isfile(output_path+"contig_tetramers.txt") and os.path.isfile(output_path+"normalized_contig_tetramers.txt"):
+    if os.path.isfile(output_path + "contig_tetramers.txt") and os.path.isfile(output_path + "normalized_contig_tetramers.txt"):
         i = 0
-        with open(output_path+"contig_tetramers.txt") as tetramers_file:
+        with open(output_path + "contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
                 f_list = np.array([float(i)
-                                  for i in line.split(" ") if i.strip()])
+                                   for i in line.split(" ") if i.strip()])
                 tetramer_profiles[i] = f_list
                 i += 1
 
         i = 0
-        with open(output_path+"normalized_contig_tetramers.txt") as tetramers_file:
+        with open(output_path + "normalized_contig_tetramers.txt") as tetramers_file:
             for line in tetramers_file.readlines():
                 f_list = np.array([float(i)
-                                  for i in line.split(" ") if i.strip()])
+                                   for i in line.split(" ") if i.strip()])
                 normalized_tetramer_profiles[i] = f_list
                 i += 1
 
@@ -94,7 +95,7 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
 
         pool = Pool(nthreads)
         record_tetramers = pool.map(
-            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seqs])
+            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in sequences])
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
@@ -106,10 +107,10 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
             tetramer_profiles[i] = unnormalized[l]
             i += 1
 
-        with open(output_path+"contig_tetramers.txt", "w+") as myfile:
+        with open(output_path + "contig_tetramers.txt", "w+") as myfile:
             for l in range(len(unnormalized)):
                 for j in range(len(unnormalized[l])):
-                    myfile.write(str(unnormalized[l][j])+" ")
+                    myfile.write(str(unnormalized[l][j]) + " ")
                 myfile.write("\n")
 
         i = 0
@@ -118,16 +119,16 @@ def get_tetramer_profiles(output_path, seqs, nthreads):
             normalized_tetramer_profiles[i] = normalized[l]
             i += 1
 
-        with open(output_path+"normalized_contig_tetramers.txt", "w+") as myfile:
+        with open(output_path + "normalized_contig_tetramers.txt", "w+") as myfile:
             for l in range(len(normalized)):
                 for j in range(len(normalized[l])):
-                    myfile.write(str(normalized[l][j])+" ")
+                    myfile.write(str(normalized[l][j]) + " ")
                 myfile.write("\n")
 
     return tetramer_profiles, normalized_tetramer_profiles
 
 
-def get_cov_len(contigs_file, contig_names_rev, abundance_file, min_length):
+def get_cov_len(contigs_file, contig_names_rev, abundance_file):
 
     coverages = {}
 
@@ -135,7 +136,7 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file, min_length):
 
     i = 0
 
-    seqs = []
+    sequences = []
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
 
@@ -145,14 +146,14 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file, min_length):
 
         contig_lengths[contig_num] = length
 
-        seqs.append(str(record.seq))
+        sequences.append(str(record.seq))
 
         i += 1
 
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
             strings = line.strip().split("\t")
-            
+
             contig_num = contig_names_rev[strings[0]]
 
             for i in range(1, len(strings)):
@@ -169,10 +170,10 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file, min_length):
 
     n_samples = len(coverages[0])
 
-    return seqs, coverages, contig_lengths, n_samples
+    return sequences, coverages, contig_lengths, n_samples
 
 
-def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file, min_length):
+def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file):
 
     coverages = {}
 
@@ -180,19 +181,19 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
 
     i = 0
 
-    seqs = []
+    sequences = []
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
         contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
         length = len(record.seq)
         contig_lengths[contig_num] = length
-        seqs.append(str(record.seq))
+        sequences.append(str(record.seq))
         i += 1
 
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
             strings = line.strip().split("\t")
-            
+
             contig_num = contig_names_rev[graph_to_contig_map_rev[strings[0]]]
 
             for i in range(1, len(strings)):
@@ -209,8 +210,7 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
 
     n_samples = len(coverages[0])
 
-    return seqs, coverages, contig_lengths, n_samples
-
+    return sequences, coverages, contig_lengths, n_samples
 
 
 def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
@@ -226,7 +226,7 @@ def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
         for contig in bins[b]:
             coverage_b.append(coverages[contig])
             tetramer_b.append(normalized_tetramer_profiles[contig])
-        
+
         coverage_b = np.array(coverage_b)
         tetramer_b = np.array(tetramer_b)
 

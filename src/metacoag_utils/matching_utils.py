@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import math
 import networkx as nx
 import operator
@@ -10,9 +11,11 @@ from scipy.spatial import distance
 MU_INTRA, SIGMA_INTRA = 0, 0.01037897 / 2
 MU_INTER, SIGMA_INTER = 0.0676654, 0.03419337
 VERY_SMALL_DOUBLE = 1e-10
+MAX_WEIGHT = sys.float_info.max
 
 # create logger
 logger = logging.getLogger('MetaCoaAG 0.1')
+
 
 def normpdf(x, mean, sd):
     var = float(sd)**2
@@ -23,6 +26,7 @@ def normpdf(x, mean, sd):
 
 def get_tetramer_distance(seq1, seq2):
     return distance.euclidean(seq1, seq2)
+
 
 def get_coverage_distance(cov1, cov2):
     return distance.euclidean(cov1, cov2)
@@ -61,7 +65,10 @@ def get_cov_probability(cov1, cov2):
     return poisson_prod
 
 
-def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_markers, bin_markers, contig_markers, contig_lengths, normalized_tetramer_profiles, coverages, assembly_graph, w_intra, w_inter, d_limit):
+def match_contigs(
+        seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
+        bin_markers, contig_markers, contig_lengths, normalized_tetramer_profiles,
+        coverages, assembly_graph, w_intra, w_inter, d_limit):
 
     edge_weights_per_iteration = {}
 
@@ -70,7 +77,7 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
     for i in range(seed_iters):
 
         logger.debug("Iteration "+str(i)+": " +
-                    str(len(seed_iter[i]))+" contigs with seed marker genes")
+                     str(len(seed_iter[i]))+" contigs with seed marker genes")
 
         if i > 0:
 
@@ -110,9 +117,10 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
                         for j in range(n_contigs):
 
                             tetramer_dist = get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                                    normalized_tetramer_profiles[bins[b][j]])
+                                                                  normalized_tetramer_profiles[bins[b][j]])
                             prob_comp = get_comp_probability(tetramer_dist)
-                            prob_cov = get_cov_probability(coverages[contigid], coverages[bins[b][j]])
+                            prob_cov = get_cov_probability(
+                                coverages[contigid], coverages[bins[b][j]])
 
                             prob_product = prob_comp * prob_cov
 
@@ -173,10 +181,8 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
                                     if len(shortest_paths) != 0:
                                         path_len_sum += len(shortest_paths[0])
 
-                                avg_path_len = math.floor(path_len_sum/len(bins[b]))
-
-                                # logger.debug("Contig " + contig_names[my_matching[l]] + "to assign to bin with seed MG contig: " + contig_names[l] + "; Weight: " + str(
-                                #     edge_weights[(l, my_matching[l])])+"; avg_path_len:"+str(avg_path_len))
+                                avg_path_len = math.floor(
+                                    path_len_sum/len(bins[b]))
 
                                 if edge_weights[(l, my_matching[l])] <= w_intra and avg_path_len <= d_limit:
 
@@ -191,9 +197,6 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
                                         bin_markers[b] = list(
                                             set(bin_markers[b] + contig_markers[my_matching[l]]))
 
-                                        # logger.debug(
-                                        #     "Contig "+contig_names[my_matching[l]]+" assigned to bin "+str(b+1))
-
                                     else:
                                         not_binned[my_matching[l]] = (l, b)
 
@@ -203,24 +206,23 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
                     longest_nb_contig = -1
                     longest_nb_contig_length = -1
                     longest_nb_contig_mg_count = -1
-                    longest_nb_contig_bin = -1
 
                     for nb in not_binned:
 
                         if edge_weights_per_iteration[i][(not_binned[nb][0], nb)] > w_inter:
-                        
+
                             if longest_nb_contig_mg_count < len(contig_markers[not_binned[nb][0]]):
                                 longest_nb_contig = nb
-                                longest_nb_contig_mg_count = len(contig_markers[not_binned[nb][0]])
+                                longest_nb_contig_mg_count = len(
+                                    contig_markers[not_binned[nb][0]])
                                 longest_nb_contig_length = contig_lengths[not_binned[nb][0]]
-                                longest_nb_contig_bin = not_binned[nb][1]
-                            
+
                             elif longest_nb_contig_mg_count == len(contig_markers[not_binned[nb][0]]):
                                 if longest_nb_contig_length < contig_lengths[not_binned[nb][0]]:
                                     longest_nb_contig = nb
-                                    longest_nb_contig_mg_count = len(contig_markers[not_binned[nb][0]])
+                                    longest_nb_contig_mg_count = len(
+                                        contig_markers[not_binned[nb][0]])
                                     longest_nb_contig_length = contig_lengths[not_binned[nb][0]]
-                                    longest_nb_contig_bin = not_binned[nb][1]
 
                     if longest_nb_contig != -1:
 
@@ -237,7 +239,7 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
                         avg_path_len = path_len_sum / \
                             len(bins[not_binned[longest_nb_contig][1]])
 
-                        if math.floor(avg_path_len) >= d_limit or path_len_sum==0:
+                        if math.floor(avg_path_len) >= d_limit or path_len_sum == 0:
 
                             logger.debug("Creating new bin...")
                             bins[n_bins] = [longest_nb_contig]
@@ -246,10 +248,10 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
 
                             bin_markers[n_bins] = contig_markers[longest_nb_contig]
                             n_bins += 1
-                            binned_contigs_with_markers.append(longest_nb_contig)
+                            binned_contigs_with_markers.append(
+                                longest_nb_contig)
 
             logger.debug(str(binned_count)+" contigs binned in the iteration")
-
 
     if len(seed_iter) > 0:
         del edge_weights_per_iteration
@@ -266,11 +268,12 @@ def match_contigs(seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_ma
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers
 
 
+def further_match_contigs(
+        unbinned_mg_contigs, min_length, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
+        bin_markers, contig_markers, normalized_tetramer_profiles, coverages, w_intra):
 
-def further_match_contigs(unbinned_mg_contig_lengths_sorted, min_length, bins, n_bins, bin_of_contig, binned_contigs_with_markers, bin_markers, contig_markers, normalized_tetramer_profiles, coverages, w_intra):
+    for contig in unbinned_mg_contigs:
 
-    for contig in unbinned_mg_contig_lengths_sorted:
-        
         if contig[1] >= min_length:
 
             possible_bins = []
@@ -295,9 +298,10 @@ def further_match_contigs(unbinned_mg_contig_lengths_sorted, min_length, bins, n
                     for j in range(n_contigs):
 
                         tetramer_dist = get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                            normalized_tetramer_profiles[bins[b][j]])
+                                                              normalized_tetramer_profiles[bins[b][j]])
                         prob_comp = get_comp_probability(tetramer_dist)
-                        prob_cov = get_cov_probability(coverages[contigid], coverages[bins[b][j]])
+                        prob_cov = get_cov_probability(
+                            coverages[contigid], coverages[bins[b][j]])
 
                         prob_product = prob_comp * prob_cov
 
@@ -305,7 +309,7 @@ def further_match_contigs(unbinned_mg_contig_lengths_sorted, min_length, bins, n
 
                         if prob_product > 0.0:
                             log_prob = - (math.log(prob_comp, 10) +
-                                        math.log(prob_cov, 10))
+                                          math.log(prob_cov, 10))
                         else:
                             log_prob = MAX_WEIGHT
 
