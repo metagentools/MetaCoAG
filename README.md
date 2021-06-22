@@ -95,10 +95,9 @@ You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the comma
 usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
                 [--prefix PREFIX] [--min_length MIN_LENGTH]
-                [--w_intra W_INTRA] [--w_inter W_INTER] [--depth DEPTH]
-                [--d_limit D_LIMIT] [--mg_threshold MG_THRESHOLD]
-                [--seed_threshold SEED_THRESHOLD] [--delimiter DELIMITER]
-                [--nthreads NTHREADS] [-v]
+                [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
+                [--depth DEPTH] [--mg_threshold MG_THRESHOLD]
+                [--delimiter DELIMITER] [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the
 connectivity information found in assembly graphs, apart from the composition
@@ -121,18 +120,15 @@ optional arguments:
   --min_length MIN_LENGTH
                         minimum length of contigs to consider for binning.
                         [default: 1000]
-  --w_intra W_INTRA     maximum weight of an edge matching to assign to the
-                        same bin. [default: 2]
-  --w_inter W_INTER     minimum weight of an edge matching to create a new
-                        bin. [default: 80]
+  --p_intra P_INTRA     minimum probability of an edge matching to assign to
+                        the same bin. [default: 0.1]
+  --p_inter P_INTER     maximum probability of an edge matching to create a
+                        new bin. [default: 0.01]
+  --d_limit D_LIMIT     distance limit for contig matching. [default: 20]
   --depth DEPTH         depth to consider for label propagation. [default: 10]
-  --d_limit D_LIMIT     distance limit for contig matching. [default: 10]
   --mg_threshold MG_THRESHOLD
                         length threshold to consider marker genes. [default:
-                        0.3]
-  --seed_threshold SEED_THRESHOLD
-                        threshold to consider contigs with seed marker genes.
-                        [default: 0.1]
+                        0.5]
   --delimiter DELIMITER
                         delimiter for output results. Supports a comma (,), a
                         semicolon (;), a tab ($'\t'), a space (" ") and a pipe
@@ -141,7 +137,7 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
-`min_length`, `w_intra`, `w_inter`, `mg_threshold`, `seed_threshold`, `depth`, `d_limit`, and `nthreads` parameters are set by default to `1000`, `2`, `80`, `0.3`, `0.1`, `10`, `10`, and `8` respectively. However, the user can specify them when running MetaCoAG.
+`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
 
 You can specify the delimiter for the final binning output file using the `delimiter` paramter. Enter the following values for different delimiters; 
 * `,` for a comma
@@ -155,12 +151,13 @@ You can specify the delimiter for the final binning output file using the `delim
 For the metaSPAdes version, `MetaCoAG` takes in 3 files as inputs.
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
+* Contig paths file (in `.paths` format)
 * Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample.
 
 ## Example Usage
 
 ```
-./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --output /path/to/output_folder
+./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ## References
