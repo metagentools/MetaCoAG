@@ -58,12 +58,8 @@ ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")
 ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
                 help="length threshold to consider marker genes. [default: 0.5]")
-ap.add_argument("--seed_threshold", required=False, type=float, default=0.1,
-                help="threshold to consider contigs with seed marker genes. [default: 0.1]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
-ap.add_argument("--break_step", required=False, type=float, default=0.0005,
-                help="Probability step to stop breaking bins. [default: 0.0005]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
                 help="delimiter for output results. [default: , (comma)]")
 ap.add_argument("--nthreads", required=False, type=int, default=8,
@@ -83,9 +79,7 @@ p_intra = args["p_intra"]
 p_inter = args["p_inter"]
 depth = args["depth"]
 mg_threshold = args["mg_threshold"]
-seed_threshold = args["seed_threshold"]
 d_limit = args["d_limit"]
-break_step = args["break_step"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
@@ -132,7 +126,6 @@ logger.info("p_inter: " + str(p_inter))
 logger.debug("bin_threshold: " + str(bin_threshold))
 logger.debug("break_threshold: " + str(break_threshold))
 logger.info("mg_threshold: " + str(mg_threshold))
-logger.info("seed_threshold: " + str(seed_threshold))
 logger.info("d_limit: " + str(d_limit))
 logger.info("depth: " + str(depth))
 logger.info("Number of threads: " + str(nthreads))

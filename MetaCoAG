@@ -73,35 +73,23 @@ parser.add_argument("--p_inter",
                     default=0.01,
                     help="maximum probability of an edge matching to create a new bin. [default: 0.01]")
 
-parser.add_argument("--depth",
-                    required=False,
-                    type=int,
-                    default=10,
-                    help="depth to consider for label propagation. [default: 10]")
-
 parser.add_argument("--d_limit",
                     required=False,
                     type=int,
                     default=20,
                     help="distance limit for contig matching. [default: 20]")
 
+parser.add_argument("--depth",
+                    required=False,
+                    type=int,
+                    default=10,
+                    help="depth to consider for label propagation. [default: 10]")
+
 parser.add_argument("--mg_threshold",
                     required=False,
                     type=float,
                     default=0.5,
                     help="length threshold to consider marker genes. [default: 0.5]")
-
-parser.add_argument("--seed_threshold",
-                    required=False,
-                    type=float,
-                    default=0.1,
-                    help="threshold to consider contigs with seed marker genes. [default: 0.1]")
-
-parser.add_argument("--break_step",
-                    required=False,
-                    type=float,
-                    default=0.0005,
-                    help="Probability step to stop breaking bins. [default: 0.0005]")
 
 parser.add_argument("--delimiter",
                     required=False,
@@ -268,7 +256,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --seed_threshold "{13}" --d_limit "{14}" --break_step "{15}" --delimiter "{16}" --nthreads "{17}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --d_limit "{13}" --delimiter "{14}" --nthreads "{15}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
@@ -282,9 +270,7 @@ cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2
     p_inter,
     depth,
     mg_threshold,
-    seed_threshold,
     d_limit,
-    break_step,
     delimiter,
     nthreads)
 
