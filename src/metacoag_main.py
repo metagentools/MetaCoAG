@@ -111,7 +111,7 @@ logger.info(
     "Welcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs.")
 logger.info("This version of MetaCoAG makes use of the assembly graph produced by SPAdes which is based on the de Bruijn graph approach.")
 
-logger.info("Input arguments:")
+logger.info("Input arguments: ")
 logger.info("Assembler used: " + assembler)
 logger.info("Contigs file: " + contigs_file)
 logger.info("Assembly graph file: " + assembly_graph_file)
@@ -181,6 +181,7 @@ except:
     logger.error(
         "Please make sure that the correct path to the contig paths file is provided.")
     logger.info("Exiting MetaCoAG... Bye...!")
+    sys.exit(1)
 
 
 # Construct the assembly graph
@@ -234,6 +235,7 @@ except:
     logger.error(
         "Please make sure that the correct path to the assembly graph file is provided.")
     logger.info("Exiting MetaCoAG... Bye...!")
+    sys.exit(1)
 
 
 if assembler == "megahit":
@@ -320,6 +322,14 @@ else:
         contig_lengths=contig_lengths,
         min_length=min_length)
 
+logger.info("Number of contigs containing single-copy marker genes: " + str(len(contig_markers)))
+
+# Check if there are contigs with single-copy marker genes
+if len(contig_markers) == 0:
+    logger.info("Could not find contigs that contain single-copy marker genes. The dataset cannot be binned.")
+    logger.info("Exiting MetaCoAG... Bye...!")
+    sys.exit(1)
+
 
 # Get single-copy marker gene counts to make bins
 # -----------------------------------------------------
@@ -332,7 +342,7 @@ my_gene_counts = list(marker_contig_counts.values())
 # Sort the counts in the descending order
 my_gene_counts.sort(reverse=True)
 
-logger.debug("Contig counts of single-copy marker genes:")
+logger.debug("Contig counts of single-copy marker genes: ")
 logger.debug(str(my_gene_counts))
 
 
@@ -399,7 +409,7 @@ for i in range(len(smg_iteration[0])):
     bin_markers[i] = contig_markers[contig_num]
 
 logger.debug("Number of initial bins detected: " + str(len(smg_iteration[0])))
-logger.debug("Initialised bins:")
+logger.debug("Initialised bins: ")
 logger.debug(bins)
 
 
