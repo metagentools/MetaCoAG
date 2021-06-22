@@ -213,7 +213,6 @@ try:
     if assembler == "spades":
         edge_list = graph_utils.get_graph_edges_spades(
             assembly_graph_file=assembly_graph_file,
-            node_count=node_count,
             contigs_map=contigs_map,
             contigs_map_rev=contigs_map_rev,
             paths=paths,

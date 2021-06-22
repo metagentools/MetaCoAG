@@ -9,10 +9,13 @@ from Bio import SeqIO
 from multiprocessing import Pool
 
 
-# create logger
+# Create logger
 logger = logging.getLogger('MetaCoaAG 0.1')
 
+# Set complements of each nucleotide
 complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+
+# Set bits for each nucleotide
 nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
 VERY_SMALL_VAL = 0.0001
@@ -125,7 +128,7 @@ def get_tetramer_profiles(output_path, sequences, nthreads):
                     myfile.write(str(normalized[l][j]) + " ")
                 myfile.write("\n")
 
-    return tetramer_profiles, normalized_tetramer_profiles
+    return normalized_tetramer_profiles
 
 
 def get_cov_len(contigs_file, contig_names_rev, abundance_file):

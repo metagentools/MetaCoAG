@@ -52,16 +52,6 @@ def get_segment_paths_spades(contig_paths):
                 else:
                     contig_segments[name].add(segment[:-1])
 
-            # if segments[0] not in segment_contigs:
-            #     segment_contigs[segments[0]] = set([contig_num])
-            # else:
-            #     segment_contigs[segments[0]].add(contig_num)
-
-            # if segments[-1] not in segment_contigs:
-            #     segment_contigs[segments[-1]] = set([contig_num])
-            # else:
-            #     segment_contigs[segments[-1]].add(contig_num)
-
                 if segment not in segment_contigs:
                     segment_contigs[segment] = set([contig_num])
                 else:
@@ -74,7 +64,7 @@ def get_segment_paths_spades(contig_paths):
 
 
 def get_graph_edges_spades(
-        assembly_graph_file, node_count, contigs_map,
+        assembly_graph_file, contigs_map,
         contigs_map_rev, paths, segment_contigs):
 
     links = []
@@ -255,6 +245,7 @@ def get_isolated(node_count, assembly_graph):
 
     isolated = []
 
+    # Get isolated contigs which have no neighbours
     for i in range(node_count):
 
         neighbours = assembly_graph.neighbors(i, mode="ALL")
@@ -269,6 +260,7 @@ def get_non_isolated(node_count, assembly_graph, binned_contigs):
 
     non_isolated = []
 
+    # Get connectes contigs labelled components
     for i in range(node_count):
 
         if i not in non_isolated and i in binned_contigs:

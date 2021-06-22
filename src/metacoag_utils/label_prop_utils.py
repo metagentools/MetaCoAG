@@ -2,9 +2,7 @@
 
 import sys
 import math
-import operator
 import heapq
-import numpy as np
 
 from metacoag_utils import matching_utils
 
@@ -19,10 +17,11 @@ class DataWrap:
         return (self.data[3], self.data[4]) < (other.data[3], other.data[4])
 
 
-# The BFS function to search labelled nodes
 def run_bfs_long(
-        node, threhold, binned_contigs, bin_of_contig, bins, seed_bin_counts,
+        node, threhold, binned_contigs, bin_of_contig, bins, smg_bin_counts,
         assembly_graph, normalized_tetramer_profiles, coverages):
+    
+    # Search labelled long contigs using BFS
 
     queue = []
     visited = set()
@@ -46,7 +45,7 @@ def run_bfs_long(
 
             log_prob_sum = 0
 
-            n_contigs = seed_bin_counts[contig_bin]
+            n_contigs = smg_bin_counts[contig_bin]
             bin_n_contigs = 0
 
             for j in range(n_contigs):
@@ -123,7 +122,7 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
 
 def label_prop(
         bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, 
-        seed_bin_counts, non_isolated, contig_lengths, min_length, assembly_graph, 
+        smg_bin_counts, non_isolated, contig_lengths, min_length, assembly_graph, 
         normalized_tetramer_profiles, coverages, depth, weight):
 
     contigs_to_bin = set()
@@ -135,7 +134,7 @@ def label_prop(
             contigs_to_bin.update(closest_neighbours)
 
     sorted_node_list = []
-    sorted_node_list_ = [list(run_bfs_long(x, depth, bin_of_contig.keys(), bin_of_contig, bins, seed_bin_counts,
+    sorted_node_list_ = [list(run_bfs_long(x, depth, bin_of_contig.keys(), bin_of_contig, bins, smg_bin_counts,
                                            assembly_graph, normalized_tetramer_profiles, coverages)) for x in contigs_to_bin]
     sorted_node_list_ = [
         item for sublist in sorted_node_list_ for item in sublist]
@@ -181,7 +180,7 @@ def label_prop(
             heapq.heapify(sorted_node_list)
 
             for un in unbinned_neighbours:
-                candidates = list(run_bfs_long(un, depth, list(bin_of_contig.keys()), bin_of_contig, bins, seed_bin_counts,
+                candidates = list(run_bfs_long(un, depth, list(bin_of_contig.keys()), bin_of_contig, bins, smg_bin_counts,
                                                assembly_graph, normalized_tetramer_profiles, coverages))
                 for c in candidates:
                     heapq.heappush(sorted_node_list, DataWrap(c))
@@ -195,6 +194,7 @@ def assign_long(
 
     bin_weights = []
 
+    # Get weight to each bin based on bin profiles
     for b in bin_tetramer_profiles:
 
         log_prob = 0
@@ -215,13 +215,11 @@ def assign_long(
         else:
             bin_weights.append(MAX_WEIGHT)
 
-    min_indices = [bin_weights.index(x) for x in sorted(bin_weights)[:2]]
+    # Get the bin with minimum weight
+    min_index = [bin_weights.index(x) for x in sorted(bin_weights)[:1]]
 
-    first_min_index = min_indices[0]
-    second_min_index = min_indices[1]
-
-    if bin_weights[first_min_index] != MAX_WEIGHT:
-        return contigid, first_min_index, second_min_index, bin_weights
+    if bin_weights[min_index] != MAX_WEIGHT:
+        return contigid, min_index, bin_weights[min_index]
 
     return None
 
@@ -230,9 +228,9 @@ def assign_to_bins(
         put_to_bins, bins, bin_of_contig, bin_markers, 
         binned_contigs_with_markers, contig_markers):
 
-    for contig, first_min_index, second_min_index, bin_weights in put_to_bins:
+    for contig, min_index, bin_weight in put_to_bins:
 
-        contig_bin = first_min_index
+        contig_bin = min_index
 
         if contig_bin is not None:
 
@@ -245,7 +243,7 @@ def assign_to_bins(
                 common_mgs = list(set(bin_markers[contig_bin]).intersection(
                     set(contig_markers[contig])))
 
-            if len(common_mgs) == 0 and contig not in bin_of_contig and bin_weights[contig_bin] != MAX_WEIGHT:
+            if len(common_mgs) == 0 and contig not in bin_of_contig and bin_weight != MAX_WEIGHT:
 
                 bins[contig_bin].append(contig)
                 bin_of_contig[contig] = contig_bin
@@ -260,7 +258,7 @@ def assign_to_bins(
 
 def final_label_prop(
         bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, 
-        seed_bin_counts, contig_lengths, min_length, assembly_graph, 
+        smg_bin_counts, contig_lengths, min_length, assembly_graph, 
         normalized_tetramer_profiles, coverages, depth, weight):
 
     contigs_to_bin = set()
@@ -272,7 +270,7 @@ def final_label_prop(
             contigs_to_bin.update(closest_neighbours)
 
     sorted_node_list = []
-    sorted_node_list_ = [list(run_bfs_long(x, depth, bin_of_contig.keys(), bin_of_contig, bins, seed_bin_counts,
+    sorted_node_list_ = [list(run_bfs_long(x, depth, bin_of_contig.keys(), bin_of_contig, bins, smg_bin_counts,
                                            assembly_graph, normalized_tetramer_profiles, coverages)) for x in contigs_to_bin]
     sorted_node_list_ = [
         item for sublist in sorted_node_list_ for item in sublist]
@@ -318,7 +316,7 @@ def final_label_prop(
             heapq.heapify(sorted_node_list)
 
             for un in unbinned_neighbours:
-                candidates = list(run_bfs_long(un, depth, list(bin_of_contig.keys()), bin_of_contig, bins, seed_bin_counts,
+                candidates = list(run_bfs_long(un, depth, list(bin_of_contig.keys()), bin_of_contig, bins, smg_bin_counts,
                                                assembly_graph, normalized_tetramer_profiles, coverages))
                 for c in candidates:
                     heapq.heappush(sorted_node_list, DataWrap(c))

@@ -8,6 +8,7 @@ import logging
 
 from scipy.spatial import distance
 
+# Constants set from MaxBin 2.0
 MU_INTRA, SIGMA_INTRA = 0, 0.01037897 / 2
 MU_INTER, SIGMA_INTER = 0.0676654, 0.03419337
 VERY_SMALL_DOUBLE = 1e-10
@@ -42,50 +43,41 @@ def get_cov_probability(cov1, cov2):
 
     poisson_prod = 1
 
-    multiplied = False
-
     for i in range(len(cov1)):
 
-        if cov1[i] > 0 and cov2[i] > 0:
+        # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
+        poisson_pmf = math.exp(
+            (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i])
 
-            # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
-            poisson_pmf = math.exp(
-                (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i])
+        if poisson_pmf < VERY_SMALL_DOUBLE:
+            poisson_pmf = VERY_SMALL_DOUBLE
 
-            if poisson_pmf < VERY_SMALL_DOUBLE:
-                poisson_pmf = VERY_SMALL_DOUBLE
-
-            poisson_prod = poisson_prod * poisson_pmf
-
-            multiplied = True
-
-    if not multiplied:
-        poisson_prod = VERY_SMALL_DOUBLE**float(len(cov1))
+        poisson_prod = poisson_prod * poisson_pmf
 
     return poisson_prod
 
 
 def match_contigs(
-        seed_iter, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
+        smg_iteration, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
         bin_markers, contig_markers, contig_lengths, normalized_tetramer_profiles,
         coverages, assembly_graph, w_intra, w_inter, d_limit):
 
     edge_weights_per_iteration = {}
 
-    seed_iters = len(seed_iter)
+    smg_iterations = len(smg_iteration)
 
-    for i in range(seed_iters):
+    for i in range(smg_iterations):
 
         logger.debug("Iteration "+str(i)+": " +
-                     str(len(seed_iter[i]))+" contigs with seed marker genes")
+                     str(len(smg_iteration[i]))+" contigs with seed marker genes")
 
         if i > 0:
 
             B = nx.Graph()
 
             common = set(binned_contigs_with_markers).intersection(
-                set(seed_iter[i]))
-            to_bin = list(set(seed_iter[i]) - common)
+                set(smg_iteration[i]))
+            to_bin = list(set(smg_iteration[i]) - common)
             logger.debug(str(len(to_bin))+" contigs to bin in the iteration")
             n_bins = len(bins)
             bottom_nodes = []
@@ -253,7 +245,7 @@ def match_contigs(
 
             logger.debug(str(binned_count)+" contigs binned in the iteration")
 
-    if len(seed_iter) > 0:
+    if len(smg_iteration) > 0:
         del edge_weights_per_iteration
         del B
         del my_matching
