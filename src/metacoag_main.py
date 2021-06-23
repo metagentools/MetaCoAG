@@ -451,6 +451,7 @@ logger.debug(
 
 del smg_iteration
 del my_gene_counts
+del unique_my_gene_counts
 del marker_contigs
 del marker_contig_counts
 del total_contig_mgs
