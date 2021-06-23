@@ -289,6 +289,9 @@ normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(
     sequences=sequences,
     nthreads=nthreads)
 
+del sequences
+gc.collect()
+
 
 # Get contigs with marker genes
 # -----------------------------------------------------
