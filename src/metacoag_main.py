@@ -724,7 +724,7 @@ if not os.path.isdir(output_bins_path):
 for b in range(len(bins)):
 
     # Write contig identifiers of each bin to files
-    with open(output_bins_path + "bin_" + str(b + 1) + "_ids.txt", "w") as bin_file:
+    with open(output_bins_path + prefix + "bin_" + str(b + 1) + "_ids.txt", "w") as bin_file:
         for contig in bins[b]:
 
             if assembler == "megahit":
@@ -734,8 +734,8 @@ for b in range(len(bins)):
                 bin_file.write(contig_names[contig] + "\n")
 
     # Write contigs of each bin to files
-    subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + "bin_" + str(
-        b + 1) + "_ids.txt " + contigs_file + " > " + output_bins_path + "bin_" + str(b + 1) + "_seqs.fasta", shell=True)
+    subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + str(
+        b + 1) + "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + str(b + 1) + "_seqs.fasta", shell=True)
 
 logger.info("Final binning results can be found in " + str(output_bins_path))
 

@@ -3,10 +3,14 @@
 import sys
 import math
 import heapq
+import logging
 
 from metacoag_utils import matching_utils
 
 MAX_WEIGHT = sys.float_info.max
+
+# create logger
+logger = logging.getLogger('MetaCoaAG 1.0')
 
 
 class DataWrap:
@@ -167,6 +171,8 @@ def label_prop(
             bins[bin_].append(to_bin)
             bin_of_contig[to_bin] = bin_
 
+            logger.debug("LP initial d=" + str(depth) + ": Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) + " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
+
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
                 bin_markers[bin_] = list(
@@ -248,6 +254,8 @@ def assign_to_bins(
                 bins[contig_bin].append(contig)
                 bin_of_contig[contig] = contig_bin
 
+                logger.debug("Assigning contig " + str(contig) + " to bin "+str(contig_bin+1) + " weight="+str(bin_weight))
+
                 if has_mg:
                     binned_contigs_with_markers.append(contig)
                     bin_markers[contig_bin] = list(
@@ -302,6 +310,8 @@ def final_label_prop(
         if to_bin not in bin_of_contig and cov_comp_diff != weight:
             bins[bin_].append(to_bin)
             bin_of_contig[to_bin] = bin_
+
+            logger.debug("LP final: Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) + " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)

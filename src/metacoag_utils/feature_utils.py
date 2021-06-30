@@ -18,7 +18,7 @@ complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 # Set bits for each nucleotide
 nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
-VERY_SMALL_VAL = 0.0001
+VERY_SMALL_VAL = 0.0000001
 
 
 def get_rc(seq):
@@ -163,7 +163,7 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file):
 
                 contig_coverage = float(strings[i])
 
-                if contig_coverage < VERY_SMALL_VAL:
+                if contig_coverage < 1:
                     contig_coverage = VERY_SMALL_VAL
 
                 if contig_num not in coverages:

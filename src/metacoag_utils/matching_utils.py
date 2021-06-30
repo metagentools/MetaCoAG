@@ -15,7 +15,7 @@ VERY_SMALL_DOUBLE = 1e-10
 MAX_WEIGHT = sys.float_info.max
 
 # create logger
-logger = logging.getLogger('MetaCoaAG 0.1')
+logger = logging.getLogger('MetaCoaAG 1.0')
 
 
 def normpdf(x, mean, sd):
@@ -186,6 +186,8 @@ def match_contigs(
                                             my_matching[l])
                                         binned_count += 1
 
+                                        logger.debug("Assigning contig " + str(my_matching[l]) + " to bin "+str(b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
+
                                         bin_markers[b] = list(
                                             set(bin_markers[b] + contig_markers[my_matching[l]]))
 
@@ -234,6 +236,7 @@ def match_contigs(
                         if math.floor(avg_path_len) >= d_limit or path_len_sum == 0:
 
                             logger.debug("Creating new bin...")
+                            logger.debug("New bin has contig " + str(longest_nb_contig) + " to bin "+str(n_bins+1) + " weight="+str(edge_weights_per_iteration[i][(not_binned[longest_nb_contig][0], longest_nb_contig)]))
                             bins[n_bins] = [longest_nb_contig]
                             bin_of_contig[longest_nb_contig] = n_bins
                             binned_count += 1
