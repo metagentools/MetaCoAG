@@ -325,6 +325,11 @@ else:
         contig_lengths=contig_lengths,
         min_length=min_length)
 
+    all_contig_markers = marker_gene_utils.get_all_contigs_with_marker_genes(
+        contigs_file=contigs_file,
+        contig_names_rev=contig_names_rev,
+        mg_length_threshold=mg_threshold)
+
 logger.info("Number of contigs containing single-copy marker genes: " + str(len(contig_markers)))
 
 # Check if there are contigs with single-copy marker genes
@@ -695,6 +700,28 @@ bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils
     coverages=coverages,
     depth=depth,
     weight=MAX_WEIGHT)
+
+logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
+
+
+# Further propagate labels to vertices of unlabelled short contigs
+# --------------------------------------------------------------------------------
+
+logger.info(
+    "Further propagating labels to connected vertices of unlabelled short contigs")
+
+# Further label propagation on connected vertices of unlabelled short contigs
+bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop_to_short(
+    bin_of_contig=bin_of_contig,
+    bins=bins,
+    contig_markers=all_contig_markers,
+    bin_markers=bin_markers,
+    binned_contigs_with_markers=binned_contigs_with_markers,
+    assembly_graph=assembly_graph,
+    coverages=coverages,
+    contig_lengths=contig_lengths,
+    min_length=500,
+    depth=10)
 
 logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 

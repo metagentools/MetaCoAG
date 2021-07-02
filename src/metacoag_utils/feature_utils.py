@@ -163,7 +163,7 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file):
 
                 contig_coverage = float(strings[i])
 
-                if contig_coverage < 1:
+                if contig_coverage < VERY_SMALL_VAL:
                     contig_coverage = VERY_SMALL_VAL
 
                 if contig_num not in coverages:
