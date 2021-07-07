@@ -59,7 +59,7 @@ def get_cov_probability(cov1, cov2):
 
 def match_contigs(
         smg_iteration, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
-        bin_markers, contig_markers, contig_lengths, normalized_tetramer_profiles,
+        bin_markers, contig_markers, contig_lengths, contig_names, normalized_tetramer_profiles,
         coverages, assembly_graph, w_intra, w_inter, d_limit):
 
     edge_weights_per_iteration = {}
@@ -176,9 +176,24 @@ def match_contigs(
                                 avg_path_len = math.floor(
                                     path_len_sum/len(bins[b]))
 
+                                logger.debug("To assign contig " + contig_names[my_matching[l]] + " to bin "+str(b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
+
+
                                 if edge_weights[(l, my_matching[l])] <= w_intra and avg_path_len <= d_limit:
 
-                                    if len(set(bin_markers[b]).intersection(set(contig_markers[my_matching[l]]))) == 0:
+                                    can_assign = False
+
+                                    common_mgs = set(bin_markers[b]).intersection(set(contig_markers[my_matching[l]]))
+                                    
+                                    if len(common_mgs) == 0:
+                                        can_assign = True
+                                    else:
+                                        neighbours = assembly_graph.neighbors(my_matching[l])
+                                        
+                                        if len(neighbours) == 0 and len(common_mgs) <= 1:
+                                            can_assign = True
+
+                                    if can_assign:
 
                                         bins[b].append(my_matching[l])
                                         bin_of_contig[my_matching[l]] = b
@@ -186,7 +201,7 @@ def match_contigs(
                                             my_matching[l])
                                         binned_count += 1
 
-                                        logger.debug("Assigning contig " + str(my_matching[l]) + " to bin "+str(b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
+                                        logger.debug("Assigning contig " + contig_names[my_matching[l]] + " to bin "+str(b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
                                         bin_markers[b] = list(
                                             set(bin_markers[b] + contig_markers[my_matching[l]]))
