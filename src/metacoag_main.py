@@ -324,11 +324,6 @@ else:
         contig_lengths=contig_lengths,
         min_length=min_length)
 
-    all_contig_markers = marker_gene_utils.get_all_contigs_with_marker_genes(
-        contigs_file=contigs_file,
-        contig_names_rev=contig_names_rev,
-        mg_length_threshold=mg_threshold)
-
 logger.info("Number of contigs containing single-copy marker genes: " +
             str(len(contig_markers)))
 
@@ -500,6 +495,7 @@ bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching
     contig_markers=contig_markers,
     normalized_tetramer_profiles=normalized_tetramer_profiles,
     coverages=coverages,
+    assembly_graph=assembly_graph,
     w_intra=w_intra)
 
 # Get remaining contigs with single-copy marker genes which are not assigned to bins
@@ -641,7 +637,6 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
 # Thread function for workers
 
-
 def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles):
     bin_result = label_prop_utils.assign_long(
         contigid=contig,
@@ -650,7 +645,6 @@ def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed
         bin_tetramer_profiles=bin_seed_tetramer_profiles,
         bin_coverage_profiles=bin_seed_coverage_profiles)
     assigned[n] = bin_result
-
 
 exec_args = []
 

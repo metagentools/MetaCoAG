@@ -192,7 +192,7 @@ def match_contigs(
                                         neighbours = assembly_graph.neighbors(
                                             my_matching[l])
 
-                                        if len(neighbours) == 0 and len(common_mgs) <= 1:
+                                        if len(neighbours) == 0 and len(common_mgs) <= 1 and contig_lengths[my_matching[l]] > 100000:
                                             can_assign = True
 
                                     if can_assign:
@@ -283,8 +283,9 @@ def match_contigs(
 
 
 def further_match_contigs(
-        unbinned_mg_contigs, min_length, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
-        bin_markers, contig_markers, normalized_tetramer_profiles, coverages, w_intra):
+        unbinned_mg_contigs, min_length, bins, n_bins, bin_of_contig, 
+        binned_contigs_with_markers,bin_markers, contig_markers, 
+        normalized_tetramer_profiles, coverages, assembly_graph, w_intra):
 
     for contig in unbinned_mg_contigs:
 
@@ -297,6 +298,11 @@ def further_match_contigs(
                     set(contig_markers[contig[0]])))
                 if len(common_mgs) == 0:
                     possible_bins.append(b)
+                else:
+                    neighbours = assembly_graph.neighbors(contig[0])
+
+                    if len(neighbours) == 0 and len(common_mgs) <= 1 and contig[1] > 100000:
+                        possible_bins.append(b)
 
             if len(possible_bins) != 0:
 
