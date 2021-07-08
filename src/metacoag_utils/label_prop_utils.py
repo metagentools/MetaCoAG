@@ -383,11 +383,13 @@ def label_prop_to_short(
     contigs_to_bin = set()
 
     for contig in bin_of_contig:
-        closest_neighbours = filter(lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(contig))
+        closest_neighbours = filter(
+            lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(contig))
         contigs_to_bin.update(closest_neighbours)
 
     sorted_node_list = []
-    sorted_node_list_ = [list(run_bfs_short(x, depth, bin_of_contig.keys(), bin_of_contig, assembly_graph, coverages)) for x in contigs_to_bin]
+    sorted_node_list_ = [list(run_bfs_short(x, depth, bin_of_contig.keys(
+    ), bin_of_contig, assembly_graph, coverages)) for x in contigs_to_bin]
     sorted_node_list_ = [
         item for sublist in sorted_node_list_ for item in sublist]
 
@@ -428,13 +430,15 @@ def label_prop_to_short(
                     set(bin_markers[bin_] + contig_markers[to_bin]))
 
             # Discover to_bin's neighbours
-            unbinned_neighbours = set(filter(lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(to_bin)))
+            unbinned_neighbours = set(filter(
+                lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(to_bin)))
             sorted_node_list = list(
                 filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
             heapq.heapify(sorted_node_list)
 
             for un in unbinned_neighbours:
-                candidates = list(run_bfs_short(un, depth, bin_of_contig.keys(), bin_of_contig, assembly_graph, coverages))
+                candidates = list(run_bfs_short(
+                    un, depth, bin_of_contig.keys(), bin_of_contig, assembly_graph, coverages))
                 for c in candidates:
                     heapq.heappush(sorted_node_list, DataWrap(c))
 

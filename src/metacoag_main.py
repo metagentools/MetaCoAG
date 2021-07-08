@@ -20,7 +20,6 @@ from metacoag_utils import marker_gene_utils
 from metacoag_utils import matching_utils
 from metacoag_utils import label_prop_utils
 from metacoag_utils import graph_utils
-from metacoag_utils.label_prop_utils import DataWrap
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
@@ -164,7 +163,7 @@ try:
         # Get links and contigs of the assembly graph
         node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(
             assembly_graph_file)
-        
+
         # Get reverse mapping of contig identifiers
         contig_names_rev = contig_names.inverse
 
@@ -330,11 +329,13 @@ else:
         contig_names_rev=contig_names_rev,
         mg_length_threshold=mg_threshold)
 
-logger.info("Number of contigs containing single-copy marker genes: " + str(len(contig_markers)))
+logger.info("Number of contigs containing single-copy marker genes: " +
+            str(len(contig_markers)))
 
 # Check if there are contigs with single-copy marker genes
 if len(contig_markers) == 0:
-    logger.info("Could not find contigs that contain single-copy marker genes. The dataset cannot be binned.")
+    logger.info(
+        "Could not find contigs that contain single-copy marker genes. The dataset cannot be binned.")
     logger.info("Exiting MetaCoAG... Bye...!")
     sys.exit(1)
 
@@ -367,7 +368,7 @@ unique_my_gene_counts.sort(reverse=True)
 # Get contigs for each iteration of single-copy marker gene
 for g_count in unique_my_gene_counts:
 
-    # Get the single-copy marker genes with maximum count of contigs and 
+    # Get the single-copy marker genes with maximum count of contigs and
     # sort them in the descending order of the total marker genes contained
 
     total_contig_mgs = {}
@@ -403,7 +404,7 @@ binned_contigs_with_markers = []
 
 logger.info("Initialising bins")
 
-# Initialise bins with the contigs having the first single-copy 
+# Initialise bins with the contigs having the first single-copy
 # marker gene according to the ordering
 
 for i in range(len(smg_iteration[0])):
@@ -525,7 +526,7 @@ smg_bin_counts = []
 for i in bins:
     smg_bin_counts.append(len(bins[i]))
 
-# Get composition and coverage profiles for each bin 
+# Get composition and coverage profiles for each bin
 # based on contigs with single-copy marker genes
 bin_seed_tetramer_profiles, bin_seed_coverage_profiles = feature_utils.get_bin_profiles(
     bins=bins,
@@ -560,7 +561,6 @@ non_isolated = graph_utils.get_non_isolated(
     binned_contigs=binned_contigs)
 
 logger.debug("Number of non-isolated contigs: " + str(len(non_isolated)))
-
 
 
 # Propagate labels to vertices of unlabelled long contigs
@@ -640,6 +640,8 @@ assigned = [None for itr in long_unbinned]
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
 # Thread function for workers
+
+
 def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles):
     bin_result = label_prop_utils.assign_long(
         contigid=contig,
@@ -648,6 +650,7 @@ def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed
         bin_tetramer_profiles=bin_seed_tetramer_profiles,
         bin_coverage_profiles=bin_seed_coverage_profiles)
     assigned[n] = bin_result
+
 
 exec_args = []
 
@@ -703,28 +706,6 @@ bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils
     weight=MAX_WEIGHT)
 
 logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
-
-
-# Further propagate labels to vertices of unlabelled short contigs
-# --------------------------------------------------------------------------------
-
-# logger.info(
-#     "Further propagating labels to connected vertices of unlabelled short contigs")
-
-# # Further label propagation on connected vertices of unlabelled short contigs
-# bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils.label_prop_to_short(
-#     bin_of_contig=bin_of_contig,
-#     bins=bins,
-#     contig_markers=all_contig_markers,
-#     bin_markers=bin_markers,
-#     binned_contigs_with_markers=binned_contigs_with_markers,
-#     assembly_graph=assembly_graph,
-#     coverages=coverages,
-#     contig_lengths=contig_lengths,
-#     min_length=500,
-#     depth=10)
-
-# logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
 
 # Get elapsed time
