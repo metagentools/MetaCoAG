@@ -427,7 +427,6 @@ logger.info(
 bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching_utils.match_contigs(
     smg_iteration=smg_iteration,
     bins=bins,
-    n_bins=n_bins,
     bin_of_contig=bin_of_contig,
     binned_contigs_with_markers=binned_contigs_with_markers,
     bin_markers=bin_markers,
@@ -442,11 +441,6 @@ bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers = matching
     d_limit=d_limit)
 
 logger.debug("Number of bins after matching: " + str(len(bins)))
-
-logger.debug("Bins with contigs containing seed marker genes")
-
-for b in bins:
-    logger.debug(str(b) + ": " + str(bins[b]))
 
 logger.debug(
     "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig)))
@@ -507,10 +501,62 @@ logger.debug("Remaining number of unbinned MG seed contigs: " +
 logger.debug(
     "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig)))
 
+logger.debug("Bins with contigs containing seed marker genes")
+
+for b in bins:
+    logger.debug(str(b) + ": " + str(bins[b]))
+
 del unbinned_mg_contigs
 del unbinned_mg_contig_lengths
 del unbinned_mg_contig_lengths_sorted
 gc.collect()
+
+
+# Check and remove bins with 1 marker gene and 1 contig assigned
+# -------------------------------------------------
+
+bins_to_remove = []
+
+for b in bin_markers:
+    logger.debug("Marker genes in " + str(b + 1) + ": " + str(bin_markers[b]))
+    if len(bins[b]) == 1 and len(contig_markers[bins[b][0]]) < 5 and contig_lengths[bins[b][0]] < 10000:
+        bins_to_remove.append(b)
+
+logger.debug("Bins to remove:" + str(bins_to_remove))
+
+for b in bins_to_remove:
+
+    for contig in bins[b]:
+        del bin_of_contig[contig]
+        if contig in binned_contigs_with_markers:
+            binned_contigs_with_markers.remove(contig)
+   
+    del bin_markers[b]
+    del bins[b]
+
+old_bins = bins
+old_bin_markers = bin_markers
+bins = {}
+bin_markers = {}
+
+i = 0
+for b in old_bins:
+    bins[i] = old_bins[b]
+    bin_markers[i] = old_bin_markers[b]
+    for contig in old_bins[b]:
+        bin_of_contig[contig] = i
+    i+=1
+
+del old_bins
+del old_bin_markers
+gc.collect()
+
+logger.debug("Number of bins after refining bins from matching: " + str(len(bins)))
+
+logger.debug("Bins with contigs containing seed marker genes")
+
+for b in bins:
+    logger.debug(str(b) + ": " + str(bins[b]))
 
 
 # Get seed bin counts and profiles

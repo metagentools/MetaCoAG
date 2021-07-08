@@ -58,7 +58,7 @@ def get_cov_probability(cov1, cov2):
 
 
 def match_contigs(
-        smg_iteration, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
+        smg_iteration, bins, bin_of_contig, binned_contigs_with_markers,
         bin_markers, contig_markers, contig_lengths, contig_names, normalized_tetramer_profiles,
         coverages, assembly_graph, w_intra, w_inter, d_limit):
 
@@ -262,8 +262,7 @@ def match_contigs(
 
                             bin_markers[n_bins] = contig_markers[longest_nb_contig]
                             n_bins += 1
-                            binned_contigs_with_markers.append(
-                                longest_nb_contig)
+                            binned_contigs_with_markers.append(longest_nb_contig)
 
             logger.debug(str(binned_count)+" contigs binned in the iteration")
 
