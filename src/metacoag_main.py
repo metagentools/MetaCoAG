@@ -322,7 +322,7 @@ else:
         contig_names_rev=contig_names_rev,
         mg_length_threshold=mg_threshold,
         contig_lengths=contig_lengths,
-        min_length=min_length)
+        min_length=2000)
 
 logger.info("Number of contigs containing single-copy marker genes: " +
             str(len(contig_markers)))
@@ -519,7 +519,7 @@ bins_to_remove = []
 
 for b in bin_markers:
     logger.debug("Marker genes in " + str(b + 1) + ": " + str(bin_markers[b]))
-    if len(bins[b]) == 1 and len(contig_markers[bins[b][0]]) < 5 and contig_lengths[bins[b][0]] < 10000:
+    if len(bins[b]) == 1 and len(bin_markers[b]) == 1 and contig_lengths[bins[b][0]] < 10000:
         bins_to_remove.append(b)
 
 logger.debug("Bins to remove:" + str(bins_to_remove))
