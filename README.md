@@ -97,7 +97,8 @@ usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
                 [--depth DEPTH] [--mg_threshold MG_THRESHOLD]
-                [--delimiter DELIMITER] [--nthreads NTHREADS] [-v]
+                [--bin_mg_threshold BIN_MG_THRESHOLD] [--delimiter DELIMITER]
+                [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the
 connectivity information found in assembly graphs, apart from the composition
@@ -125,10 +126,13 @@ optional arguments:
   --p_inter P_INTER     maximum probability of an edge matching to create a
                         new bin. [default: 0.01]
   --d_limit D_LIMIT     distance limit for contig matching. [default: 20]
-  --depth DEPTH         depth to consider for label propagation. [default: 10]
+  --depth DEPTH         depth to consider for label propagation. [default: 5]
   --mg_threshold MG_THRESHOLD
                         length threshold to consider marker genes. [default:
                         0.5]
+  --bin_mg_threshold BIN_MG_THRESHOLD
+                        minimum fraction of marker genes that should be
+                        present in a bin. [default: 0.2]
   --delimiter DELIMITER
                         delimiter for output results. Supports a comma (,), a
                         semicolon (;), a tab ($'\t'), a space (" ") and a pipe
@@ -137,7 +141,7 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
-`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
+`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `bin_mg_threshold`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `0.2`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
 
 You can specify the delimiter for the final binning output file using the `delimiter` paramter. Enter the following values for different delimiters; 
 * `,` for a comma
