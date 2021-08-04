@@ -60,6 +60,8 @@ ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")
 ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
                 help="length threshold to consider marker genes. [default: 0.5]")
+ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.2,
+                help="minimum fraction of marker genes that should be present in a bin. [default: 0.2]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
@@ -81,6 +83,7 @@ p_intra = args["p_intra"]
 p_inter = args["p_inter"]
 depth = args["depth"]
 mg_threshold = args["mg_threshold"]
+bin_mg_threshold = args["bin_mg_threshold"]
 d_limit = args["d_limit"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
@@ -128,6 +131,7 @@ logger.info("p_inter: " + str(p_inter))
 logger.debug("bin_threshold: " + str(bin_threshold))
 logger.debug("break_threshold: " + str(break_threshold))
 logger.info("mg_threshold: " + str(mg_threshold))
+logger.info("bin_mg_threshold: " + str(bin_mg_threshold))
 logger.info("d_limit: " + str(d_limit))
 logger.info("Number of threads: " + str(nthreads))
 
@@ -793,7 +797,7 @@ for b in bins:
     logger.debug("Bin " + str(b) +
                  " possible bins to merge: " + str(possible_bins))
 
-    if no_possible_bins and len(bin_markers[b]) < M_MARKER_GENES * 0.2:
+    if no_possible_bins and len(bin_markers[b]) < M_MARKER_GENES * bin_mg_threshold:
         logger.debug("Remove bin------------")
         bins_to_rem.append(b)
 

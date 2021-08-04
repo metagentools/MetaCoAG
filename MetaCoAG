@@ -91,6 +91,12 @@ parser.add_argument("--mg_threshold",
                     default=0.5,
                     help="length threshold to consider marker genes. [default: 0.5]")
 
+parser.add_argument("--bin_mg_threshold",
+                    required=False,
+                    type=float,
+                    default=0.2,
+                    help="minimum fraction of marker genes that should be present in a bin. [default: 0.2]")
+
 parser.add_argument("--delimiter",
                     required=False,
                     type=str,
@@ -121,6 +127,7 @@ p_inter = args["p_inter"]
 depth = args["depth"]
 d_limit = args["d_limit"]
 mg_threshold = args["mg_threshold"]
+bin_mg_threshold = args["bin_mg_threshold"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
@@ -212,6 +219,12 @@ if mg_threshold <= 0 or mg_threshold > 1:
     print("Exiting MetaCoAG...\nBye...!\n")
     sys.exit(1)
 
+# Validate mg_threshold
+if bin_mg_threshold <= 0 or bin_mg_threshold > 1:
+    print("\nPlease enter a valid number for bin_mg_threshold")
+    print("Exiting MetaCoAG...\nBye...!\n")
+    sys.exit(1)
+
 # Validate depth
 if depth <= 0:
     print("\nPlease enter a valid number for depth")
@@ -242,7 +255,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --d_limit "{13}" --delimiter "{14}" --nthreads "{15}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --bin_mg_threshold "{13}" --d_limit "{14}" --delimiter "{15}" --nthreads "{16}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
@@ -256,6 +269,7 @@ cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2
     p_inter,
     depth,
     mg_threshold,
+    bin_mg_threshold,
     d_limit,
     delimiter,
     nthreads)
