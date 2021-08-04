@@ -3,6 +3,7 @@
 import numpy as np
 import itertools
 import os
+import pickle
 import logging
 
 from Bio import SeqIO
@@ -18,7 +19,7 @@ complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 # Set bits for each nucleotide
 nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
-VERY_SMALL_VAL = 0.0000001
+VERY_SMALL_VAL = 0.0001
 
 
 def get_rc(seq):
@@ -70,27 +71,31 @@ def count_kmers(args):
     return profile, profile/max(1, sum(profile))
 
 
-def get_tetramer_profiles(output_path, sequences, nthreads):
+def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nthreads):
 
     tetramer_profiles = {}
     normalized_tetramer_profiles = {}
 
-    if os.path.isfile(output_path + "contig_tetramers.txt") and os.path.isfile(output_path + "normalized_contig_tetramers.txt"):
-        i = 0
-        with open(output_path + "contig_tetramers.txt") as tetramers_file:
-            for line in tetramers_file.readlines():
-                f_list = np.array([float(i)
-                                   for i in line.split(" ") if i.strip()])
-                tetramer_profiles[i] = f_list
-                i += 1
+    if os.path.isfile(output_path + "normalized_contig_tetramers.pickle"):
 
-        i = 0
-        with open(output_path + "normalized_contig_tetramers.txt") as tetramers_file:
-            for line in tetramers_file.readlines():
-                f_list = np.array([float(i)
-                                   for i in line.split(" ") if i.strip()])
-                normalized_tetramer_profiles[i] = f_list
-                i += 1
+        with open(output_path + 'normalized_contig_tetramers.pickle', 'rb') as handle:
+            normalized_tetramer_profiles = pickle.load(handle)
+
+        # i = 0
+        # with open(output_path + "contig_tetramers.tsv") as tetramers_file:
+        #     for line in tetramers_file.readlines():
+        #         f_list = np.array([float(i)
+        #                            for i in line.split("\t") if i.strip()])
+        #         tetramer_profiles[i] = f_list
+        #         i += 1
+
+        # i = 0
+        # with open(output_path + "normalized_contig_tetramers.tsv") as tetramers_file:
+        #     for line in tetramers_file.readlines():
+        #         f_list = np.array([float(i)
+        #                            for i in line.split("\t") if i.strip()])
+        #         normalized_tetramer_profiles[i] = f_list
+        #         i += 1
 
     else:
 
@@ -102,19 +107,19 @@ def get_tetramer_profiles(output_path, sequences, nthreads):
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
-        unnormalized = [x[0] for x in record_tetramers]
+        # unnormalized = [x[0] for x in record_tetramers]
 
         i = 0
 
-        for l in range(len(unnormalized)):
-            tetramer_profiles[i] = unnormalized[l]
-            i += 1
+        # for l in range(len(unnormalized)):
+        #     tetramer_profiles[i] = unnormalized[l]
+        #     i += 1
 
-        with open(output_path + "contig_tetramers.txt", "w+") as myfile:
-            for l in range(len(unnormalized)):
-                for j in range(len(unnormalized[l])):
-                    myfile.write(str(unnormalized[l][j]) + " ")
-                myfile.write("\n")
+        # with open(output_path + "contig_tetramers.tsv", "w+") as myfile:
+        #     for l in range(len(unnormalized)):
+        #         for j in range(len(unnormalized[l])):
+        #             myfile.write(str(unnormalized[l][j]) + "\t")
+        #         myfile.write("\n")
 
         i = 0
 
@@ -122,16 +127,25 @@ def get_tetramer_profiles(output_path, sequences, nthreads):
             normalized_tetramer_profiles[i] = normalized[l]
             i += 1
 
-        with open(output_path + "normalized_contig_tetramers.txt", "w+") as myfile:
-            for l in range(len(normalized)):
-                for j in range(len(normalized[l])):
-                    myfile.write(str(normalized[l][j]) + " ")
-                myfile.write("\n")
+        with open(output_path + 'normalized_contig_tetramers.pickle', 'wb') as handle:
+            pickle.dump(normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    return normalized_tetramer_profiles
+        # with open(output_path + "normalized_contig_tetramers.tsv", "w+") as myfile:
+        #     for l in range(len(normalized)):
+        #         for j in range(len(normalized[l])):
+        #             myfile.write(str(normalized[l][j]) + "\t")
+        #         myfile.write("\n")
+    
+    tetramer_profiles = {}
+
+    for i in range(len(normalized_tetramer_profiles)):
+        if contig_lengths[i] >= min_length:
+            tetramer_profiles[i] = normalized_tetramer_profiles[i]
+    
+    return tetramer_profiles
 
 
-def get_cov_len(contigs_file, contig_names_rev, abundance_file):
+def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
 
     coverages = {}
 
@@ -159,24 +173,26 @@ def get_cov_len(contigs_file, contig_names_rev, abundance_file):
 
             contig_num = contig_names_rev[strings[0]]
 
-            for i in range(1, len(strings)):
+            if contig_lengths[contig_num] >= min_length:
 
-                contig_coverage = float(strings[i])
+                for i in range(1, len(strings)):
 
-                if contig_coverage < VERY_SMALL_VAL:
-                    contig_coverage = VERY_SMALL_VAL
+                    contig_coverage = float(strings[i])
 
-                if contig_num not in coverages:
-                    coverages[contig_num] = [contig_coverage]
-                else:
-                    coverages[contig_num].append(contig_coverage)
+                    if contig_coverage < VERY_SMALL_VAL:
+                        contig_coverage = VERY_SMALL_VAL
+
+                    if contig_num not in coverages:
+                        coverages[contig_num] = [contig_coverage]
+                    else:
+                        coverages[contig_num].append(contig_coverage)
 
     n_samples = len(coverages[0])
 
     return sequences, coverages, contig_lengths, n_samples
 
 
-def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, abundance_file):
+def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, min_length, abundance_file):
 
     coverages = {}
 
@@ -199,17 +215,19 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
 
             contig_num = contig_names_rev[graph_to_contig_map_rev[strings[0]]]
 
-            for i in range(1, len(strings)):
+            if contig_lengths[contig_num] >= min_length:
 
-                contig_coverage = float(strings[i])
+                for i in range(1, len(strings)):
 
-                if contig_coverage < VERY_SMALL_VAL:
-                    contig_coverage = VERY_SMALL_VAL
+                    contig_coverage = float(strings[i])
 
-                if contig_num not in coverages:
-                    coverages[contig_num] = [contig_coverage]
-                else:
-                    coverages[contig_num].append(contig_coverage)
+                    if contig_coverage < VERY_SMALL_VAL:
+                        contig_coverage = VERY_SMALL_VAL
+
+                    if contig_num not in coverages:
+                        coverages[contig_num] = [contig_coverage]
+                    else:
+                        coverages[contig_num].append(contig_coverage)
 
     n_samples = len(coverages[0])
 

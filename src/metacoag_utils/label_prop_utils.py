@@ -207,12 +207,12 @@ def label_prop(
                 if neighbour_common_mgs == common_mgs:
                     common_mgs = set()
 
-        if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff < weight:
+        if len(common_mgs) == 0 and to_bin not in bin_of_contig and cov_comp_diff < weight and dist <= depth:
             bins[bin_].append(to_bin)
             bin_of_contig[to_bin] = bin_
 
-            logger.debug("LP initial d=" + str(depth) + ": Assigning contig " + str(to_bin) + " to bin "+str(
-                bin_+1) + " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
+            # logger.debug("LP initial d=" + str(depth) + ": Assigning contig " + str(to_bin) + " to bin "+str(
+            # bin_+1) + " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
@@ -295,8 +295,8 @@ def assign_to_bins(
                 bins[contig_bin].append(contig)
                 bin_of_contig[contig] = contig_bin
 
-                logger.debug("Assigning contig " + str(contig) + " to bin " +
-                             str(contig_bin+1) + " weight="+str(bin_weight))
+                # logger.debug("Assigning contig " + str(contig) + " to bin " +
+                #  str(contig_bin+1) + " weight="+str(bin_weight))
 
                 if has_mg:
                     binned_contigs_with_markers.append(contig)
@@ -353,8 +353,8 @@ def final_label_prop(
             bins[bin_].append(to_bin)
             bin_of_contig[to_bin] = bin_
 
-            logger.debug("LP final: Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) +
-                         " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
+            # logger.debug("LP final: Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) +
+            #  " based on contig " + str(binned) + " weight="+str(cov_comp_diff) + " dist=" + str(dist))
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
@@ -377,69 +377,69 @@ def final_label_prop(
     return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
 
 
-def label_prop_to_short(
-        bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, assembly_graph, coverages, contig_lengths, min_length, depth):
+# def label_prop_to_short(
+#         bin_of_contig, bins, contig_markers, bin_markers, binned_contigs_with_markers, assembly_graph, coverages, contig_lengths, min_length, depth):
 
-    contigs_to_bin = set()
+#     contigs_to_bin = set()
 
-    for contig in bin_of_contig:
-        closest_neighbours = filter(
-            lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(contig))
-        contigs_to_bin.update(closest_neighbours)
+#     for contig in bin_of_contig:
+#         closest_neighbours = filter(
+#             lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(contig))
+#         contigs_to_bin.update(closest_neighbours)
 
-    sorted_node_list = []
-    sorted_node_list_ = [list(run_bfs_short(x, depth, bin_of_contig.keys(
-    ), bin_of_contig, assembly_graph, coverages)) for x in contigs_to_bin]
-    sorted_node_list_ = [
-        item for sublist in sorted_node_list_ for item in sublist]
+#     sorted_node_list = []
+#     sorted_node_list_ = [list(run_bfs_short(x, depth, bin_of_contig.keys(
+#     ), bin_of_contig, assembly_graph, coverages)) for x in contigs_to_bin]
+#     sorted_node_list_ = [
+#         item for sublist in sorted_node_list_ for item in sublist]
 
-    for data in sorted_node_list_:
-        heapObj = DataWrap(data)
-        heapq.heappush(sorted_node_list, heapObj)
+#     for data in sorted_node_list_:
+#         heapObj = DataWrap(data)
+#         heapq.heappush(sorted_node_list, heapObj)
 
-    while sorted_node_list:
-        best_choice = heapq.heappop(sorted_node_list)
-        to_bin, binned, bin_, dist, cov_diff = best_choice.data
+#     while sorted_node_list:
+#         best_choice = heapq.heappop(sorted_node_list)
+#         to_bin, binned, bin_, dist, cov_diff = best_choice.data
 
-        has_mg = False
+#         has_mg = False
 
-        common_mgs = set()
+#         common_mgs = set()
 
-        if to_bin in contig_markers:
-            has_mg = True
-            common_mgs = set(bin_markers[bin_]).intersection(
-                set(contig_markers[to_bin]))
+#         if to_bin in contig_markers:
+#             has_mg = True
+#             common_mgs = set(bin_markers[bin_]).intersection(
+#                 set(contig_markers[to_bin]))
 
-            if binned in contig_markers and dist == 1:
-                neighbour_common_mgs = set(contig_markers[binned]).intersection(
-                    set(contig_markers[to_bin]))
+#             if binned in contig_markers and dist == 1:
+#                 neighbour_common_mgs = set(contig_markers[binned]).intersection(
+#                     set(contig_markers[to_bin]))
 
-                if neighbour_common_mgs == common_mgs:
-                    common_mgs = set()
+#                 if neighbour_common_mgs == common_mgs:
+#                     common_mgs = set()
 
-        if to_bin not in bin_of_contig:
-            bins[bin_].append(to_bin)
-            bin_of_contig[to_bin] = bin_
+#         if to_bin not in bin_of_contig:
+#             bins[bin_].append(to_bin)
+#             bin_of_contig[to_bin] = bin_
 
-            logger.debug("LP short: Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) +
-                         " based on contig " + str(binned) + " weight="+str(cov_diff) + " dist=" + str(dist))
+#             # logger.debug("LP short: Assigning contig " + str(to_bin) + " to bin "+str(bin_+1) +
+#             #  " based on contig " + str(binned) + " weight="+str(cov_diff) + " dist=" + str(dist))
 
-            if has_mg:
-                binned_contigs_with_markers.append(to_bin)
-                bin_markers[bin_] = list(
-                    set(bin_markers[bin_] + contig_markers[to_bin]))
+#             if has_mg:
+#                 binned_contigs_with_markers.append(to_bin)
+#                 bin_markers[bin_] = list(
+#                     set(bin_markers[bin_] + contig_markers[to_bin]))
 
-            # Discover to_bin's neighbours
-            unbinned_neighbours = set(filter(
-                lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(to_bin)))
-            sorted_node_list = list(
-                filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
-            heapq.heapify(sorted_node_list)
+#             # Discover to_bin's neighbours
+#             unbinned_neighbours = set(filter(
+#                 lambda x: x not in bin_of_contig and contig_lengths[x] >= min_length, assembly_graph.neighbors(to_bin)))
+#             sorted_node_list = list(
+#                 filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list))
+#             heapq.heapify(sorted_node_list)
 
-            for un in unbinned_neighbours:
-                candidates = list(run_bfs_short(
-                    un, depth, bin_of_contig.keys(), bin_of_contig, assembly_graph, coverages))
-                for c in candidates:
-                    heapq.heappush(sorted_node_list, DataWrap(c))
+#             for un in unbinned_neighbours:
+#                 candidates = list(run_bfs_short(
+#                     un, depth, bin_of_contig.keys(), bin_of_contig, assembly_graph, coverages))
+#                 for c in candidates:
+#                     heapq.heappush(sorted_node_list, DataWrap(c))
 
-    return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
+#     return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
