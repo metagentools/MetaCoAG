@@ -12,7 +12,7 @@ MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
-* [python-igraph](https://igraph.org/python/) - version 0.7.1
+* [python-igraph](https://igraph.org/python/) - version 0.9.6
 * [biopython](https://biopython.org/) - version 1.74
 * [networkx](https://networkx.github.io/) - version 2.4
 * [scipy](https://www.scipy.org/) - version 1.3.1
