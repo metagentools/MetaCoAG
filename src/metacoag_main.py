@@ -60,8 +60,8 @@ ap.add_argument("--depth", required=False, type=int, default=10,
                 help="depth to consider for label propagation. [default: 10]")
 ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
                 help="length threshold to consider marker genes. [default: 0.5]")
-ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.2,
-                help="minimum fraction of marker genes that should be present in a bin. [default: 0.2]")
+ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.33333,
+                help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
@@ -677,7 +677,8 @@ else:
         bin_of_contig=bin_of_contig,
         bin_markers=bin_markers,
         binned_contigs_with_markers=binned_contigs_with_markers,
-        contig_markers=contig_markers)
+        contig_markers=contig_markers,
+        contig_lengths=contig_lengths)
 
 logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 

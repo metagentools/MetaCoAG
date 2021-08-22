@@ -94,8 +94,8 @@ parser.add_argument("--mg_threshold",
 parser.add_argument("--bin_mg_threshold",
                     required=False,
                     type=float,
-                    default=0.2,
-                    help="minimum fraction of marker genes that should be present in a bin. [default: 0.2]")
+                    default=0.33333,
+                    help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
 
 parser.add_argument("--delimiter",
                     required=False,
