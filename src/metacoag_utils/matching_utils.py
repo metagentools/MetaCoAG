@@ -41,20 +41,29 @@ def get_comp_probability(tetramer_dist):
 
 def get_cov_probability(cov1, cov2):
 
-    poisson_prod = 1
+    poisson_prod_1 = 1
+    poisson_prod_2 = 1
 
     for i in range(len(cov1)):
 
         # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
-        poisson_pmf = math.exp(
+        poisson_pmf_1 = math.exp(
             (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i])
 
-        if poisson_pmf < VERY_SMALL_DOUBLE:
-            poisson_pmf = VERY_SMALL_DOUBLE
+        poisson_pmf_2 = math.exp(
+            (cov2[i] * math.log(cov1[i])) - math.lgamma(cov2[i] + 1.0) - cov1[i])
 
-        poisson_prod = poisson_prod * poisson_pmf
+        if poisson_pmf_1 < VERY_SMALL_DOUBLE:
+            poisson_pmf_1 = VERY_SMALL_DOUBLE
 
-    return poisson_prod
+        if poisson_pmf_2 < VERY_SMALL_DOUBLE:
+            poisson_pmf_2 = VERY_SMALL_DOUBLE
+
+        poisson_prod_1 = poisson_prod_1 * poisson_pmf_1
+
+        poisson_prod_2 = poisson_prod_2 * poisson_pmf_2
+
+    return min(poisson_prod_1, poisson_prod_2)
 
 
 def match_contigs(
