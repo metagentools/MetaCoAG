@@ -821,10 +821,13 @@ logger.info("Writing the Final Binning result to file")
 
 # Get output path
 output_bins_path = output_path + prefix + "bins/"
+lq_output_bins_path = output_path + prefix + "low_quality_bins/"
 
 # Create output directory for bin files
 if not os.path.isdir(output_bins_path):
     subprocess.run("mkdir -p " + output_bins_path, shell=True)
+if not os.path.isdir(lq_output_bins_path):
+    subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
 
 for bin_clique in bin_cliques:
 
@@ -835,6 +838,7 @@ for bin_clique in bin_cliques:
     if len(bin_clique) == 1 and bin_clique[0] in bins_to_rem:
         can_write = False
 
+    # Write output bins
     if can_write:
 
         for b in bin_clique:
@@ -852,6 +856,25 @@ for bin_clique in bin_cliques:
         # Write contigs of each bin to files
         subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + bin_name +
                        "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+
+    # Write low quality bins
+    else:
+
+        for b in bin_clique:
+
+            # Write contig identifiers of each bin to files
+            with open(lq_output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
+                for contig in bins[b]:
+
+                    if assembler == "megahit":
+                        bin_file.write(
+                            contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
+                    else:
+                        bin_file.write(contig_names[contig] + "\n")
+
+        # Write contigs of each bin to files
+        subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
+                       "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
 logger.info("Final binning results can be found in " + str(output_bins_path))
 
