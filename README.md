@@ -200,3 +200,23 @@ For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 
 [16] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning al-gorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
 
+## Citation
+
+MetaCoAG is currently under review and the preprint is available at bioRxiv ([https://doi.org/10.1101/2021.09.10.459728](https://doi.org/10.1101/2021.09.10.459728)).
+
+If you use MetaCoAG in your work, please cite as,
+
+```bibtex
+@article {Mallawaarachchi2021.09.10.459728,
+	author = {Mallawaarachchi, Vijini and Lin, Yu},
+	title = {MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs},
+	elocation-id = {2021.09.10.459728},
+	year = {2021},
+	doi = {10.1101/2021.09.10.459728},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {Metagenomics binning has allowed us to study and characterize various genetic material of different species and gain insights into microbial communities. While existing binning tools bin metagenomics de novo assemblies, they do not make use of the assembly graphs that produce such assemblies. Here we propose MetaCoAG, a tool that utilizes assembly graphs with the composition and coverage information to bin metagenomic contigs. MetaCoAG uses single-copy marker genes to estimate the number of initial bins, assigns contigs into bins iteratively and adjusts the number of bins dynamically throughout the binning process. Experimental results on simulated and real datasets demonstrate that MetaCoAG significantly outperforms state-of-the-art binning tools, producing more high-quality bins than the second-best tool, with an average median F1-score of 88.40\%. To the best of our knowledge, MetaCoAG is the first stand-alone binning tool to make direct use of the assembly graph information. MetaCoAG is available at https://github.com/Vini2/MetaCoAG.Competing Interest StatementThe authors have declared no competing interest.},
+	URL = {https://www.biorxiv.org/content/early/2021/09/11/2021.09.10.459728},
+	eprint = {https://www.biorxiv.org/content/early/2021/09/11/2021.09.10.459728.full.pdf},
+	journal = {bioRxiv}
+}
+```
