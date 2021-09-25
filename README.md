@@ -83,11 +83,12 @@ spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 ```
 megahit -1 Reads_1.fastq -2 Reads_2.fastq --k-min 21 --k-max 77 -o /path/output_folder -t 8
 ```
-**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will result in a FASTG file which you can convert to GFA using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
+**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will result in a FASTG file which you can convert to GFA format using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
 
 ```
 fastg2gfa final.fastg > final.gfa
 ```
+Support for FASTG files will be added in the near future.
 
 Once you have obtained the assembly output, you can run MetaCoAG.
 
