@@ -28,7 +28,7 @@ from metacoag_utils.bidirectionalmap import BidirectionalMap
 # ---------------------------------------------------
 
 MAX_WEIGHT = sys.float_info.max
-M_MARKER_GENES = 107
+M_MARKER_GENES = 108
 
 
 # Setup argument parser
@@ -62,6 +62,8 @@ ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
                 help="length threshold to consider marker genes. [default: 0.5]")
 ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.33333,
                 help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
+ap.add_argument("--min_bin_size", required=False, type=int, default=200000,
+                help="minimum size of a bin to output in kb. [default: 200000]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
@@ -84,6 +86,7 @@ p_inter = args["p_inter"]
 depth = args["depth"]
 mg_threshold = args["mg_threshold"]
 bin_mg_threshold = args["bin_mg_threshold"]
+min_bin_size = args["min_bin_size"]
 d_limit = args["d_limit"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
@@ -132,6 +135,7 @@ logger.debug("bin_threshold: " + str(bin_threshold))
 logger.debug("break_threshold: " + str(break_threshold))
 logger.info("mg_threshold: " + str(mg_threshold))
 logger.info("bin_mg_threshold: " + str(bin_mg_threshold))
+logger.info("min_bin_size: " + str(min_bin_size) + " kb")
 logger.info("d_limit: " + str(d_limit))
 logger.info("Number of threads: " + str(nthreads))
 
@@ -609,7 +613,7 @@ bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils
     normalized_tetramer_profiles=normalized_tetramer_profiles,
     coverages=coverages,
     depth=depth,
-    weight=w_inter)
+    weight=MAX_WEIGHT)
 
 logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
@@ -717,6 +721,17 @@ elapsed_time = time.time() - start_time
 logger.info("Elapsed time: " + str(elapsed_time) + " seconds")
 
 
+# Get bin sizes
+# -----------------------------------
+
+bin_size = {}
+
+for b in bins:
+    bin_size[b] = 0
+    for contig in bins[b]:
+        bin_size[b] += contig_lengths[contig]
+
+
 # Merge bins
 # -----------------------------------
 
@@ -792,26 +807,41 @@ for b in bins:
     if min_pb != -1:
         bins_graph.add_edge(b, min_pb)
         no_possible_bins = False
-        logger.debug("Can merge to bin: " + str(min_pb) +
-                     ", weight to possible bin: " + str(min_pb_weight))
+        # logger.debug("Can merge to bin: " + str(min_pb) +
+        #              ", weight to possible bin: " + str(min_pb_weight))
 
-    logger.debug("Bin " + str(b) +
-                 " possible bins to merge: " + str(possible_bins))
+    # logger.debug("Bin " + str(b) +
+    #              " possible bins to merge: " + str(possible_bins))
 
     if no_possible_bins and len(bin_markers[b]) < M_MARKER_GENES * bin_mg_threshold:
-        logger.debug("Remove bin------------")
+        # logger.debug("Remove bin------------")
         bins_to_rem.append(b)
 
-logger.debug(
-    "Bin cliques======================================================")
+# logger.debug(
+#     "Bin cliques======================================================")
 
 bin_cliques = bins_graph.maximal_cliques()
 
-for clique in bin_cliques:
-    logger.debug(str(clique))
+# for clique in bin_cliques:
+#     logger.debug(str(clique))
 
-logger.debug("Bins to remove==========================: " +
-             str(bins_to_rem))
+# logger.debug("Bins to remove==========================: " +
+#              str(bins_to_rem))
+
+
+# Get bin clique sizes
+# -----------------------------------
+
+bin_clique_size = {}
+
+for bin_clique in bin_cliques:
+
+    bin_name = '_'.join(str(x) for x in list(bin_clique))
+
+    bin_clique_size[bin_name] = 0
+
+    for b in bin_clique:
+        bin_clique_size[bin_name] += bin_size[b]
 
 
 # Write result to output file
@@ -839,7 +869,7 @@ for bin_clique in bin_cliques:
         can_write = False
 
     # Write output bins
-    if can_write:
+    if can_write and bin_clique_size[bin_name] >= min_bin_size:
 
         for b in bin_clique:
 
