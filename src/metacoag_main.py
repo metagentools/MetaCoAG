@@ -63,7 +63,7 @@ ap.add_argument("--mg_threshold", required=False, type=float, default=0.5,
 ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.33333,
                 help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
 ap.add_argument("--min_bin_size", required=False, type=int, default=200000,
-                help="minimum size of a bin to output in kb. [default: 200000]")
+                help="minimum size of a bin to output in base pairs. [default: 200000]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",

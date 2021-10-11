@@ -101,7 +101,7 @@ parser.add_argument("--min_bin_size",
                     required=False,
                     type=int,
                     default=200000,
-                    help="minimum size of a bin to output in kb. [default: 200000]")
+                    help="minimum size of a bin to output in base pairs. [default: 200000]")
 
 parser.add_argument("--delimiter",
                     required=False,
