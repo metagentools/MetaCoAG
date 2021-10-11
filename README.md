@@ -102,7 +102,8 @@ usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
                 [--depth DEPTH] [--mg_threshold MG_THRESHOLD]
-                [--bin_mg_threshold BIN_MG_THRESHOLD] [--delimiter DELIMITER]
+                [--bin_mg_threshold BIN_MG_THRESHOLD]
+                [--min_bin_size MIN_BIN_SIZE] [--delimiter DELIMITER]
                 [--nthreads NTHREADS] [-v]
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the
@@ -137,7 +138,10 @@ optional arguments:
                         0.5]
   --bin_mg_threshold BIN_MG_THRESHOLD
                         minimum fraction of marker genes that should be
-                        present in a bin. [default: 0.2]
+                        present in a bin. [default: 0.33333]
+  --min_bin_size MIN_BIN_SIZE
+                        minimum size of a bin to output in base pairs.
+                        [default: 200000]
   --delimiter DELIMITER
                         delimiter for output results. Supports a comma (,), a
                         semicolon (;), a tab ($'\t'), a space (" ") and a pipe
