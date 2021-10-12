@@ -229,7 +229,7 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
                     else:
                         coverages[contig_num].append(contig_coverage)
 
-    n_samples = len(coverages[0])
+    n_samples = len(coverages[list(coverages.keys())[0]])
 
     return sequences, coverages, contig_lengths, n_samples
 
