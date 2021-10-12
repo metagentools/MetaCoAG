@@ -613,7 +613,7 @@ bins, bin_of_contig, bin_markers, binned_contigs_with_markers = label_prop_utils
     normalized_tetramer_profiles=normalized_tetramer_profiles,
     coverages=coverages,
     depth=depth,
-    weight=MAX_WEIGHT)
+    weight=w_inter)
 
 logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
