@@ -11,7 +11,6 @@ import operator
 import gc
 import subprocess
 import concurrent.futures
-import pickle
 
 from Bio import SeqIO
 from igraph import *
@@ -135,7 +134,7 @@ logger.debug("bin_threshold: " + str(bin_threshold))
 logger.debug("break_threshold: " + str(break_threshold))
 logger.info("mg_threshold: " + str(mg_threshold))
 logger.info("bin_mg_threshold: " + str(bin_mg_threshold))
-logger.info("min_bin_size: " + str(min_bin_size) + " kb")
+logger.info("min_bin_size: " + str(min_bin_size) + " base pairs")
 logger.info("d_limit: " + str(d_limit))
 logger.info("Number of threads: " + str(nthreads))
 
@@ -429,7 +428,7 @@ for i in range(len(smg_iteration[0])):
     bin_markers[i] = contig_markers[contig_num]
 
 logger.debug("Number of initial bins detected: " +
-                str(len(smg_iteration[0])))
+             str(len(smg_iteration[0])))
 logger.debug("Initialised bins: ")
 logger.debug(bins)
 
@@ -494,7 +493,7 @@ unbinned_mg_contig_lengths_sorted = sorted(
     unbinned_mg_contig_lengths.items(), key=operator.itemgetter(1), reverse=True)
 
 logger.debug("Number of unbinned contigs with single-copy marker genes: " +
-                str(len(unbinned_mg_contigs)))
+             str(len(unbinned_mg_contigs)))
 
 logger.info("Further assigning contigs with single-copy marker genes")
 
@@ -517,7 +516,7 @@ unbinned_mg_contigs = list(
     set(contig_markers.keys()) - set(binned_contigs_with_markers))
 
 logger.debug("Remaining number of unbinned MG seed contigs: " +
-                str(len(unbinned_mg_contigs)))
+             str(len(unbinned_mg_contigs)))
 logger.debug(
     "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig)))
 
@@ -553,7 +552,7 @@ unbinned_contigs = list(
 logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
 logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
 logger.debug("Number of binned contigs with markers: " +
-                str(len(binned_contigs_with_markers)))
+             str(len(binned_contigs_with_markers)))
 
 # Get isolated vertices and components without labels
 # -----------------------------------------------------
@@ -647,6 +646,8 @@ assigned = [None for itr in long_unbinned]
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=nthreads)
 
 # Thread function for workers
+
+
 def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed_tetramer_profiles, bin_seed_coverage_profiles):
     bin_result = label_prop_utils.assign_long(
         contigid=contig,
@@ -655,6 +656,7 @@ def thread_function(n, contig, coverages, normalized_tetramer_profiles, bin_seed
         bin_tetramer_profiles=bin_seed_tetramer_profiles,
         bin_coverage_profiles=bin_seed_coverage_profiles)
     assigned[n] = bin_result
+
 
 exec_args = []
 
@@ -849,6 +851,8 @@ for bin_clique in bin_cliques:
 
 logger.info("Writing the Final Binning result to file")
 
+final_bin_count = 0
+
 # Get output path
 output_bins_path = output_path + prefix + "bins/"
 lq_output_bins_path = output_path + prefix + "low_quality_bins/"
@@ -870,6 +874,8 @@ for bin_clique in bin_cliques:
 
     # Write output bins
     if can_write and bin_clique_size[bin_name] >= min_bin_size:
+
+        final_bin_count += 1
 
         for b in bin_clique:
 
@@ -906,6 +912,7 @@ for bin_clique in bin_cliques:
         subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
                        "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
+logger.info("Producing " + str(final_bin_count) + " bins...")
 logger.info("Final binning results can be found in " + str(output_bins_path))
 
 
