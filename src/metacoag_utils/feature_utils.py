@@ -28,9 +28,9 @@ def get_rc(seq):
 
 
 def mer2bits(kmer):
-    bit_mer = nt_bits[kmer[0]]
+    bit_mer=nt_bits.get(kmer[0], 0)
     for c in kmer[1:]:
-        bit_mer = (bit_mer << 2) | nt_bits[c]
+        bit_mer = (bit_mer << 2) | nt_bits.get(c, 0)
     return bit_mer
 
 
@@ -60,7 +60,6 @@ def compute_kmer_inds(k):
 def count_kmers(args):
     seq, k, kmer_inds, kmer_count_len = args
     profile = np.zeros(kmer_count_len)
-    arrs = []
     seq = list(seq.strip())
 
     for i in range(0, len(seq) - k + 1):
@@ -81,22 +80,6 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
         with open(output_path + 'normalized_contig_tetramers.pickle', 'rb') as handle:
             normalized_tetramer_profiles = pickle.load(handle)
 
-        # i = 0
-        # with open(output_path + "contig_tetramers.tsv") as tetramers_file:
-        #     for line in tetramers_file.readlines():
-        #         f_list = np.array([float(i)
-        #                            for i in line.split("\t") if i.strip()])
-        #         tetramer_profiles[i] = f_list
-        #         i += 1
-
-        # i = 0
-        # with open(output_path + "normalized_contig_tetramers.tsv") as tetramers_file:
-        #     for line in tetramers_file.readlines():
-        #         f_list = np.array([float(i)
-        #                            for i in line.split("\t") if i.strip()])
-        #         normalized_tetramer_profiles[i] = f_list
-        #         i += 1
-
     else:
 
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
@@ -107,19 +90,6 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
-        # unnormalized = [x[0] for x in record_tetramers]
-
-        i = 0
-
-        # for l in range(len(unnormalized)):
-        #     tetramer_profiles[i] = unnormalized[l]
-        #     i += 1
-
-        # with open(output_path + "contig_tetramers.tsv", "w+") as myfile:
-        #     for l in range(len(unnormalized)):
-        #         for j in range(len(unnormalized[l])):
-        #             myfile.write(str(unnormalized[l][j]) + "\t")
-        #         myfile.write("\n")
 
         i = 0
 
@@ -129,12 +99,6 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
 
         with open(output_path + 'normalized_contig_tetramers.pickle', 'wb') as handle:
             pickle.dump(normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        # with open(output_path + "normalized_contig_tetramers.tsv", "w+") as myfile:
-        #     for l in range(len(normalized)):
-        #         for j in range(len(normalized[l])):
-        #             myfile.write(str(normalized[l][j]) + "\t")
-        #         myfile.write("\n")
     
     tetramer_profiles = {}
 
