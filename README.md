@@ -21,7 +21,7 @@ MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will nee
 
 MetaCoAG uses the following tools to scan for single-copy marker genes. These tools are included with the following versions.
 * [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) - version 1.31
-* [HMMER](http://hmmer.org/) - version 3.3
+* [HMMER](http://hmmer.org/) - version 3.3.2
 
 
 ### Downloading MetaCoAG
@@ -41,10 +41,6 @@ Now go in to the MetaCoAG folder using the command
 
 ```
 cd MetaCoAG/
-```
-Extract the `auxiliary` folder using the following command.
-```
-unzip auxiliary.zip
 ```
 
 ### Setting up the environment
