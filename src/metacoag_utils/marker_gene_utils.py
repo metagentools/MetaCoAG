@@ -13,10 +13,8 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
 
     software_path = pathlib.Path(__file__).parent.parent.absolute()
 
-    fragScanURL = os.path.join(software_path.parent, 'auxiliary',
-                               'FragGeneScan1.31', 'run_FragGeneScan.pl')
-    hmmExeURL = os.path.join(software_path.parent, 'auxiliary', 'hmmer-3.3',
-                             'src', 'hmmsearch')
+    fragScanURL = 'run_FragGeneScan.pl'
+    hmmExeURL = 'hmmsearch'
     markerURL = os.path.join(software_path.parent, 'auxiliary', 'marker.hmm')
 
     logger.debug(markerURL)
