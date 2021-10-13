@@ -9,7 +9,7 @@ logger = logging.getLogger('MetaCoaAG 1.0')
 
 
 # Modified from SolidBin
-def scan_for_marker_genes(contig_file, nthreads, hard=0):
+def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
 
     software_path = pathlib.Path(__file__).parent.parent.absolute()
 
@@ -19,12 +19,12 @@ def scan_for_marker_genes(contig_file, nthreads, hard=0):
 
     logger.debug(markerURL)
 
-    fragResultURL = contig_file+".frag.faa"
-    hmmResultURL = contig_file+".hmmout"
+    fragResultURL = contigs_file+".frag.faa"
+    hmmResultURL = contigs_file+".hmmout"
     if not (os.path.exists(fragResultURL)):
-        fragCmd = fragScanURL+" -genome="+contig_file+" -out="+contig_file + \
+        fragCmd = fragScanURL+" -genome="+contigs_file+" -out="+contigs_file + \
             ".frag -complete=0 -train=complete -thread="+str(nthreads)+" 1>" + \
-            contig_file+".frag.out 2>"+contig_file+".frag.err"
+            contigs_file+".frag.out 2>"+contigs_file+".frag.err"
         logger.debug("exec cmd: "+fragCmd)
         os.system(fragCmd)
 

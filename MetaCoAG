@@ -49,6 +49,12 @@ parser.add_argument("--output",
                     type=str,
                     help="path to the output folder")
 
+parser.add_argument("--hmm",
+                    required=False,
+                    type=str,
+                    default=None,
+                    help="path to marker.hmm file. [default: None]")
+
 parser.add_argument("--prefix",
                     required=False,
                     type=str,

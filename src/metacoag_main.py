@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from re import S
 import sys
 import time
 import argparse
@@ -10,6 +9,7 @@ import logging
 import operator
 import gc
 import subprocess
+import pathlib
 import concurrent.futures
 
 from Bio import SeqIO
@@ -63,6 +63,8 @@ ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.3333
                 help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
 ap.add_argument("--min_bin_size", required=False, type=int, default=200000,
                 help="minimum size of a bin to output in base pairs. [default: 200000]")
+ap.add_argument("--hmm", required=False, type=str, default=None,
+                help="path to marker.hmm file. [default: None]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
@@ -86,9 +88,14 @@ depth = args["depth"]
 mg_threshold = args["mg_threshold"]
 bin_mg_threshold = args["bin_mg_threshold"]
 min_bin_size = args["min_bin_size"]
+hmm = args["hmm"]
 d_limit = args["d_limit"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
+
+if hmm is None:
+    hmm = os.path.join(pathlib.Path(
+        __file__).parent.absolute().parent, 'auxiliary', 'marker.hmm')
 
 bin_threshold = -math.log(p_intra, 10)
 break_threshold = -math.log(p_inter, 10)
@@ -125,8 +132,8 @@ logger.info("Assembly graph file: " + assembly_graph_file)
 logger.info("Contig paths file: " + contig_paths_file)
 logger.info("Abundance file: " + abundance_file)
 logger.info("Final binning output file: " + output_path)
-logger.info(
-    "Minimum length of contigs to consider for compositional probability: " + str(min_length))
+logger.info("Marker file: " + hmm)
+logger.info("Minimum length of contigs to consider: " + str(min_length))
 logger.info("Depth to consider for label propagation: " + str(depth))
 logger.info("p_intra: " + str(p_intra))
 logger.info("p_inter: " + str(p_inter))
@@ -313,7 +320,10 @@ logger.info("Scanning for single-copy marker genes")
 if not os.path.exists(contigs_file + ".hmmout"):
     # Run FragGeneScan and HMMER if .hmmout file is not present
     logger.info("Obtaining hmmout file")
-    marker_gene_utils.scan_for_marker_genes(contigs_file, nthreads)
+    marker_gene_utils.scan_for_marker_genes(
+        contigs_file=contigs_file,
+        nthreads=nthreads,
+        markerURL=hmm)
 else:
     logger.info(".hmmout file already exists")
 
