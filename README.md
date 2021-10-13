@@ -95,7 +95,7 @@ You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the comma
 ```
 usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
-                [--prefix PREFIX] [--min_length MIN_LENGTH]
+                [--hmm HMM] [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
                 [--depth DEPTH] [--mg_threshold MG_THRESHOLD]
                 [--bin_mg_threshold BIN_MG_THRESHOLD]
@@ -119,6 +119,7 @@ optional arguments:
                         path to the abundance file
   --paths PATHS         path to the contigs.paths file
   --output OUTPUT       path to the output folder
+  --hmm HMM             path to marker.hmm file. [default: None]
   --prefix PREFIX       prefix for the output file
   --min_length MIN_LENGTH
                         minimum length of contigs to consider for binning.
@@ -128,7 +129,7 @@ optional arguments:
   --p_inter P_INTER     maximum probability of an edge matching to create a
                         new bin. [default: 0.01]
   --d_limit D_LIMIT     distance limit for contig matching. [default: 20]
-  --depth DEPTH         depth to consider for label propagation. [default: 5]
+  --depth DEPTH         depth to consider for label propagation. [default: 10]
   --mg_threshold MG_THRESHOLD
                         length threshold to consider marker genes. [default:
                         0.5]
