@@ -875,8 +875,9 @@ if not os.path.isdir(lq_output_bins_path):
     subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
 
 
-with open(output_path + prefix +"contig_to_bin.tsv", mode='w') as out_file:
-    output_writer = csv.writer(out_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+with open(output_path + prefix + "contig_to_bin.tsv", mode='w') as out_file:
+    output_writer = csv.writer(
+        out_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
     for bin_clique in bin_cliques:
 
@@ -901,14 +902,16 @@ with open(output_path + prefix +"contig_to_bin.tsv", mode='w') as out_file:
                         if assembler == "megahit":
                             bin_file.write(
                                 contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
-                            output_writer.writerow([contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
+                            output_writer.writerow(
+                                [contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
                         else:
                             bin_file.write(contig_names[contig] + "\n")
-                            output_writer.writerow([contig_names[contig], "bin_" + bin_name])
+                            output_writer.writerow(
+                                [contig_names[contig], "bin_" + bin_name])
 
             # Write contigs of each bin to files
             subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + bin_name +
-                        "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+                           "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
         # Write low quality bins
         else:
@@ -927,7 +930,7 @@ with open(output_path + prefix +"contig_to_bin.tsv", mode='w') as out_file:
 
             # Write contigs of each bin to files
             subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
-                        "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+                           "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
 logger.info("Producing " + str(final_bin_count) + " bins...")
 logger.info("Final binning results can be found in " + str(output_bins_path))

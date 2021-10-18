@@ -28,7 +28,7 @@ def get_rc(seq):
 
 
 def mer2bits(kmer):
-    bit_mer=nt_bits.get(kmer[0], 0)
+    bit_mer = nt_bits.get(kmer[0], 0)
     for c in kmer[1:]:
         bit_mer = (bit_mer << 2) | nt_bits.get(c, 0)
     return bit_mer
@@ -98,14 +98,15 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
             i += 1
 
         with open(output_path + 'normalized_contig_tetramers.pickle', 'wb') as handle:
-            pickle.dump(normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    
+            pickle.dump(normalized_tetramer_profiles, handle,
+                        protocol=pickle.HIGHEST_PROTOCOL)
+
     tetramer_profiles = {}
 
     for i in range(len(normalized_tetramer_profiles)):
         if contig_lengths[i] >= min_length:
             tetramer_profiles[i] = normalized_tetramer_profiles[i]
-    
+
     return tetramer_profiles
 
 
