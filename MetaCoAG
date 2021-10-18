@@ -132,6 +132,7 @@ contigs = args["contigs"]
 abundance = args["abundance"]
 contig_paths = args["paths"]
 output_path = args["output"]
+hmm = args["hmm"]
 prefix = args["prefix"]
 min_length = args["min_length"]
 p_intra = args["p_intra"]
@@ -274,7 +275,7 @@ if nthreads <= 0:
 # Run MetaCoAG
 # ---------------------------------------------------
 
-cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --bin_mg_threshold "{13}" --min_bin_size "{14}" --d_limit "{15}" --delimiter "{16}" --nthreads "{17}" """.format(
+cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2}" --contigs "{3}" --paths "{4}" --abundance "{5}" --output "{6}" --prefix "{7}" --min_length "{8}" --p_intra "{9}" --p_inter "{10}" --depth "{11}" --mg_threshold "{12}" --bin_mg_threshold "{13}" --min_bin_size "{14}" --d_limit "{15}" --delimiter "{16}" --hmm "{17}" --nthreads "{18}" """.format(
     os.path.dirname(__file__),
     assembler.lower(),
     assembly_graph_file,
@@ -292,6 +293,7 @@ cmdMetaCoAG = """python "{0}/src/metacoag_main.py" --assembler "{1}" --graph "{2
     min_bin_size,
     d_limit,
     delimiter,
+    hmm,
     nthreads)
 
 
