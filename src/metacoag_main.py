@@ -11,6 +11,7 @@ import gc
 import subprocess
 import pathlib
 import concurrent.futures
+import csv
 
 from Bio import SeqIO
 from igraph import *
@@ -63,8 +64,8 @@ ap.add_argument("--bin_mg_threshold", required=False, type=float, default=0.3333
                 help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
 ap.add_argument("--min_bin_size", required=False, type=int, default=200000,
                 help="minimum size of a bin to output in base pairs. [default: 200000]")
-ap.add_argument("--hmm", required=False, type=str, default=None,
-                help="path to marker.hmm file. [default: None]")
+ap.add_argument("--hmm", required=False, type=str, default="",
+                help="path to marker.hmm file. [default: auxiliary/marker.hmm]")
 ap.add_argument("--d_limit", required=False, type=int, default=20,
                 help="distance limit for contig matching. [default: 20]")
 ap.add_argument("--delimiter", required=False, type=str, default=",",
@@ -93,7 +94,7 @@ d_limit = args["d_limit"]
 delimiter = args["delimiter"]
 nthreads = args["nthreads"]
 
-if hmm is None:
+if hmm == "":
     hmm = os.path.join(pathlib.Path(
         __file__).parent.absolute().parent, 'auxiliary', 'marker.hmm')
 
@@ -873,54 +874,60 @@ if not os.path.isdir(output_bins_path):
 if not os.path.isdir(lq_output_bins_path):
     subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
 
-for bin_clique in bin_cliques:
 
-    bin_name = '_'.join(str(x) for x in list(bin_clique))
+with open(output_path+"contig_to_bin.tsv", mode='w') as out_file:
+    output_writer = csv.writer(out_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-    can_write = True
+    for bin_clique in bin_cliques:
 
-    if len(bin_clique) == 1 and bin_clique[0] in bins_to_rem:
-        can_write = False
+        bin_name = '_'.join(str(x) for x in list(bin_clique))
 
-    # Write output bins
-    if can_write and bin_clique_size[bin_name] >= min_bin_size:
+        can_write = True
 
-        final_bin_count += 1
+        if len(bin_clique) == 1 and bin_clique[0] in bins_to_rem:
+            can_write = False
 
-        for b in bin_clique:
+        # Write output bins
+        if can_write and bin_clique_size[bin_name] >= min_bin_size:
 
-            # Write contig identifiers of each bin to files
-            with open(output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
-                for contig in bins[b]:
+            final_bin_count += 1
 
-                    if assembler == "megahit":
-                        bin_file.write(
-                            contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
-                    else:
-                        bin_file.write(contig_names[contig] + "\n")
+            for b in bin_clique:
 
-        # Write contigs of each bin to files
-        subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + bin_name +
-                       "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+                # Write contig identifiers of each bin to files
+                with open(output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
+                    for contig in bins[b]:
 
-    # Write low quality bins
-    else:
+                        if assembler == "megahit":
+                            bin_file.write(
+                                contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
+                            output_writer.writerow([contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
+                        else:
+                            bin_file.write(contig_names[contig] + "\n")
+                            output_writer.writerow([contig_names[contig], "bin_" + bin_name])
 
-        for b in bin_clique:
+            # Write contigs of each bin to files
+            subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + bin_name +
+                        "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
-            # Write contig identifiers of each bin to files
-            with open(lq_output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
-                for contig in bins[b]:
+        # Write low quality bins
+        else:
 
-                    if assembler == "megahit":
-                        bin_file.write(
-                            contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
-                    else:
-                        bin_file.write(contig_names[contig] + "\n")
+            for b in bin_clique:
 
-        # Write contigs of each bin to files
-        subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
-                       "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+                # Write contig identifiers of each bin to files
+                with open(lq_output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
+                    for contig in bins[b]:
+
+                        if assembler == "megahit":
+                            bin_file.write(
+                                contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
+                        else:
+                            bin_file.write(contig_names[contig] + "\n")
+
+            # Write contigs of each bin to files
+            subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
+                        "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
 
 logger.info("Producing " + str(final_bin_count) + " bins...")
 logger.info("Final binning results can be found in " + str(output_bins_path))

@@ -52,8 +52,8 @@ parser.add_argument("--output",
 parser.add_argument("--hmm",
                     required=False,
                     type=str,
-                    default=None,
-                    help="path to marker.hmm file. [default: None]")
+                    default="",
+                    help="path to marker.hmm file. [default: auxiliary/marker.hmm]")
 
 parser.add_argument("--prefix",
                     required=False,
