@@ -875,7 +875,7 @@ if not os.path.isdir(lq_output_bins_path):
     subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
 
 
-with open(output_path+"contig_to_bin.tsv", mode='w') as out_file:
+with open(output_path + prefix +"contig_to_bin.tsv", mode='w') as out_file:
     output_writer = csv.writer(out_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
     for bin_clique in bin_cliques:
