@@ -119,7 +119,8 @@ optional arguments:
                         path to the abundance file
   --paths PATHS         path to the contigs.paths file
   --output OUTPUT       path to the output folder
-  --hmm HMM             path to marker.hmm file. [default: None]
+  --hmm HMM             path to marker.hmm file. [default:
+                        auxiliary/marker.hmm]
   --prefix PREFIX       prefix for the output file
   --min_length MIN_LENGTH
                         minimum length of contigs to consider for binning.
