@@ -148,7 +148,7 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
-`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `bin_mg_threshold`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `0.3333`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
+`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `bin_mg_threshold`, `min_bin_size`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `0.3333`, `200000`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
 
 You can specify the delimiter for the final binning output file using the `delimiter` paramter. Enter the following values for different delimiters; 
 * `,` for a comma
