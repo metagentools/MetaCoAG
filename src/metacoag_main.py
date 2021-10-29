@@ -768,9 +768,8 @@ for b in bins:
 
     no_possible_bins = True
 
-    logger.debug("Bin " + str(b) + ": " + str(len(bins[b])))
-    logger.debug("Bin " + str(b) + " # markers : " +
-                 str(len(bin_markers[b])))
+    logger.debug("Bin " + str(b) + ": # contigs: " + str(len(bins[b])) + ", bin size: " + str(
+        bin_size[b]) + "bp, # markers: " + str(len(bin_markers[b])))
 
     min_pb = -1
     min_pb_weight = MAX_WEIGHT
@@ -812,7 +811,6 @@ for b in bins:
                 if log_prob1 <= w_intra:
 
                     possible_bins.append(pb)
-                    # logger.debug("Close bin------------")
 
                     if log_prob < min_pb_weight:
                         min_pb_weight = log_prob
@@ -821,26 +819,11 @@ for b in bins:
     if min_pb != -1:
         bins_graph.add_edge(b, min_pb)
         no_possible_bins = False
-        # logger.debug("Can merge to bin: " + str(min_pb) +
-        #              ", weight to possible bin: " + str(min_pb_weight))
-
-    # logger.debug("Bin " + str(b) +
-    #              " possible bins to merge: " + str(possible_bins))
 
     if no_possible_bins and len(bin_markers[b]) < M_MARKER_GENES * bin_mg_threshold:
-        # logger.debug("Remove bin------------")
         bins_to_rem.append(b)
 
-# logger.debug(
-#     "Bin cliques======================================================")
-
 bin_cliques = bins_graph.maximal_cliques()
-
-# for clique in bin_cliques:
-#     logger.debug(str(clique))
-
-# logger.debug("Bins to remove==========================: " +
-#              str(bins_to_rem))
 
 
 # Get bin clique sizes
@@ -899,9 +882,11 @@ with open(output_path + prefix + "contig_to_bin.tsv", mode='w') as out_file:
                     final_bins[contig] = bin_name
 
                     if assembler == "megahit":
-                        output_writer.writerow([contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
+                        output_writer.writerow(
+                            [contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
                     else:
-                        output_writer.writerow([contig_names[contig], "bin_" + bin_name])
+                        output_writer.writerow(
+                            [contig_names[contig], "bin_" + bin_name])
 
         else:
 
@@ -916,10 +901,12 @@ logger.info("Writing the Final Binning result to file")
 bin_files = {}
 
 for bin_name in set(final_bins.values()):
-    bin_files[bin_name] = open(output_bins_path + prefix + "bin_" + bin_name + ".fasta", 'w+')
+    bin_files[bin_name] = open(
+        output_bins_path + prefix + "bin_" + bin_name + ".fasta", 'w+')
 
 for bin_name in set(lowq_bins.values()):
-    bin_files[bin_name] = open(lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", 'w+')
+    bin_files[bin_name] = open(
+        lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", 'w+')
 
 
 for n, record in tqdm(enumerate(SeqIO.parse(contigs_file, "fasta")), desc="Splitting contigs into bins"):
@@ -930,10 +917,12 @@ for n, record in tqdm(enumerate(SeqIO.parse(contigs_file, "fasta")), desc="Split
         contig_num = contig_names_rev[record.id]
 
     if contig_num in final_bins:
-        bin_files[final_bins[contig_num]].write(f'>{str(record.id)}\n{str(record.seq)}\n')
+        bin_files[final_bins[contig_num]].write(
+            f'>{str(record.id)}\n{str(record.seq)}\n')
 
     elif contig_num in lowq_bins:
-        bin_files[lowq_bins[contig_num]].write(f'>{str(record.id)}\n{str(record.seq)}\n')
+        bin_files[lowq_bins[contig_num]].write(
+            f'>{str(record.id)}\n{str(record.seq)}\n')
 
 # Close output files
 for c in set(final_bins.values()):

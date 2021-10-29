@@ -78,7 +78,7 @@ def match_contigs(
     for i in range(smg_iterations):
 
         logger.debug("Iteration "+str(i)+": " +
-                     str(len(smg_iteration[i]))+" contigs with seed marker genes")
+                     str(len(smg_iteration[i]))+" contig(s) with seed marker genes")
 
         if i > 0:
 
@@ -87,7 +87,7 @@ def match_contigs(
             common = set(binned_contigs_with_markers).intersection(
                 set(smg_iteration[i]))
             to_bin = list(set(smg_iteration[i]) - common)
-            logger.debug(str(len(to_bin))+" contigs to bin in the iteration")
+            logger.debug(str(len(to_bin))+" contig(s) to bin in the iteration")
             n_bins = len(bins)
             bottom_nodes = []
 
@@ -185,8 +185,8 @@ def match_contigs(
                                 avg_path_len = math.floor(
                                     path_len_sum/len(bins[b]))
 
-                                logger.debug("To assign contig " + contig_names[my_matching[l]] + " to bin "+str(
-                                    b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
+                                # logger.debug("To assign contig " + contig_names[my_matching[l]] + " to bin "+str(
+                                #     b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
                                 if edge_weights[(l, my_matching[l])] <= w_intra and avg_path_len <= d_limit:
 
@@ -212,8 +212,8 @@ def match_contigs(
                                             my_matching[l])
                                         binned_count += 1
 
-                                        logger.debug("Assigning contig " + contig_names[my_matching[l]] + " to bin "+str(
-                                            b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
+                                        # logger.debug("Assigning contig " + contig_names[my_matching[l]] + " to bin "+str(
+                                        #     b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
                                         bin_markers[b] = list(
                                             set(bin_markers[b] + contig_markers[my_matching[l]]))
@@ -274,7 +274,7 @@ def match_contigs(
                             binned_contigs_with_markers.append(
                                 longest_nb_contig)
 
-            logger.debug(str(binned_count)+" contigs binned in the iteration")
+            logger.debug(str(binned_count)+" contig(s) binned in the iteration")
 
     if len(smg_iteration) > 0:
         del edge_weights_per_iteration
