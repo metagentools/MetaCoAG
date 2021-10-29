@@ -15,6 +15,7 @@ import csv
 
 from Bio import SeqIO
 from igraph import *
+from networkx.classes.function import set_node_attributes
 from tqdm import tqdm
 
 from metacoag_utils import feature_utils
@@ -857,12 +858,8 @@ for bin_clique in bin_cliques:
         bin_clique_size[bin_name] += bin_size[b]
 
 
-# Write result to output file
-# -----------------------------------
-
-logger.info("Writing the Final Binning result to file")
-
-final_bin_count = 0
+# Get final list of bins and write result to output file
+# ----------------------------------------------------------
 
 # Get output path
 output_bins_path = output_path + prefix + "bins/"
@@ -874,6 +871,10 @@ if not os.path.isdir(output_bins_path):
 if not os.path.isdir(lq_output_bins_path):
     subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
 
+final_bins = {}
+lowq_bins = {}
+
+final_bin_count = 0
 
 with open(output_path + prefix + "contig_to_bin.tsv", mode='w') as out_file:
     output_writer = csv.writer(
@@ -888,49 +889,59 @@ with open(output_path + prefix + "contig_to_bin.tsv", mode='w') as out_file:
         if len(bin_clique) == 1 and bin_clique[0] in bins_to_rem:
             can_write = False
 
-        # Write output bins
         if can_write and bin_clique_size[bin_name] >= min_bin_size:
 
             final_bin_count += 1
 
             for b in bin_clique:
 
-                # Write contig identifiers of each bin to files
-                with open(output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
-                    for contig in bins[b]:
+                for contig in bins[b]:
+                    final_bins[contig] = bin_name
 
-                        if assembler == "megahit":
-                            bin_file.write(
-                                contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
-                            output_writer.writerow(
-                                [contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
-                        else:
-                            bin_file.write(contig_names[contig] + "\n")
-                            output_writer.writerow(
-                                [contig_names[contig], "bin_" + bin_name])
+                    if assembler == "megahit":
+                        output_writer.writerow([contig_descriptions[graph_to_contig_map[contig_names[contig]]], "bin_" + bin_name])
+                    else:
+                        output_writer.writerow([contig_names[contig], "bin_" + bin_name])
 
-            # Write contigs of each bin to files
-            subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + output_bins_path + prefix + "bin_" + bin_name +
-                           "_ids.txt " + contigs_file + " > " + output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
-
-        # Write low quality bins
         else:
 
             for b in bin_clique:
 
-                # Write contig identifiers of each bin to files
-                with open(lq_output_bins_path + prefix + "bin_" + bin_name + "_ids.txt", "w") as bin_file:
-                    for contig in bins[b]:
+                for contig in bins[b]:
+                    lowq_bins[contig] = bin_name
 
-                        if assembler == "megahit":
-                            bin_file.write(
-                                contig_descriptions[graph_to_contig_map[contig_names[contig]]] + "\n")
-                        else:
-                            bin_file.write(contig_names[contig] + "\n")
 
-            # Write contigs of each bin to files
-            subprocess.run("awk -F'>' 'NR==FNR{ids[$0]; next} NF>1{f=($2 in ids)} f' " + lq_output_bins_path + prefix + "bin_" + bin_name +
-                           "_ids.txt " + contigs_file + " > " + lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", shell=True)
+logger.info("Writing the Final Binning result to file")
+
+bin_files = {}
+
+for bin_name in set(final_bins.values()):
+    bin_files[bin_name] = open(output_bins_path + prefix + "bin_" + bin_name + ".fasta", 'w+')
+
+for bin_name in set(lowq_bins.values()):
+    bin_files[bin_name] = open(lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", 'w+')
+
+
+for n, record in tqdm(enumerate(SeqIO.parse(contigs_file, "fasta")), desc="Splitting contigs into bins"):
+
+    if assembler == "megahit":
+        contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
+    else:
+        contig_num = contig_names_rev[record.id]
+
+    if contig_num in final_bins:
+        bin_files[final_bins[contig_num]].write(f'>{str(record.id)}\n{str(record.seq)}\n')
+
+    elif contig_num in lowq_bins:
+        bin_files[lowq_bins[contig_num]].write(f'>{str(record.id)}\n{str(record.seq)}\n')
+
+# Close output files
+for c in set(final_bins.values()):
+    bin_files[c].close()
+
+for c in set(lowq_bins.values()):
+    bin_files[c].close()
+
 
 logger.info("Producing " + str(final_bin_count) + " bins...")
 logger.info("Final binning results can be found in " + str(output_bins_path))
