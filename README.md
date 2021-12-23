@@ -210,7 +210,7 @@ For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 
 ## Citation
 
-MetaCoAG is currently under review and the preprint is available at bioRxiv ([https://doi.org/10.1101/2021.09.10.459728](https://doi.org/10.1101/2021.09.10.459728)).
+MetaCoAG has been accepted at [RECOMB 2022](https://recomb2022.net/accepted-papers/) and the preprint is available at bioRxiv ([https://doi.org/10.1101/2021.09.10.459728](https://doi.org/10.1101/2021.09.10.459728)).
 
 If you use MetaCoAG in your work, please cite as,
 
