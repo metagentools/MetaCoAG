@@ -172,12 +172,14 @@ For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 
 ## How to get the abundance.tsv file
 
-You can use [CoverM](https://github.com/wwood/CoverM) to get the coverage of contigs (Please refer the [CoverM contig documentation](https://wwood.github.io/CoverM/coverm-contig.html) for further details). You can run the following commands to get the `abundance.tsv` file.
+You can use [CoverM](https://github.com/wwood/CoverM) to get the coverage of contigs. You can run the following commands to get the `abundance.tsv` file.
 
 ```
 coverm contig -1 reads_1.fastq -2 reads_2.fastq -r contigs.fasta -o abundance.tsv -t 8
 sed -i '1d' abundance.tsv	# remove the header of the file
 ```
+
+You can use the -c (or --coupled) option of CoverM if you have multiple samples. Please refer the [CoverM contig documentation](https://wwood.github.io/CoverM/coverm-contig.html) for further details.
 
 The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 
