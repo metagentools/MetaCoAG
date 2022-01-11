@@ -179,7 +179,7 @@ coverm contig -1 reads_1.fastq -2 reads_2.fastq -r contigs.fasta -o abundance.ts
 sed -i '1d' abundance.tsv	# remove the header of the file
 ```
 
-The resulting `abundance.tsv` file can be used as the abundance file for MetaCoAG.
+The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 
 ## Example Usage
 
