@@ -159,7 +159,7 @@ try:
     if assembler == "spades":
 
         # Get paths, segments, links and contigs of the assembly graph
-        paths, segment_contigs, contig_segments, node_count, contigs_map, contig_names = graph_utils.get_segment_paths_spades(
+        paths, segment_contigs, node_count, contigs_map, contig_names = graph_utils.get_segment_paths_spades(
             contig_paths_file)
 
         # Get reverse mapping of contig map
@@ -187,12 +187,18 @@ try:
 
     if assembler == "flye":
 
-        # Get links and contigs of the assembly graph
-        node_count, links, contig_names = graph_utils.get_links_flye(
-            assembly_graph_file)
+        # Get contigs map
+        contig_names = graph_utils.get_flye_contig_map(contigs_file)
 
         # Get reverse mapping of contig identifiers
         contig_names_rev = contig_names.inverse
+
+        # Get links and contigs of the assembly graph
+        paths, segment_contigs, node_count, contigs_map = graph_utils.get_links_flye(
+            contig_paths_file, contig_names_rev)
+
+        # Get reverse mapping of contig map
+        contigs_map_rev = contigs_map.inverse
 
 except:
     logger.error(
@@ -231,8 +237,11 @@ try:
 
     if assembler == "flye":
         edge_list = graph_utils.get_graph_edges_flye(
-            links=links,
-            contig_names_rev=contig_names_rev)
+            assembly_graph_file=assembly_graph_file,
+            contigs_map=contigs_map,
+            contigs_map_rev=contigs_map_rev,
+            paths=paths,
+            segment_contigs=segment_contigs)
 
     if assembler == "megahit":
         edge_list = graph_utils.get_graph_edges_megahit(
@@ -246,7 +255,7 @@ try:
     assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
 
     logger.info("Total number of edges in the assembly graph: " +
-                str(len(list(assembly_graph.es))))
+                    str(len(list(assembly_graph.es))))
 
 except:
     logger.error(
@@ -265,6 +274,12 @@ if assembler == "megahit":
             graph_to_contig_map[n] = n2
 
     graph_to_contig_map_rev = graph_to_contig_map.inverse
+
+# Get isolated contigs with no neighbours
+isolated = graph_utils.get_isolated(node_count, assembly_graph)
+
+logger.info("Total isolated contigs in the assembly graph: " +
+                str(len(isolated)))
 
 
 # Get the number of samples and the length and coverage of contigs
@@ -286,6 +301,23 @@ else:
         contig_names_rev=contig_names_rev,
         min_length=min_length,
         abundance_file=abundance_file)
+
+
+isolated_long = []
+
+my_long = 0
+
+for contig in contig_lengths:
+    if contig_lengths[contig] >= min_length:
+        my_long += 1
+
+for contig in isolated:
+    if contig_lengths[contig] >= min_length:
+        isolated_long.append(contig)
+
+logger.info("Total long contigs: " + str(my_long))
+logger.info("Total isolated long contigs in the assembly graph: " +
+                str(len(isolated_long)))
 
 
 # Set intra weight and inter weight
@@ -566,11 +598,8 @@ logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
 logger.debug("Number of binned contigs with markers: " +
              str(len(binned_contigs_with_markers)))
 
-# Get isolated vertices and components without labels
+# Get components without labels
 # -----------------------------------------------------
-
-# Get isolated contigs with no neighbours
-isolated = graph_utils.get_isolated(node_count, assembly_graph)
 
 # Get connected contigs within the labelled components
 non_isolated = graph_utils.get_non_isolated(
