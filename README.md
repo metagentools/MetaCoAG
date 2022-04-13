@@ -8,7 +8,7 @@
 ![GitHub](https://img.shields.io/github/languages/code-size/Vini2/MetaCoAG)
 ![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
 
-MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and MEGAHIT.
+MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently MetaCoAG supports contigs assembled using metaSPAdes and MEGAHIT, and recently we have added support for Flye assemblies (has not been tested extensively).
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
@@ -79,12 +79,19 @@ spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 ```
 megahit -1 Reads_1.fastq -2 Reads_2.fastq --k-min 21 --k-max 77 -o /path/output_folder -t 8
 ```
-**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will result in a FASTG file which you can convert to GFA format using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
+**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will produce a FASTG file which you can convert to GFA format using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
 
 ```
 fastg2gfa final.fastg > final.gfa
 ```
 Support for FASTG files will be added in the near future.
+
+### Flye
+[**Flye**](https://github.com/fenderglass/Flye) is a long-read assembler based on the de Bruijn graph approach. **metaFlye** is the metagenomic version of Flye. Use metaFlye to assemble reads into contigs. A sample command is given below.
+
+```
+flye --meta --pacbio-raw Reads.fastq --out-dir /path/output_folder --threads 8
+```
 
 Once you have obtained the assembly output, you can run MetaCoAG.
 
@@ -163,12 +170,18 @@ For the metaSPAdes version, `MetaCoAG` takes in 4 files as inputs.
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
 * Contig paths file (in `.paths` format)
-* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample.
+* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
 
 For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
 * Assembly graph file (in `.gfa` format)
 * Contigs file (in `.fasta` format)
-* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample.
+* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
+
+For the Flye version, `MetaCoAG` takes in 4 files as inputs.
+* Assembly graph file (`assembly_graph.gfa`)
+* Contigs file (`assembly.fasta`)
+* Contig paths file (`assembly_info.txt`)
+* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
 
 ## How to get the abundance.tsv file
 
@@ -187,6 +200,14 @@ The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 
 ```
 ./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
+```
+
+```
+./MetaCoAG --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
+```
+
+```
+./MetaCoAG --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ## References
