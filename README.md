@@ -97,10 +97,10 @@ Once you have obtained the assembly output, you can run MetaCoAG.
 
 
 ## Using MetaCoAG
-You can see the usage options of MetaCoAG by typing `./MetaCoAG -h` on the command line. For example,
+You can see the usage options of MetaCoAG by typing `./metacoag -h` on the command line. For example,
 
 ```
-usage: MetaCoAG [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
+usage: metacoag [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
                 --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
                 [--hmm HMM] [--prefix PREFIX] [--min_length MIN_LENGTH]
                 [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
@@ -199,15 +199,15 @@ The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 ## Example Usage
 
 ```
-./MetaCoAG --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
+./metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./MetaCoAG --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
+./metacoag --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./MetaCoAG --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
+./metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ## References
