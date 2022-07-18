@@ -205,6 +205,14 @@ def get_cov_len_megahit(
                     else:
                         coverages[contig_num].append(contig_coverage)
 
+    if len(coverages) == 0:
+    
+        logger.error(
+            "Could not find any contigs longer than " + str(min_length) + "bp."
+        )
+        logger.info("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+
     n_samples = len(coverages[list(coverages.keys())[0]])
 
     return sequences, coverages, contig_lengths, n_samples
