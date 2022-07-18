@@ -3,6 +3,7 @@
 import numpy as np
 import itertools
 import os
+import sys
 import pickle
 import logging
 
@@ -151,6 +152,12 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
                         coverages[contig_num] = [contig_coverage]
                     else:
                         coverages[contig_num].append(contig_coverage)
+
+    if len(coverages) == 0:
+
+        logger.error("Could not find any contigs longer than " + str(min_length) +"bp.")
+        logger.info("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
 
     n_samples = len(coverages[0])
 
