@@ -195,11 +195,9 @@ if not os.path.isdir(output_path):
     subprocess.run("mkdir -p "+output_path, shell=True)
 
 # Validate prefix
-if args["prefix"] != '':
-    if args["prefix"].endswith("_"):
-        prefix = args["prefix"]
-    else:
-        prefix = args["prefix"]+"_"
+if prefix != '':
+    if not prefix.endswith("_"):
+        prefix = prefix+"_"
 else:
     prefix = ''
 

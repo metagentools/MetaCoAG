@@ -186,7 +186,6 @@ def get_graph_edges_flye(
     assembly_graph_file, contigs_map, contigs_map_rev, paths, segment_contigs
 ):
 
-    links = []
     links_map = defaultdict(set)
 
     # Get links from assembly_graph_with_scaffolds.gfa

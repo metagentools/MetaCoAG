@@ -425,13 +425,11 @@ def further_match_contigs(
                     else:
                         bin_weights.append(MAX_WEIGHT)
 
-                min_b_index = -1
-
                 min_b_index, min_b_value = min(
                     enumerate(bin_weights), key=operator.itemgetter(1)
                 )
 
-                if min_b_index != -1 and min_b_value <= w_intra:
+                if min_b_value <= w_intra:
                     bins[possible_bins[min_b_index]].append(contigid)
                     bin_of_contig[contigid] = possible_bins[min_b_index]
                     binned_contigs_with_markers.append(contigid)

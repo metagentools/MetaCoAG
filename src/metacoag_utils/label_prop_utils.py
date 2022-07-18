@@ -465,8 +465,6 @@ def final_label_prop(
 
         has_mg = False
 
-        common_mgs = set()
-
         if to_bin in contig_markers:
             has_mg = True
             common_mgs = set(bin_markers[bin_]).intersection(
