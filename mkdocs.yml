@@ -1,7 +1,7 @@
 site_name: MetaCoAG
-site_url: "https://github.com/Vini2/MetaCoAG"
+site_url: "https://github.com/metagentools/MetaCoAG"
 site_author: "Vijini Mallawaarachchi"
-repo_url: "https://github.com/Vini2/MetaCoAG"
+repo_url: "https://github.com/metagentools/MetaCoAG"
 repo_name: 'GitHub'
 theme:
     name: readthedocs
