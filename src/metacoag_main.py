@@ -108,7 +108,7 @@ n_bins = 0
 # Setup logger
 # -----------------------
 
-logger = logging.getLogger('MetaCoaAG 1.0')
+logger = logging.getLogger('MetaCoaAG 1.1')
 logger.setLevel(logging.DEBUG)
 logging.captureWarnings(True)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
