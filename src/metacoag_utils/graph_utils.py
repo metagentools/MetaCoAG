@@ -20,8 +20,6 @@ def get_segment_paths_spades(contig_paths):
 
     current_contig_num = ""
 
-    contig_segments = {}
-
     with open(contig_paths) as file:
         name = file.readline().strip()
         path = file.readline().strip()
@@ -147,8 +145,6 @@ def get_links_flye(contig_paths, contig_names_rev):
     segment_contigs = {}
 
     my_map = BidirectionalMap()
-
-    contig_segments = {}
 
     with open(contig_paths) as file:
 

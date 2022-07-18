@@ -15,7 +15,6 @@ import time
 
 from Bio import SeqIO
 from igraph import *
-from networkx.classes.function import set_node_attributes
 from tqdm import tqdm
 
 from metacoag_utils import (
