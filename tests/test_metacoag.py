@@ -1,8 +1,7 @@
 import subprocess
-import pytest
-
 from pathlib import Path
 
+import pytest
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"

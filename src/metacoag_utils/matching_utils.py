@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import sys
-import math
-import networkx as nx
-import operator
 import logging
+import math
+import operator
+import sys
 
+import networkx as nx
 from scipy.spatial import distance
 
 # Constants set from MaxBin 2.0
@@ -15,14 +15,14 @@ VERY_SMALL_DOUBLE = 1e-10
 MAX_WEIGHT = sys.float_info.max
 
 # create logger
-logger = logging.getLogger('MetaCoaAG 1.1')
+logger = logging.getLogger("MetaCoaAG 1.1")
 
 
 def normpdf(x, mean, sd):
-    var = float(sd)**2
-    denom = sd*(2*math.pi)**.5
-    num = math.exp(-(float(x)-float(mean))**2/(2*var))
-    return num/denom
+    var = float(sd) ** 2
+    denom = sd * (2 * math.pi) ** 0.5
+    num = math.exp(-((float(x) - float(mean)) ** 2) / (2 * var))
+    return num / denom
 
 
 def get_tetramer_distance(seq1, seq2):
@@ -36,7 +36,7 @@ def get_coverage_distance(cov1, cov2):
 def get_comp_probability(tetramer_dist):
     gaus_intra = normpdf(tetramer_dist, MU_INTRA, SIGMA_INTRA)
     gaus_inter = normpdf(tetramer_dist, MU_INTER, SIGMA_INTER)
-    return gaus_intra/(gaus_intra+gaus_inter)
+    return gaus_intra / (gaus_intra + gaus_inter)
 
 
 def get_cov_probability(cov1, cov2):
@@ -48,10 +48,12 @@ def get_cov_probability(cov1, cov2):
 
         # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
         poisson_pmf_1 = math.exp(
-            (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i])
+            (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i]
+        )
 
         poisson_pmf_2 = math.exp(
-            (cov2[i] * math.log(cov1[i])) - math.lgamma(cov2[i] + 1.0) - cov1[i])
+            (cov2[i] * math.log(cov1[i])) - math.lgamma(cov2[i] + 1.0) - cov1[i]
+        )
 
         if poisson_pmf_1 < VERY_SMALL_DOUBLE:
             poisson_pmf_1 = VERY_SMALL_DOUBLE
@@ -67,9 +69,22 @@ def get_cov_probability(cov1, cov2):
 
 
 def match_contigs(
-        smg_iteration, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
-        bin_markers, contig_markers, contig_lengths, contig_names, normalized_tetramer_profiles,
-        coverages, assembly_graph, w_intra, w_inter, d_limit):
+    smg_iteration,
+    bins,
+    n_bins,
+    bin_of_contig,
+    binned_contigs_with_markers,
+    bin_markers,
+    contig_markers,
+    contig_lengths,
+    contig_names,
+    normalized_tetramer_profiles,
+    coverages,
+    assembly_graph,
+    w_intra,
+    w_inter,
+    d_limit,
+):
 
     edge_weights_per_iteration = {}
 
@@ -77,17 +92,23 @@ def match_contigs(
 
     for i in range(smg_iterations):
 
-        logger.debug("Iteration "+str(i)+": " +
-                     str(len(smg_iteration[i]))+" contig(s) with seed marker genes")
+        logger.debug(
+            "Iteration "
+            + str(i)
+            + ": "
+            + str(len(smg_iteration[i]))
+            + " contig(s) with seed marker genes"
+        )
 
         if i > 0:
 
             B = nx.Graph()
 
             common = set(binned_contigs_with_markers).intersection(
-                set(smg_iteration[i]))
+                set(smg_iteration[i])
+            )
             to_bin = list(set(smg_iteration[i]) - common)
-            logger.debug(str(len(to_bin))+" contig(s) to bin in the iteration")
+            logger.debug(str(len(to_bin)) + " contig(s) to bin in the iteration")
             n_bins = len(bins)
             bottom_nodes = []
 
@@ -117,20 +138,23 @@ def match_contigs(
 
                         for j in range(n_contigs):
 
-                            tetramer_dist = get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                                  normalized_tetramer_profiles[bins[b][j]])
+                            tetramer_dist = get_tetramer_distance(
+                                normalized_tetramer_profiles[contigid],
+                                normalized_tetramer_profiles[bins[b][j]],
+                            )
                             prob_comp = get_comp_probability(tetramer_dist)
                             prob_cov = get_cov_probability(
-                                coverages[contigid], coverages[bins[b][j]])
+                                coverages[contigid], coverages[bins[b][j]]
+                            )
 
                             prob_product = prob_comp * prob_cov
 
                             log_prob = 0
 
                             if prob_product > 0.0:
-                                log_prob = - \
-                                    (math.log(prob_comp, 10) +
-                                        math.log(prob_cov, 10))
+                                log_prob = -(
+                                    math.log(prob_comp, 10) + math.log(prob_cov, 10)
+                                )
                             else:
                                 log_prob = MAX_WEIGHT
 
@@ -138,7 +162,8 @@ def match_contigs(
 
                         if log_prob_sum != float("inf"):
                             edges.append(
-                                (bins[b][0], contigid, log_prob_sum/n_contigs))
+                                (bins[b][0], contigid, log_prob_sum / n_contigs)
+                            )
                         else:
                             edges.append((bins[b][0], contigid, MAX_WEIGHT))
 
@@ -154,14 +179,14 @@ def match_contigs(
 
                 edge_weights_per_iteration[i] = edge_weights
 
-                top_nodes = {n for n, d in B.nodes(
-                    data=True) if d['bipartite'] == 0}
+                top_nodes = {n for n, d in B.nodes(data=True) if d["bipartite"] == 0}
                 bottom_nodes = set(B) - top_nodes
 
                 if len(top_nodes) > 0:
 
                     my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(
-                        B, top_nodes, "weight")
+                        B, top_nodes, "weight"
+                    )
 
                     not_binned = {}
 
@@ -171,29 +196,36 @@ def match_contigs(
 
                             b = bin_of_contig[l]
 
-                            if my_matching[l] not in bins[b] and (l, my_matching[l]) in edge_weights:
+                            if (
+                                my_matching[l] not in bins[b]
+                                and (l, my_matching[l]) in edge_weights
+                            ):
 
                                 path_len_sum = 0
 
                                 for contig_in_bin in bins[b]:
                                     shortest_paths = assembly_graph.get_shortest_paths(
-                                        my_matching[l], to=contig_in_bin)
+                                        my_matching[l], to=contig_in_bin
+                                    )
 
                                     if len(shortest_paths) != 0:
                                         path_len_sum += len(shortest_paths[0])
 
-                                avg_path_len = math.floor(
-                                    path_len_sum/len(bins[b]))
+                                avg_path_len = math.floor(path_len_sum / len(bins[b]))
 
                                 # logger.debug("To assign contig " + contig_names[my_matching[l]] + " to bin "+str(
                                 #     b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
-                                if edge_weights[(l, my_matching[l])] <= w_intra and avg_path_len <= d_limit:
+                                if (
+                                    edge_weights[(l, my_matching[l])] <= w_intra
+                                    and avg_path_len <= d_limit
+                                ):
 
                                     can_assign = False
 
                                     common_mgs = set(bin_markers[b]).intersection(
-                                        set(contig_markers[my_matching[l]]))
+                                        set(contig_markers[my_matching[l]])
+                                    )
 
                                     if len(common_mgs) == 0:
                                         can_assign = True
@@ -209,14 +241,19 @@ def match_contigs(
                                         bins[b].append(my_matching[l])
                                         bin_of_contig[my_matching[l]] = b
                                         binned_contigs_with_markers.append(
-                                            my_matching[l])
+                                            my_matching[l]
+                                        )
                                         binned_count += 1
 
                                         # logger.debug("Assigning contig " + contig_names[my_matching[l]] + " to bin "+str(
                                         #     b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
                                         bin_markers[b] = list(
-                                            set(bin_markers[b] + contig_markers[my_matching[l]]))
+                                            set(
+                                                bin_markers[b]
+                                                + contig_markers[my_matching[l]]
+                                            )
+                                        )
 
                                     else:
                                         not_binned[my_matching[l]] = (l, b)
@@ -230,20 +267,36 @@ def match_contigs(
 
                     for nb in not_binned:
 
-                        if edge_weights_per_iteration[i][(not_binned[nb][0], nb)] > w_inter:
+                        if (
+                            edge_weights_per_iteration[i][(not_binned[nb][0], nb)]
+                            > w_inter
+                        ):
 
-                            if longest_nb_contig_mg_count < len(contig_markers[not_binned[nb][0]]):
+                            if longest_nb_contig_mg_count < len(
+                                contig_markers[not_binned[nb][0]]
+                            ):
                                 longest_nb_contig = nb
                                 longest_nb_contig_mg_count = len(
-                                    contig_markers[not_binned[nb][0]])
-                                longest_nb_contig_length = contig_lengths[not_binned[nb][0]]
+                                    contig_markers[not_binned[nb][0]]
+                                )
+                                longest_nb_contig_length = contig_lengths[
+                                    not_binned[nb][0]
+                                ]
 
-                            elif longest_nb_contig_mg_count == len(contig_markers[not_binned[nb][0]]):
-                                if longest_nb_contig_length < contig_lengths[not_binned[nb][0]]:
+                            elif longest_nb_contig_mg_count == len(
+                                contig_markers[not_binned[nb][0]]
+                            ):
+                                if (
+                                    longest_nb_contig_length
+                                    < contig_lengths[not_binned[nb][0]]
+                                ):
                                     longest_nb_contig = nb
                                     longest_nb_contig_mg_count = len(
-                                        contig_markers[not_binned[nb][0]])
-                                    longest_nb_contig_length = contig_lengths[not_binned[nb][0]]
+                                        contig_markers[not_binned[nb][0]]
+                                    )
+                                    longest_nb_contig_length = contig_lengths[
+                                        not_binned[nb][0]
+                                    ]
 
                     if longest_nb_contig != -1:
 
@@ -252,29 +305,43 @@ def match_contigs(
                         for contig_in_bin in bins[not_binned[longest_nb_contig][1]]:
 
                             shortest_paths = assembly_graph.get_shortest_paths(
-                                longest_nb_contig, to=contig_in_bin)
+                                longest_nb_contig, to=contig_in_bin
+                            )
 
                             if len(shortest_paths) != 0:
                                 path_len_sum += len(shortest_paths[0])
 
-                        avg_path_len = path_len_sum / \
-                            len(bins[not_binned[longest_nb_contig][1]])
+                        avg_path_len = path_len_sum / len(
+                            bins[not_binned[longest_nb_contig][1]]
+                        )
 
                         if math.floor(avg_path_len) >= d_limit or path_len_sum == 0:
 
                             logger.debug("Creating new bin...")
-                            logger.debug("New bin has contig " + str(longest_nb_contig) + " to bin "+str(n_bins+1) + " weight="+str(
-                                edge_weights_per_iteration[i][(not_binned[longest_nb_contig][0], longest_nb_contig)]))
+                            logger.debug(
+                                "New bin has contig "
+                                + str(longest_nb_contig)
+                                + " to bin "
+                                + str(n_bins + 1)
+                                + " weight="
+                                + str(
+                                    edge_weights_per_iteration[i][
+                                        (
+                                            not_binned[longest_nb_contig][0],
+                                            longest_nb_contig,
+                                        )
+                                    ]
+                                )
+                            )
                             bins[n_bins] = [longest_nb_contig]
                             bin_of_contig[longest_nb_contig] = n_bins
                             binned_count += 1
 
                             bin_markers[n_bins] = contig_markers[longest_nb_contig]
                             n_bins += 1
-                            binned_contigs_with_markers.append(
-                                longest_nb_contig)
+                            binned_contigs_with_markers.append(longest_nb_contig)
 
-            logger.debug(str(binned_count)+" contig(s) binned in the iteration")
+            logger.debug(str(binned_count) + " contig(s) binned in the iteration")
 
     if len(smg_iteration) > 0:
         del edge_weights_per_iteration
@@ -292,8 +359,18 @@ def match_contigs(
 
 
 def further_match_contigs(
-        unbinned_mg_contigs, min_length, bins, n_bins, bin_of_contig, binned_contigs_with_markers,
-        bin_markers, contig_markers, normalized_tetramer_profiles, coverages, w_intra):
+    unbinned_mg_contigs,
+    min_length,
+    bins,
+    n_bins,
+    bin_of_contig,
+    binned_contigs_with_markers,
+    bin_markers,
+    contig_markers,
+    normalized_tetramer_profiles,
+    coverages,
+    w_intra,
+):
 
     for contig in unbinned_mg_contigs:
 
@@ -302,8 +379,9 @@ def further_match_contigs(
             possible_bins = []
 
             for b in bin_markers:
-                common_mgs = list(set(bin_markers[b]).intersection(
-                    set(contig_markers[contig[0]])))
+                common_mgs = list(
+                    set(bin_markers[b]).intersection(set(contig_markers[contig[0]]))
+                )
                 if len(common_mgs) == 0:
                     possible_bins.append(b)
 
@@ -320,40 +398,49 @@ def further_match_contigs(
 
                     for j in range(n_contigs):
 
-                        tetramer_dist = get_tetramer_distance(normalized_tetramer_profiles[contigid],
-                                                              normalized_tetramer_profiles[bins[b][j]])
+                        tetramer_dist = get_tetramer_distance(
+                            normalized_tetramer_profiles[contigid],
+                            normalized_tetramer_profiles[bins[b][j]],
+                        )
                         prob_comp = get_comp_probability(tetramer_dist)
                         prob_cov = get_cov_probability(
-                            coverages[contigid], coverages[bins[b][j]])
+                            coverages[contigid], coverages[bins[b][j]]
+                        )
 
                         prob_product = prob_comp * prob_cov
 
                         log_prob = 0
 
                         if prob_product > 0.0:
-                            log_prob = - (math.log(prob_comp, 10) +
-                                          math.log(prob_cov, 10))
+                            log_prob = -(
+                                math.log(prob_comp, 10) + math.log(prob_cov, 10)
+                            )
                         else:
                             log_prob = MAX_WEIGHT
 
                         log_prob_sum += log_prob
 
                     if log_prob_sum != float("inf"):
-                        bin_weights.append(log_prob_sum/n_contigs)
+                        bin_weights.append(log_prob_sum / n_contigs)
                     else:
                         bin_weights.append(MAX_WEIGHT)
 
                 min_b_index = -1
 
                 min_b_index, min_b_value = min(
-                    enumerate(bin_weights), key=operator.itemgetter(1))
+                    enumerate(bin_weights), key=operator.itemgetter(1)
+                )
 
                 if min_b_index != -1 and min_b_value <= w_intra:
                     bins[possible_bins[min_b_index]].append(contigid)
                     bin_of_contig[contigid] = possible_bins[min_b_index]
                     binned_contigs_with_markers.append(contigid)
 
-                    bin_markers[possible_bins[min_b_index]] = list(set(
-                        bin_markers[possible_bins[min_b_index]] + contig_markers[contigid]))
+                    bin_markers[possible_bins[min_b_index]] = list(
+                        set(
+                            bin_markers[possible_bins[min_b_index]]
+                            + contig_markers[contigid]
+                        )
+                    )
 
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers

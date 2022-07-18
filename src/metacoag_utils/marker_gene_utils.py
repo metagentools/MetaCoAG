@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+import logging
 import os
 import pathlib
-import logging
 
 # create logger
-logger = logging.getLogger('MetaCoaAG 1.1')
+logger = logging.getLogger("MetaCoaAG 1.1")
 
 
 # Modified from SolidBin
@@ -13,43 +13,69 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
 
     software_path = pathlib.Path(__file__).parent.parent.absolute()
 
-    fragScanURL = 'run_FragGeneScan.pl'
-    hmmExeURL = 'hmmsearch'
-    markerURL = os.path.join(software_path.parent, 'auxiliary', 'marker.hmm')
+    fragScanURL = "run_FragGeneScan.pl"
+    hmmExeURL = "hmmsearch"
+    markerURL = os.path.join(software_path.parent, "auxiliary", "marker.hmm")
 
     logger.debug(markerURL)
 
-    fragResultURL = contigs_file+".frag.faa"
-    hmmResultURL = contigs_file+".hmmout"
+    fragResultURL = contigs_file + ".frag.faa"
+    hmmResultURL = contigs_file + ".hmmout"
     if not (os.path.exists(fragResultURL)):
-        fragCmd = fragScanURL+" -genome="+contigs_file+" -out="+contigs_file + \
-            ".frag -complete=0 -train=complete -thread="+str(nthreads)+" 1>" + \
-            contigs_file+".frag.out 2>"+contigs_file+".frag.err"
-        logger.debug("exec cmd: "+fragCmd)
+        fragCmd = (
+            fragScanURL
+            + " -genome="
+            + contigs_file
+            + " -out="
+            + contigs_file
+            + ".frag -complete=0 -train=complete -thread="
+            + str(nthreads)
+            + " 1>"
+            + contigs_file
+            + ".frag.out 2>"
+            + contigs_file
+            + ".frag.err"
+        )
+        logger.debug("exec cmd: " + fragCmd)
         os.system(fragCmd)
 
     if os.path.exists(fragResultURL):
         if not (os.path.exists(hmmResultURL)):
-            hmmCmd = hmmExeURL+" --domtblout "+hmmResultURL+" --cut_tc --cpu "+str(nthreads)+" " + \
-                markerURL+" "+fragResultURL+" 1>"+hmmResultURL+".out 2>"+hmmResultURL+".err"
-            logger.debug("exec cmd: "+hmmCmd)
+            hmmCmd = (
+                hmmExeURL
+                + " --domtblout "
+                + hmmResultURL
+                + " --cut_tc --cpu "
+                + str(nthreads)
+                + " "
+                + markerURL
+                + " "
+                + fragResultURL
+                + " 1>"
+                + hmmResultURL
+                + ".out 2>"
+                + hmmResultURL
+                + ".err"
+            )
+            logger.debug("exec cmd: " + hmmCmd)
             os.system(hmmCmd)
 
         else:
-            logger.debug("HMMER search failed! Path: " +
-                         hmmResultURL + " does not exist.")
+            logger.debug(
+                "HMMER search failed! Path: " + hmmResultURL + " does not exist."
+            )
     else:
-        logger.debug("FragGeneScan failed! Path: " +
-                     fragResultURL + " does not exist.")
+        logger.debug("FragGeneScan failed! Path: " + fragResultURL + " does not exist.")
 
 
 # Get contigs containing marker genes
 def get_all_contigs_with_marker_genes(
-        contigs_file, contig_names_rev, mg_length_threshold):
+    contigs_file, contig_names_rev, mg_length_threshold
+):
 
     contig_markers = {}
 
-    with open(contigs_file+".hmmout", "r") as myfile:
+    with open(contigs_file + ".hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
@@ -66,14 +92,14 @@ def get_all_contigs_with_marker_genes(
                 mapped_marker_length = int(strings[16]) - int(strings[15])
 
                 name_strings = contig.split("_")
-                name_strings = name_strings[:len(name_strings)-3]
+                name_strings = name_strings[: len(name_strings) - 3]
 
                 # Contig name
                 contig_name = "_".join(name_strings)
 
                 contig_num = contig_names_rev[contig_name]
 
-                if mapped_marker_length > marker_gene_length*mg_length_threshold:
+                if mapped_marker_length > marker_gene_length * mg_length_threshold:
 
                     # Get marker genes in each contig
                     if contig_num not in contig_markers:
@@ -87,14 +113,14 @@ def get_all_contigs_with_marker_genes(
 
 # Get contigs containing marker genes
 def get_contigs_with_marker_genes(
-        contigs_file, contig_names_rev, mg_length_threshold,
-        contig_lengths, min_length):
+    contigs_file, contig_names_rev, mg_length_threshold, contig_lengths, min_length
+):
 
     marker_contigs = {}
     marker_contig_counts = {}
     contig_markers = {}
 
-    with open(contigs_file+".hmmout", "r") as myfile:
+    with open(contigs_file + ".hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
@@ -111,7 +137,7 @@ def get_contigs_with_marker_genes(
                 mapped_marker_length = int(strings[16]) - int(strings[15])
 
                 name_strings = contig.split("_")
-                name_strings = name_strings[:len(name_strings)-3]
+                name_strings = name_strings[: len(name_strings) - 3]
 
                 # Contig name
                 contig_name = "_".join(name_strings)
@@ -119,7 +145,10 @@ def get_contigs_with_marker_genes(
                 contig_num = contig_names_rev[contig_name]
                 contig_length = contig_lengths[contig_num]
 
-                if contig_length >= min_length and mapped_marker_length > marker_gene_length*mg_length_threshold:
+                if (
+                    contig_length >= min_length
+                    and mapped_marker_length > marker_gene_length * mg_length_threshold
+                ):
 
                     marker_repeated_in_contig = False
 
@@ -151,14 +180,19 @@ def get_contigs_with_marker_genes(
 
 # Get contigs containing marker genes
 def get_contigs_with_marker_genes_megahit(
-        contigs_file, contig_names_rev, graph_to_contig_map_rev,
-        mg_length_threshold, contig_lengths, min_length):
+    contigs_file,
+    contig_names_rev,
+    graph_to_contig_map_rev,
+    mg_length_threshold,
+    contig_lengths,
+    min_length,
+):
 
     marker_contigs = {}
     marker_contig_counts = {}
     contig_markers = {}
 
-    with open(contigs_file+".hmmout", "r") as myfile:
+    with open(contigs_file + ".hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
@@ -175,7 +209,7 @@ def get_contigs_with_marker_genes_megahit(
                 mapped_marker_length = int(strings[16]) - int(strings[15])
 
                 name_strings = contig.split("_")
-                name_strings = name_strings[:len(name_strings)-3]
+                name_strings = name_strings[: len(name_strings) - 3]
 
                 # Contig name
                 contig_name = "_".join(name_strings)
@@ -183,7 +217,10 @@ def get_contigs_with_marker_genes_megahit(
                 contig_num = contig_names_rev[graph_to_contig_map_rev[contig_name]]
                 contig_length = contig_lengths[contig_num]
 
-                if contig_length >= min_length and mapped_marker_length > marker_gene_length*mg_length_threshold:
+                if (
+                    contig_length >= min_length
+                    and mapped_marker_length > marker_gene_length * mg_length_threshold
+                ):
 
                     marker_repeated_in_contig = False
 

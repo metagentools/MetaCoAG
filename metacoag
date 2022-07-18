@@ -4,8 +4,8 @@
 
 import argparse
 import os
-import sys
 import subprocess
+import sys
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
