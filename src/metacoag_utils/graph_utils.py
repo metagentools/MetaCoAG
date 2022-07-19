@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import re
+from collections import defaultdict
 
 from Bio import SeqIO
-from collections import defaultdict
+
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 
 def get_segment_paths_spades(contig_paths):
-    
+
     paths = {}
     segment_contigs = {}
     node_count = 0
@@ -19,8 +20,6 @@ def get_segment_paths_spades(contig_paths):
 
     current_contig_num = ""
 
-    contig_segments = {}
-
     with open(contig_paths) as file:
         name = file.readline().strip()
         path = file.readline().strip()
@@ -30,10 +29,9 @@ def get_segment_paths_spades(contig_paths):
             while ";" in path:
                 path = path[:-2] + "," + file.readline()
 
-            start = 'NODE_'
-            end = '_length_'
-            contig_num = str(
-                int(re.search('%s(.*)%s' % (start, end), name).group(1)))
+            start = "NODE_"
+            end = "_length_"
+            contig_num = str(int(re.search("%s(.*)%s" % (start, end), name).group(1)))
 
             segments = path.rstrip().split(",")
 
@@ -60,8 +58,8 @@ def get_segment_paths_spades(contig_paths):
 
 
 def get_graph_edges_spades(
-        assembly_graph_file, contigs_map,
-        contigs_map_rev, paths, segment_contigs):
+    assembly_graph_file, contigs_map, contigs_map_rev, paths, segment_contigs
+):
 
     links = []
     links_map = defaultdict(set)
@@ -78,8 +76,7 @@ def get_graph_edges_spades(
                 f1, f2 = strings[1] + strings[2], strings[3] + strings[4]
                 links_map[f1].add(f2)
                 links_map[f2].add(f1)
-                links.append(strings[1] + strings[2] +
-                             " " + strings[3] + strings[4])
+                links.append(strings[1] + strings[2] + " " + strings[3] + strings[4])
             line = file.readline()
 
     # Create list of edges
@@ -91,7 +88,7 @@ def get_graph_edges_spades(
         new_links = []
 
         for segment in segments:
-            
+
             my_segment = segment
 
             my_segment_rev = ""
@@ -149,8 +146,6 @@ def get_links_flye(contig_paths, contig_names_rev):
 
     my_map = BidirectionalMap()
 
-    contig_segments = {}
-
     with open(contig_paths) as file:
 
         for line in file.readlines():
@@ -166,7 +161,7 @@ def get_links_flye(contig_paths, contig_names_rev):
 
                 if path.startswith(","):
                     path = path[1:]
-                
+
                 if path.endswith(","):
                     path = path[:-1]
 
@@ -188,10 +183,9 @@ def get_links_flye(contig_paths, contig_names_rev):
 
 
 def get_graph_edges_flye(
-        assembly_graph_file, contigs_map,
-        contigs_map_rev, paths, segment_contigs):
+    assembly_graph_file, contigs_map, contigs_map_rev, paths, segment_contigs
+):
 
-    links = []
     links_map = defaultdict(set)
 
     # Get links from assembly_graph_with_scaffolds.gfa
@@ -209,11 +203,11 @@ def get_graph_edges_flye(
                 if strings[2] == "+":
                     f1 = strings[1][5:]
                 if strings[2] == "-":
-                    f1 = "-"+strings[1][5:]
+                    f1 = "-" + strings[1][5:]
                 if strings[4] == "+":
                     f2 = strings[3][5:]
                 if strings[4] == "-":
-                    f2 = "-"+strings[3][5:]
+                    f2 = "-" + strings[3][5:]
 
                 links_map[f1].add(f2)
                 links_map[f2].add(f1)
@@ -229,7 +223,7 @@ def get_graph_edges_flye(
         new_links = []
 
         for segment in segments:
-            
+
             my_segment = segment
             my_segment_num = ""
 
@@ -239,7 +233,7 @@ def get_graph_edges_flye(
                 my_segment_rev = my_segment[1:]
                 my_segment_num = my_segment[1:]
             else:
-                my_segment_rev = "-"+my_segment
+                my_segment_rev = "-" + my_segment
                 my_segment_num = my_segment
 
             if my_segment in links_map:
@@ -253,7 +247,7 @@ def get_graph_edges_flye(
                     if i != contig:
                         # Add edge to list of edges
                         edge_list.append((i, contig))
-                        
+
             if my_segment_rev in segment_contigs:
                 for contig in segment_contigs[my_segment_rev]:
                     if i != contig:
@@ -273,7 +267,7 @@ def get_graph_edges_flye(
                     if i != contig:
                         # Add edge to list of edges
                         edge_list.append((i, contig))
-                        
+
             if new_link.startswith("-"):
                 if new_link[1:] in segment_contigs:
                     for contig in segment_contigs[new_link[1:]]:
@@ -337,8 +331,7 @@ def get_graph_edges_megahit(links, contig_names_rev):
         # Remove self loops
         if link[0] != link[1]:
             # Add edge to list of edges
-            edge_list.append(
-                (contig_names_rev[link[0]], contig_names_rev[link[1]]))
+            edge_list.append((contig_names_rev[link[0]], contig_names_rev[link[1]]))
 
     return edge_list
 

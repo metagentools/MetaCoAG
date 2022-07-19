@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import itertools
-import os
-import sys
-import pickle
 import logging
-
-from Bio import SeqIO
+import os
+import pickle
+import sys
 from multiprocessing import Pool
 
+import numpy as np
+from Bio import SeqIO
 
 # Create logger
-logger = logging.getLogger('MetaCoaAG 1.0')
+logger = logging.getLogger("MetaCoaAG 1.1")
 
 # Set complements of each nucleotide
-complements = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+complements = {"A": "T", "C": "G", "G": "C", "T": "A"}
 
 # Set bits for each nucleotide
-nt_bits = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
+nt_bits = {"A": 0, "C": 1, "G": 2, "T": 3}
 
 VERY_SMALL_VAL = 0.0001
 
@@ -39,10 +38,9 @@ def compute_kmer_inds(k):
     kmer_inds = {}
     kmer_count_len = 0
 
-    alphabet = 'ACGT'
+    alphabet = "ACGT"
 
-    all_kmers = [''.join(kmer)
-                 for kmer in itertools.product(alphabet, repeat=k)]
+    all_kmers = ["".join(kmer) for kmer in itertools.product(alphabet, repeat=k)]
     all_kmers.sort()
     ind = 0
     for kmer in all_kmers:
@@ -64,11 +62,11 @@ def count_kmers(args):
     seq = list(seq.strip())
 
     for i in range(0, len(seq) - k + 1):
-        bit_mer = mer2bits(seq[i:(i + k)])
+        bit_mer = mer2bits(seq[i : (i + k)])
         index = kmer_inds[bit_mer]
         profile[index] += 1
 
-    return profile, profile/max(1, sum(profile))
+    return profile, profile / max(1, sum(profile))
 
 
 def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nthreads):
@@ -78,7 +76,7 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
 
     if os.path.isfile(output_path + "normalized_contig_tetramers.pickle"):
 
-        with open(output_path + 'normalized_contig_tetramers.pickle', 'rb') as handle:
+        with open(output_path + "normalized_contig_tetramers.pickle", "rb") as handle:
             normalized_tetramer_profiles = pickle.load(handle)
 
     else:
@@ -87,7 +85,8 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
 
         pool = Pool(nthreads)
         record_tetramers = pool.map(
-            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in sequences])
+            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in sequences]
+        )
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
@@ -98,9 +97,10 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
             normalized_tetramer_profiles[i] = normalized[l]
             i += 1
 
-        with open(output_path + 'normalized_contig_tetramers.pickle', 'wb') as handle:
-            pickle.dump(normalized_tetramer_profiles, handle,
-                        protocol=pickle.HIGHEST_PROTOCOL)
+        with open(output_path + "normalized_contig_tetramers.pickle", "wb") as handle:
+            pickle.dump(
+                normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL
+            )
 
     tetramer_profiles = {}
 
@@ -155,7 +155,9 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
 
     if len(coverages) == 0:
 
-        logger.error("Could not find any contigs longer than " + str(min_length) +"bp.")
+        logger.error(
+            "Could not find any contigs longer than " + str(min_length) + "bp."
+        )
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
@@ -164,7 +166,9 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
     return sequences, coverages, contig_lengths, n_samples
 
 
-def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev, min_length, abundance_file):
+def get_cov_len_megahit(
+    contigs_file, contig_names_rev, graph_to_contig_map_rev, min_length, abundance_file
+):
 
     coverages = {}
 
@@ -200,6 +204,14 @@ def get_cov_len_megahit(contigs_file, contig_names_rev, graph_to_contig_map_rev,
                         coverages[contig_num] = [contig_coverage]
                     else:
                         coverages[contig_num].append(contig_coverage)
+
+    if len(coverages) == 0:
+    
+        logger.error(
+            "Could not find any contigs longer than " + str(min_length) + "bp."
+        )
+        logger.info("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
 
     n_samples = len(coverages[list(coverages.keys())[0]])
 

@@ -1,0 +1,24 @@
+site_name: MetaCoAG
+site_url: "https://github.com/metagentools/MetaCoAG"
+site_author: "Vijini Mallawaarachchi"
+repo_url: "https://github.com/metagentools/MetaCoAG"
+repo_name: 'GitHub'
+theme:
+    name: readthedocs
+    highlightjs: true
+    hljs_languages:
+        - yaml
+        - bash
+        - shell
+        - text
+nav:
+    - HOME:
+      - Introduction: index.md
+      - Workflow: workflow.md
+      - Citation: citation.md
+#    - RUNNING:
+#      - Install: install.md
+#      - Preprocess: preprocess.md
+#      - Usage: usage.md
+#      - Support: support.md
+#      - Tutorial: tutorial.md
