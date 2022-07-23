@@ -17,13 +17,8 @@ from Bio import SeqIO
 from igraph import *
 from tqdm import tqdm
 
-from metacoag_utils import (
-    feature_utils,
-    graph_utils,
-    label_prop_utils,
-    marker_gene_utils,
-    matching_utils,
-)
+from metacoag_utils import (feature_utils, graph_utils, label_prop_utils,
+                            marker_gene_utils, matching_utils)
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 # Set paramters
@@ -161,7 +156,6 @@ def main():
 
     n_bins = 0
 
-
     # Setup logger
     # -----------------------
 
@@ -211,7 +205,6 @@ def main():
 
     start_time = time.time()
 
-
     # Get links of the assembly graph
     # ------------------------------------------------------------------------
 
@@ -244,9 +237,12 @@ def main():
                 contig_descriptions[record.id] = record.description
 
             # Get links and contigs of the assembly graph
-            node_count, graph_contigs, links, contig_names = graph_utils.get_links_megahit(
-                assembly_graph_file
-            )
+            (
+                node_count,
+                graph_contigs,
+                links,
+                contig_names,
+            ) = graph_utils.get_links_megahit(assembly_graph_file)
 
             # Get reverse mapping of contig identifiers
             contig_names_rev = contig_names.inverse
@@ -260,9 +256,12 @@ def main():
             contig_names_rev = contig_names.inverse
 
             # Get links and contigs of the assembly graph
-            paths, segment_contigs, node_count, contigs_map = graph_utils.get_links_flye(
-                contig_paths_file, contig_names_rev
-            )
+            (
+                paths,
+                segment_contigs,
+                node_count,
+                contigs_map,
+            ) = graph_utils.get_links_flye(contig_paths_file, contig_names_rev)
 
             # Get reverse mapping of contig map
             contigs_map_rev = contigs_map.inverse
@@ -273,7 +272,6 @@ def main():
         )
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
-
 
     # Construct the assembly graph
     # -------------------------------
@@ -336,7 +334,6 @@ def main():
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
-
     if assembler == "megahit":
 
         # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
@@ -353,14 +350,18 @@ def main():
 
     logger.info("Total isolated contigs in the assembly graph: " + str(len(isolated)))
 
-
     # Get the number of samples and the length and coverage of contigs
     # ------------------------------------------------------------------------
 
     logger.info("Obtaining lengths and coverage values of contigs")
 
     if assembler == "megahit":
-        sequences, coverages, contig_lengths, n_samples = feature_utils.get_cov_len_megahit(
+        (
+            sequences,
+            coverages,
+            contig_lengths,
+            n_samples,
+        ) = feature_utils.get_cov_len_megahit(
             contigs_file=contigs_file,
             contig_names_rev=contig_names_rev,
             graph_to_contig_map_rev=graph_to_contig_map_rev,
@@ -375,7 +376,6 @@ def main():
             min_length=min_length,
             abundance_file=abundance_file,
         )
-
 
     isolated_long = []
 
@@ -394,7 +394,6 @@ def main():
         "Total isolated long contigs in the assembly graph: " + str(len(isolated_long))
     )
 
-
     # Set intra weight and inter weight
     # ------------------------------------------------------------------------
 
@@ -403,7 +402,6 @@ def main():
 
     logger.debug("w_intra: " + str(w_intra))
     logger.debug("w_inter: " + str(w_inter))
-
 
     # Get tetramer composition of contigs
     # ------------------------------------------------------------------------
@@ -420,7 +418,6 @@ def main():
 
     del sequences
     gc.collect()
-
 
     # Get contigs with marker genes
     # -----------------------------------------------------
@@ -473,7 +470,8 @@ def main():
         )
 
     logger.info(
-        "Number of contigs containing single-copy marker genes: " + str(len(contig_markers))
+        "Number of contigs containing single-copy marker genes: "
+        + str(len(contig_markers))
     )
 
     # Check if there are contigs with single-copy marker genes
@@ -602,7 +600,8 @@ def main():
         logger.debug(str(b) + ": " + str(bins[b]))
 
     logger.debug(
-        "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig))
+        "Number of binned contigs with single-copy marker genes: "
+        + str(len(bin_of_contig))
     )
 
     del smg_iteration
@@ -670,7 +669,8 @@ def main():
         "Remaining number of unbinned MG seed contigs: " + str(len(unbinned_mg_contigs))
     )
     logger.debug(
-        "Number of binned contigs with single-copy marker genes: " + str(len(bin_of_contig))
+        "Number of binned contigs with single-copy marker genes: "
+        + str(len(bin_of_contig))
     )
 
     del unbinned_mg_contigs
@@ -689,7 +689,10 @@ def main():
 
     # Get composition and coverage profiles for each bin
     # based on contigs with single-copy marker genes
-    bin_seed_tetramer_profiles, bin_seed_coverage_profiles = feature_utils.get_bin_profiles(
+    (
+        bin_seed_tetramer_profiles,
+        bin_seed_coverage_profiles,
+    ) = feature_utils.get_bin_profiles(
         bins=bins,
         coverages=coverages,
         normalized_tetramer_profiles=normalized_tetramer_profiles,
@@ -705,7 +708,8 @@ def main():
     logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
     logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
     logger.debug(
-        "Number of binned contigs with markers: " + str(len(binned_contigs_with_markers))
+        "Number of binned contigs with markers: "
+        + str(len(binned_contigs_with_markers))
     )
 
     # Get components without labels
@@ -713,7 +717,9 @@ def main():
 
     # Get connected contigs within the labelled components
     non_isolated = graph_utils.get_non_isolated(
-        node_count=node_count, assembly_graph=assembly_graph, binned_contigs=binned_contigs
+        node_count=node_count,
+        assembly_graph=assembly_graph,
+        binned_contigs=binned_contigs,
     )
 
     logger.debug("Number of non-isolated contigs: " + str(len(non_isolated)))
@@ -748,7 +754,6 @@ def main():
 
     logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
-
     # Further propagate labels to vertices of unlabelled long contigs
     # --------------------------------------------------------------------------------
 
@@ -777,7 +782,6 @@ def main():
 
     logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
-
     # Get binned and unbinned contigs
     # -----------------------------------------------------
 
@@ -787,7 +791,6 @@ def main():
 
     logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
     logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
-
 
     # Propagate labels to vertices of unlabelled long contigs in isolated components
     # -----------------------------------------------------------------------------------------------
@@ -811,7 +814,6 @@ def main():
 
     # Thread function for workers
 
-
     def thread_function(
         n,
         contig,
@@ -828,7 +830,6 @@ def main():
             bin_coverage_profiles=bin_seed_coverage_profiles,
         )
         assigned[n] = bin_result
-
 
     exec_args = []
 
@@ -907,7 +908,6 @@ def main():
 
     logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
 
-
     # Get elapsed time
     # -----------------------------------
 
@@ -916,7 +916,6 @@ def main():
 
     # Print elapsed time for the process
     logger.info("Elapsed time: " + str(elapsed_time) + " seconds")
-
 
     # Get bin sizes
     # -----------------------------------
@@ -927,7 +926,6 @@ def main():
         bin_size[b] = 0
         for contig in bins[b]:
             bin_size[b] += contig_lengths[contig]
-
 
     # Merge bins
     # -----------------------------------
@@ -1015,7 +1013,6 @@ def main():
 
     bin_cliques = bins_graph.maximal_cliques()
 
-
     # Get bin clique sizes
     # -----------------------------------
 
@@ -1029,7 +1026,6 @@ def main():
 
         for b in bin_clique:
             bin_clique_size[bin_name] += bin_size[b]
-
 
     # Get final list of bins and write result to output file
     # ----------------------------------------------------------
@@ -1093,7 +1089,6 @@ def main():
                     for contig in bins[b]:
                         lowq_bins[contig] = bin_name
 
-
     logger.info("Writing the Final Binning result to file")
 
     bin_files = {}
@@ -1108,9 +1103,9 @@ def main():
             lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", "w+"
         )
 
-
     for n, record in tqdm(
-        enumerate(SeqIO.parse(contigs_file, "fasta")), desc="Splitting contigs into bins"
+        enumerate(SeqIO.parse(contigs_file, "fasta")),
+        desc="Splitting contigs into bins",
     ):
 
         if assembler == "megahit":
@@ -1135,10 +1130,8 @@ def main():
     for c in set(lowq_bins.values()):
         bin_files[c].close()
 
-
     logger.info("Producing " + str(final_bin_count) + " bins...")
     logger.info("Final binning results can be found in " + str(output_bins_path))
-
 
     # Exit program
     # -----------------------------------
@@ -1146,5 +1139,5 @@ def main():
     logger.info("Thank you for using MetaCoAG!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

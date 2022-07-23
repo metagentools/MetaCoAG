@@ -206,7 +206,7 @@ def get_cov_len_megahit(
                         coverages[contig_num].append(contig_coverage)
 
     if len(coverages) == 0:
-    
+
         logger.error(
             "Could not find any contigs longer than " + str(min_length) + "bp."
         )
