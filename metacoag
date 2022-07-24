@@ -65,11 +65,6 @@ def main():
     delimiter = validated_args["delimiter"]
     nthreads = validated_args["nthreads"]
 
-    if hmm == "":
-        hmm = os.path.join(
-            pathlib.Path(__file__).parent.absolute(), "auxiliary", "marker.hmm"
-        )
-
     bin_threshold = -math.log(p_intra, 10)
     break_threshold = -math.log(p_inter, 10)
 
@@ -96,9 +91,6 @@ def main():
     logger.info(
         "Welcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs."
     )
-    logger.info(
-        "This version of MetaCoAG makes use of the assembly graph produced by SPAdes which is based on the de Bruijn graph approach."
-    )
 
     logger.info("Input arguments: ")
     logger.info("Assembler used: " + assembler)
@@ -107,7 +99,6 @@ def main():
     logger.info("Contig paths file: " + contig_paths_file)
     logger.info("Abundance file: " + abundance_file)
     logger.info("Final binning output file: " + output_path)
-    logger.info("Marker file: " + hmm)
     logger.info("Minimum length of contigs to consider: " + str(min_length))
     logger.info("Depth to consider for label propagation: " + str(depth))
     logger.info("p_intra: " + str(p_intra))
