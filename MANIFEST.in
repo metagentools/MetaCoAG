@@ -1,0 +1,5 @@
+recursive-include metacoag_utils/ *
+recursive-include metacoag_utils/auxiliary/ *
+
+global-exclude metacoag_utils/ *.pyc
+global-exclude metacoag_utils/__pycache__ *.pyc
