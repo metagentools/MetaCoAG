@@ -185,6 +185,18 @@ def validate(args):
         print("Exiting MetaCoAG...\nBye...!\n")
         sys.exit(1)
 
+    # Check if paths file is provided when the assembler type is Flye
+    if args["assembler"].lower() == "flye" and args["paths"] is None:
+        print("\nPlease make sure to provide the path to the assembly_info.txt file.")
+        print("Exiting MetaCoAG...\nBye...!\n")
+        sys.exit(1)
+
+    # Check contigs.paths file for Flye
+    if args["assembler"].lower() == "flye" and not os.path.isfile(args["paths"]):
+        print("\nFailed to open the assembly_info.txt file.")
+        print("Exiting MetaCoAG...\nBye...!\n")
+        sys.exit(1)
+
     # Skip paths file when the assembler type is MEGAHIT
     if args["assembler"].lower() == "megahit":
         args["paths"] = "None"
