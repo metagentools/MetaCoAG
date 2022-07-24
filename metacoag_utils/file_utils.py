@@ -2,120 +2,147 @@
 
 import argparse
 import os
-import sys
 import subprocess
+import sys
 
 
 def get_args(version):
 
-    parser = argparse.ArgumentParser(description="""MetaCoAG is a metagenomic contig binning tool that makes use of the 
+    parser = argparse.ArgumentParser(
+        description="""MetaCoAG is a metagenomic contig binning tool that makes use of the 
     connectivity information found in assembly graphs, apart from the composition and coverage information. 
-    MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs.""")
+    MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs."""
+    )
 
-    parser.add_argument("--assembler",
-                        required=True,
-                        type=str,
-                        help="name of the assembler used. (Supports SPAdes, MEGAHIT and Flye)")
+    parser.add_argument(
+        "--assembler",
+        required=True,
+        type=str,
+        help="name of the assembler used. (Supports SPAdes, MEGAHIT and Flye)",
+    )
 
-    parser.add_argument("--graph",
-                        required=True,
-                        type=str,
-                        help="path to the assembly graph file")
+    parser.add_argument(
+        "--graph", required=True, type=str, help="path to the assembly graph file"
+    )
 
-    parser.add_argument("--contigs",
-                        required=True,
-                        type=str,
-                        help="path to the contigs file")
+    parser.add_argument(
+        "--contigs", required=True, type=str, help="path to the contigs file"
+    )
 
-    parser.add_argument("--abundance",
-                        required=True,
-                        type=str,
-                        help="path to the abundance file")
+    parser.add_argument(
+        "--abundance", required=True, type=str, help="path to the abundance file"
+    )
 
-    parser.add_argument("--paths",
-                        required=False,
-                        type=str,
-                        help="path to the contigs.paths (metaSPAdes) or assembly.info (metaFlye) file")
+    parser.add_argument(
+        "--paths",
+        required=False,
+        type=str,
+        help="path to the contigs.paths (metaSPAdes) or assembly.info (metaFlye) file",
+    )
 
-    parser.add_argument("--output",
-                        required=True,
-                        type=str,
-                        help="path to the output folder")
+    parser.add_argument(
+        "--output", required=True, type=str, help="path to the output folder"
+    )
 
-    parser.add_argument("--hmm",
-                        required=False,
-                        type=str,
-                        default="",
-                        help="path to marker.hmm file. [default: auxiliary/marker.hmm]")
+    parser.add_argument(
+        "--hmm",
+        required=False,
+        type=str,
+        default="",
+        help="path to marker.hmm file. [default: auxiliary/marker.hmm]",
+    )
 
-    parser.add_argument("--prefix",
-                        required=False,
-                        type=str,
-                        default='',
-                        help="prefix for the output file")
+    parser.add_argument(
+        "--prefix",
+        required=False,
+        type=str,
+        default="",
+        help="prefix for the output file",
+    )
 
-    parser.add_argument("--min_length",
-                        required=False,
-                        type=int,
-                        default=1000,
-                        help="minimum length of contigs to consider for binning. [default: 1000]")
+    parser.add_argument(
+        "--min_length",
+        required=False,
+        type=int,
+        default=1000,
+        help="minimum length of contigs to consider for binning. [default: 1000]",
+    )
 
-    parser.add_argument("--p_intra",
-                        required=False,
-                        type=float,
-                        default=0.1,
-                        help="minimum probability of an edge matching to assign to the same bin. [default: 0.1]")
+    parser.add_argument(
+        "--p_intra",
+        required=False,
+        type=float,
+        default=0.1,
+        help="minimum probability of an edge matching to assign to the same bin. [default: 0.1]",
+    )
 
-    parser.add_argument("--p_inter",
-                        required=False,
-                        type=float,
-                        default=0.01,
-                        help="maximum probability of an edge matching to create a new bin. [default: 0.01]")
+    parser.add_argument(
+        "--p_inter",
+        required=False,
+        type=float,
+        default=0.01,
+        help="maximum probability of an edge matching to create a new bin. [default: 0.01]",
+    )
 
-    parser.add_argument("--d_limit",
-                        required=False,
-                        type=int,
-                        default=20,
-                        help="distance limit for contig matching. [default: 20]")
+    parser.add_argument(
+        "--d_limit",
+        required=False,
+        type=int,
+        default=20,
+        help="distance limit for contig matching. [default: 20]",
+    )
 
-    parser.add_argument("--depth",
-                        required=False,
-                        type=int,
-                        default=10,
-                        help="depth to consider for label propagation. [default: 10]")
+    parser.add_argument(
+        "--depth",
+        required=False,
+        type=int,
+        default=10,
+        help="depth to consider for label propagation. [default: 10]",
+    )
 
-    parser.add_argument("--mg_threshold",
-                        required=False,
-                        type=float,
-                        default=0.5,
-                        help="length threshold to consider marker genes. [default: 0.5]")
+    parser.add_argument(
+        "--mg_threshold",
+        required=False,
+        type=float,
+        default=0.5,
+        help="length threshold to consider marker genes. [default: 0.5]",
+    )
 
-    parser.add_argument("--bin_mg_threshold",
-                        required=False,
-                        type=float,
-                        default=0.33333,
-                        help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]")
+    parser.add_argument(
+        "--bin_mg_threshold",
+        required=False,
+        type=float,
+        default=0.33333,
+        help="minimum fraction of marker genes that should be present in a bin. [default: 0.33333]",
+    )
 
-    parser.add_argument("--min_bin_size",
-                        required=False,
-                        type=int,
-                        default=200000,
-                        help="minimum size of a bin to output in base pairs. [default: 200000]")
+    parser.add_argument(
+        "--min_bin_size",
+        required=False,
+        type=int,
+        default=200000,
+        help="minimum size of a bin to output in base pairs. [default: 200000]",
+    )
 
-    parser.add_argument("--delimiter",
-                        required=False,
-                        type=str,
-                        default=",",
-                        help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) [default: , (comma)]")
+    parser.add_argument(
+        "--delimiter",
+        required=False,
+        type=str,
+        default=",",
+        help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) [default: , (comma)]",
+    )
 
-    parser.add_argument("--nthreads",
-                        required=False,
-                        type=int,
-                        default=8,
-                        help="number of threads to use. [default: 8]")
+    parser.add_argument(
+        "--nthreads",
+        required=False,
+        type=int,
+        default=8,
+        help="number of threads to use. [default: 8]",
+    )
 
-    parser.add_argument('-v', '--version', action='version',
-                        version='%(prog)s ' + version)
+    parser.add_argument(
+        "-v", "--version", action="version", version="%(prog)s " + version
+    )
 
     args = vars(parser.parse_args())
 
@@ -123,26 +150,6 @@ def get_args(version):
 
 
 def validate(args):
-
-    assembler = args["assembler"]
-    assembly_graph_file = args["graph"]
-    contigs = args["contigs"]
-    abundance = args["abundance"]
-    contig_paths = args["paths"]
-    output_path = args["output"]
-    hmm = args["hmm"]
-    prefix = args["prefix"]
-    min_length = args["min_length"]
-    p_intra = args["p_intra"]
-    p_inter = args["p_inter"]
-    depth = args["depth"]
-    d_limit = args["d_limit"]
-    mg_threshold = args["mg_threshold"]
-    bin_mg_threshold = args["bin_mg_threshold"]
-    min_bin_size = args["min_bin_size"]
-    delimiter = args["delimiter"]
-    nthreads = args["nthreads"]
-
 
     # Validation of inputs
     # ---------------------------------------------------
@@ -194,14 +201,14 @@ def validate(args):
 
     # Create output folder if it does not exist
     if not os.path.isdir(args["output"]):
-        subprocess.run("mkdir -p "+args["output"], shell=True)
+        subprocess.run("mkdir -p " + args["output"], shell=True)
 
     # Validate prefix
-    if args["prefix"] != '':
+    if args["prefix"] != "":
         if not args["prefix"].endswith("_"):
-            args["prefix"] = args["prefix"]+"_"
+            args["prefix"] = args["prefix"] + "_"
     else:
-        args["prefix"] = ''
+        args["prefix"] = ""
 
     # Validate min_length
     if args["min_length"] <= 0:
@@ -210,7 +217,7 @@ def validate(args):
         sys.exit(1)
 
     # Validate p_intra
-    if p_intra <= 0 or p_intra > 1:
+    if args["p_intra"] <= 0 or args["p_intra"] > 1:
         print("\nPlease enter a valid number for p_intra")
         print("Exiting MetaCoAG...\nBye...!\n")
         sys.exit(1)
@@ -223,7 +230,9 @@ def validate(args):
 
     # Validate difference of p_intra and p_inter
     if args["p_inter"] <= 0:
-        print("\np_inter cannot be larger than p_intra. Please enter valid numbers for p_intra and p_inter")
+        print(
+            "\np_inter cannot be larger than p_intra. Please enter valid numbers for p_intra and p_inter"
+        )
         print("Exiting MetaCoAG...\nBye...!\n")
         sys.exit(1)
 
