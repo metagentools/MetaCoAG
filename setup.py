@@ -6,12 +6,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 packages = setuptools.find_packages()
-package_data = {
-    "metacoag_utils": [
-        "metacoag_utils/*",
-        "metacoag_utils/auxiliary/*"
-        ]
-}
+package_data = {"metacoag_utils": ["metacoag_utils/*", "metacoag_utils/auxiliary/*"]}
 
 data_files = [(".", ["LICENSE", "README.md"])]
 
@@ -25,7 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/metagentools/MetaCoAG",
-    icense='BSD-3',
+    license="BSD-3",
     packages=packages,
     package_data=package_data,
     data_files=data_files,
