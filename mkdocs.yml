@@ -12,13 +12,6 @@ theme:
         - shell
         - text
 nav:
-    - HOME:
-      - Introduction: index.md
-      - Workflow: workflow.md
-      - Citation: citation.md
-#    - RUNNING:
-#      - Install: install.md
-#      - Preprocess: preprocess.md
-#      - Usage: usage.md
-#      - Support: support.md
-#      - Tutorial: tutorial.md
+    - Introduction: index.md
+    - Workflow: workflow.md
+    - Citation: citation.md
