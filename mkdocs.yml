@@ -12,6 +12,8 @@ theme:
         - shell
         - text
 nav:
-    - Introduction: index.md
-    - Workflow: workflow.md
-    - Citation: citation.md
+    - HOME:
+        - Introduction: index.md
+        - Workflow: workflow.md
+        - Citation: citation.md
+    - RUNNING: 
