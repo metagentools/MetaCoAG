@@ -17,3 +17,6 @@ nav:
         - Workflow: workflow.md
         - Citation: citation.md
     - RUNNING: 
+        - Install: install.md
+        - Preprocess: preprocess.md
+        - Usage: usage.md
