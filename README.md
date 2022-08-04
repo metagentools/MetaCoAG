@@ -12,8 +12,10 @@
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently, MetaCoAG supports contigs assembled using metaSPAdes and MEGAHIT, and recently we have added support for Flye assemblies (has not been tested extensively).
 
+For detailed instructions on installation, usage and visualisation, please refer to the [documentation hosted at Read the Docs](https://metacoag.readthedocs.io/).
+
 ## Dependencies
-MetaCoAG installation requires Python 3.7 (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
+MetaCoAG installation requires Python 3.7 or above (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
 * [python-igraph](https://igraph.org/python/) - version 0.9.6
 * [biopython](https://biopython.org/) - version 1.74
 * [networkx](https://networkx.github.io/) - version 2.4
@@ -25,6 +27,8 @@ MetaCoAG uses the following tools to scan for single-copy marker genes. These to
 * [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) - version 1.31
 * [HMMER](http://hmmer.org/) - version 3.3.2
 
+
+## Installing MetaCoAG
 
 ### Downloading MetaCoAG
 You can download the latest release of MetaCoAG from [Releases](https://github.com/Vini2/MetaCoAG/releases) or clone the MetaCoAG repository to your machine.
@@ -67,35 +71,6 @@ conda deactivate
 ## Preprocessing
 
 Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes and MEGAHIT as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
-
-### metaSPAdes
-[**SPAdes**](http://cab.spbu.ru/software/spades/) is an assembler based on the de Bruijn graph approach. [**metaSPAdes**](https://genome.cshlp.org/content/27/5/824) is the dedicated metagenomic assembler of SPAdes. Use metaSPAdes (SPAdes in metagenomics mode) software to assemble reads into contigs. A sample command is given below.
-
-```
-spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
-```
-
-### MEGAHIT
-[**MEGAHIT**](https://github.com/voutcn/megahit) is an assembler based on the de Bruijn graph approach. Use MEGAHIT software to assemble reads into contigs. A sample command is given below.
-
-```
-megahit -1 Reads_1.fastq -2 Reads_2.fastq --k-min 21 --k-max 77 -o /path/output_folder -t 8
-```
-**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will produce a FASTG file which you can convert to GFA format using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
-
-```
-fastg2gfa final.fastg > final.gfa
-```
-Support for FASTG files will be added in the near future.
-
-### Flye
-[**Flye**](https://github.com/fenderglass/Flye) is a long-read assembler based on the de Bruijn graph approach. **metaFlye** is the metagenomic version of Flye. Use metaFlye to assemble reads into contigs. A sample command is given below.
-
-```
-flye --meta --pacbio-raw Reads.fastq --out-dir /path/output_folder --threads 8
-```
-
-Once you have obtained the assembly output, you can run MetaCoAG.
 
 
 ## Using MetaCoAG
@@ -157,48 +132,8 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
-`min_length`, `p_intra`, `p_inter`, `d_limit`, `mg_threshold`, `bin_mg_threshold`, `min_bin_size`, `depth` and `nthreads` parameters are set by default to `1000`, `0.1`, `0.01`, `20`, `0.5`, `0.3333`, `200000`, `10` and `8` respectively. However, the user can specify them when running MetaCoAG.
 
-You can specify the delimiter for the final binning output file using the `delimiter` parameter. Enter the following values for different delimiters; 
-* `,` for a comma
-* `;` for a semicolon
-* `$'\t'` for a tab
-* `" "` for a space 
-* `|` for a pipe.
-
-## Input Format
-
-For the metaSPAdes version, `MetaCoAG` takes in 4 files as inputs.
-* Assembly graph file (in `.gfa` format)
-* Contigs file (in `.fasta` format)
-* Contig paths file (in `.paths` format)
-* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
-
-For the MEGAHIT version, `MetaCoAG` takes in 3 files as inputs.
-* Assembly graph file (in `.gfa` format)
-* Contigs file (in `.fasta` format)
-* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
-
-For the Flye version, `MetaCoAG` takes in 4 files as inputs.
-* Assembly graph file (`assembly_graph.gfa`)
-* Contigs file (`assembly.fasta`)
-* Contig paths file (`assembly_info.txt`)
-* Abundance file (in `.tsv` format) with a contig in a line and its coverage in each sample separated by tabs.
-
-## How to get the abundance.tsv file
-
-You can use [CoverM](https://github.com/wwood/CoverM) to get the coverage of contigs. You can run the following commands to get the `abundance.tsv` file.
-
-```
-coverm contig -1 reads_1.fastq -2 reads_2.fastq -r contigs.fasta -o abundance.tsv -t 8
-sed -i '1d' abundance.tsv	# remove the header of the file
-```
-
-You can use the -c (or --coupled) option of CoverM if you have multiple samples. Please refer the [CoverM contig documentation](https://wwood.github.io/CoverM/coverm-contig.html) for further details.
-
-The resulting `abundance.tsv` file can be directly used in MetaCoAG.
-
-## Example Usage
+### Example Usage
 
 ```
 ./metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
@@ -212,37 +147,6 @@ The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 ./metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
-## References
-
-[1] Albertsen,  M.,  Hugenholtz,  P.,  Skarshewski,  A.,  Nielsen,  K.L.,  Tyson,  G.W.,Nielsen,  P.H.:  Genome  sequences  of  rare,  uncultured  bacteria  obtained  by  dif-ferential coverage binning of multiple metagenomes. Nature Biotechnology 31(6),533–538 (Jun 2013)
-
-[2] Alneberg,  J.,  Bjarnason,  B.S.,  de  Bruijn,  I.,  Schirmer,  M.,  Quick,  J.,  Ijaz,  U.Z.,Lahti, L., Loman, N.J., Andersson, A.F., Quince, C.: Binning metagenomic contigsby coverage and composition. Nature Methods 11, 1144–1146 (Sep 2014)
-
-[3] Bankevich, A., Nurk, S., Antipov, D., Gurevich, A.A., Dvorkin, M., Kulikov, A.S.,Lesin, V.M., Nikolenko, S.I., Pham, S., Prjibelski, A.D., Pyshkin, A.V., Sirotkin,A.V.,  Vyahhi,  N.,  Tesler,  G.,  Alekseyev,  M.A.,  Pevzner,  P.A.:  SPAdes:  A  NewGenome Assembly Algorithm and Its Applications to Single-Cell Sequencing. Jour-nal of Computational Biology 19(5), 455–477 (2012), pMID: 22506599
-
-[4] Barnum, T.P., Figueroa, I.A., Carlstr ̈om, C.I., Lucas, L.N., Engelbrektson, A.L.,Coates, J.D.: Genome-resolved metagenomics identifies genetic mobility, metabolicinteractions, and unexpected diversity in perchlorate-reducing communities. The ISME Journal 12(6), 1568–1581 (2018)
-
-[5] Kang, D., Li, F., Kirton, E.S., Thomas, A., Egan, R.S., An, H., Wang, Z.: MetaBAT2:  an  adaptive  binning  algorithm  for  robust  and  efficient  genome  reconstructionfrom metagenome assemblies. PeerJ7, e27522v1 (Feb 2019)
-
-[6] Karp, R.M.: An algorithm to solve the m×n assignment problem in expectedtime O(mn log n). Networks10(2), 143–152 (1980)
-
-[7] Kolmogorov, M., Yuan, J., Lin, Y., Pevzner, P.A.: Assembly of long, error-pronereads using repeat graphs. Nature biotechnology 37(5), 540–546 (2019)
-
-[9] Lin, H.H., Liao, Y.C.: Accurate binning of metagenomic contigs via automated clustering sequences using information of genomic signatures and marker genes. Scientific Reports 6(1), 24175 (Apr 2016)
-
-[10] Mallawaarachchi, V., Wickramarachchi, A., Lin, Y.: GraphBin: Refined binning of metagenomic contigs using assembly graphs. Bioinformatics 36(11), 3307-3313, (03 2020)
-
-[11] Mallawaarachchi, V.G., Wickramarachchi, A.S., Lin, Y.: GraphBin2: Refined and Overlapped Binning of Metagenomic Contigs Using Assembly Graphs. In: Kings-ford, C., Pisanti, N. (eds.) 20th International Workshop on Algorithms in Bioinfor-matics (WABI 2020). Leibniz International Proceedings in Informatics (LIPIcs),vol. 172, pp. 8:1–8:21. Schloss Dagstuhl–Leibniz-Zentrum f ̈ur Informatik, Dagstuhl,Germany (2020)
-
-[12] Myers, E.W.: The fragment assembly string graph. Bioinformatics 21(suppl2), ii79–ii85 (2005)
-
-[13] [NetworkX: networkx.algorithms.bipartite.matching.minimumweightfullmatching - NetworkX 2.5 documentation](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.bipartite.matching.minimum_weight_full_matching.html) (2020)
-
-[14] Nissen, J. N., et al. Improved metagenome binning and assembly using deep variational autoencoders. Nature Biotechnology 39, 555–560 (2021)
-
-[15] Nurk, S., Meleshko, D., Korobeynikov, A., Pevzner, P.A.: metaSPAdes: a new versatile metagenomic assembler. Genome Research 27(5), 824–834 (2017)
-
-[16] Wu, Y.W., Simmons, B.A., Singer, S.W.: MaxBin 2.0: an automated binning algorithm to recover genomes from multiple metagenomic datasets. Bioinformatics 32(4), 605–607 (Oct 2015)
 
 ## Citation
 
