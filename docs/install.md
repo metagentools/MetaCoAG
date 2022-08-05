@@ -2,7 +2,15 @@
 
 You can install MetaCoAG via [Bioconda](https://anaconda.org/bioconda/metacoag). You can download [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which contains Conda.
 
-Once you have installed Conda, you can install MetaCoAG directly from the bioconda distribution using the command
+Once you have installed Conda, add channels as follows.
+
+```
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+```
+
+Now you can install MetaCoAG directly from the bioconda distribution using the command
 
 ```
 conda install -c bioconda metacoag

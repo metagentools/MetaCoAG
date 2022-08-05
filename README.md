@@ -31,19 +31,36 @@ MetaCoAG uses the following tools to scan for single-copy marker genes. These to
 * [HMMER](http://hmmer.org/) - version 3.3.2
 
 
-## Installing MetaCoAG
+## Installing MetaCoAG using conda
+
+You can install MetaCoAG via [Conda](https://docs.conda.io/en/latest/) from [bioconda](https://anaconda.org/bioconda/metacoag).
+
+```
+# add channels
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+
+# create conda environment
+conda create -n metacoag
+
+# activate conda environment
+conda activate graphbin
+
+# install metacoag
+conda install -c bioconda metacoag
+
+# check metacoag installation
+metacoag -h
+```
+
+## Setting up MetaCoAG for development
 
 ### Downloading MetaCoAG
-You can download the latest release of MetaCoAG from [Releases](https://github.com/Vini2/MetaCoAG/releases) or clone the MetaCoAG repository to your machine.
+You can clone the MetaCoAG repository to your machine.
 
 ```
 git clone https://github.com/Vini2/MetaCoAG.git
-```
-
-If you have downloaded a release, you will have to extract the files using the following command.
-
-```
-unzip [file_name].zip
 ```
 
 Now go into the MetaCoAG folder using the command
@@ -53,7 +70,7 @@ cd MetaCoAG/
 ```
 
 ### Setting up the environment
-We recommend that you use [Conda](https://docs.conda.io/en/latest/) to run MetaCoAG. You can download [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which contains Conda.
+We recommend that you use [Conda](https://docs.conda.io/en/latest/) to run MetaCoAG.
 
 Once you have installed Conda, make sure you are in the MetaCoAG folder. Now run the following commands to create a Conda environment and activate it to run MetaCoAG.
 
@@ -62,92 +79,18 @@ conda env create -f environment.yml
 conda activate metacoag
 ```
 
-Now you are ready to run MetaCoAG.
-
-If you want to switch back to your normal environment, run the following command.
+## Example Usage
 
 ```
-conda deactivate
-```
-
-
-## Preprocessing
-
-Firstly, you will have to assemble your set of reads into contigs. For this purpose, you can use metaSPAdes and MEGAHIT as MetaCoAG currently supports assembly graphs produced from these assemblers. Support for other assemblers will be added in future.
-
-
-## Using MetaCoAG
-You can see the usage options of MetaCoAG by typing `./metacoag -h` on the command line. For example,
-
-```
-usage: metacoag [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
-                --abundance ABUNDANCE [--paths PATHS] --output OUTPUT
-                [--hmm HMM] [--prefix PREFIX] [--min_length MIN_LENGTH]
-                [--p_intra P_INTRA] [--p_inter P_INTER] [--d_limit D_LIMIT]
-                [--depth DEPTH] [--mg_threshold MG_THRESHOLD]
-                [--bin_mg_threshold BIN_MG_THRESHOLD]
-                [--min_bin_size MIN_BIN_SIZE] [--delimiter DELIMITER]
-                [--nthreads NTHREADS] [-v]
-
-MetaCoAG is a metagenomic contig binning tool that makes use of the
-connectivity information found in assembly graphs, apart from the composition
-and coverage information. MetaCoAG makes use of single-copy marker genes along
-with a graph matching technique and a label propagation technique to bin
-contigs.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --assembler ASSEMBLER
-                        name of the assembler used. (Supports SPAdes, MEGAHIT
-                        and Flye)
-  --graph GRAPH         path to the assembly graph file
-  --contigs CONTIGS     path to the contigs file
-  --abundance ABUNDANCE
-                        path to the abundance file
-  --paths PATHS         path to the contigs.paths file
-  --output OUTPUT       path to the output folder
-  --hmm HMM             path to marker.hmm file. [default:
-                        auxiliary/marker.hmm]
-  --prefix PREFIX       prefix for the output file
-  --min_length MIN_LENGTH
-                        minimum length of contigs to consider for binning.
-                        [default: 1000]
-  --p_intra P_INTRA     minimum probability of an edge matching to assign to
-                        the same bin. [default: 0.1]
-  --p_inter P_INTER     maximum probability of an edge matching to create a
-                        new bin. [default: 0.01]
-  --d_limit D_LIMIT     distance limit for contig matching. [default: 20]
-  --depth DEPTH         depth to consider for label propagation. [default: 10]
-  --mg_threshold MG_THRESHOLD
-                        length threshold to consider marker genes. [default:
-                        0.5]
-  --bin_mg_threshold BIN_MG_THRESHOLD
-                        minimum fraction of marker genes that should be
-                        present in a bin. [default: 0.33333]
-  --min_bin_size MIN_BIN_SIZE
-                        minimum size of a bin to output in base pairs.
-                        [default: 200000]
-  --delimiter DELIMITER
-                        delimiter for output results. Supports a comma (,), a
-                        semicolon (;), a tab ($'\t'), a space (" ") and a pipe
-                        (|) [default: , (comma)]
-  --nthreads NTHREADS   number of threads to use. [default: 8]
-  -v, --version         show program's version number and exit
-```
-
-
-### Example Usage
-
-```
-./metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./metacoag --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 

@@ -1,6 +1,6 @@
 # Using MetaCoAG
 
-You can see the usage options of MetaCoAG by typing `./metacoag -h` on the command line. For example,
+You can see the usage options of MetaCoAG by typing `metacoag -h` on the command line. For example,
 
 ```
 usage: metacoag [-h] --assembler ASSEMBLER --graph GRAPH --contigs CONTIGS
@@ -89,13 +89,13 @@ For the Flye version, `MetaCoAG` takes in 4 files as inputs.
 # Example Usage
 
 ```
-./metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler spades --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --paths /path/to/paths_file.paths --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./metacoag --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler megahit --graph /path/to/graph_file.gfa --contigs /path/to/contigs.fasta --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
 
 ```
-./metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
+metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to/assembly.fasta --paths /path/to/assembly_info.txt --abundance /path/to/abundance.tsv --output /path/to/output_folder
 ```
