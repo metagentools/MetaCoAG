@@ -20,7 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/metagentools/MetaCoAG",
-    license="BSD-3",
+    license="GPL-3.0",
     packages=packages,
     package_data=package_data,
     data_files=data_files,
@@ -29,7 +29,7 @@ setuptools.setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: BSD-3 License",
+        "License :: OSI Approved :: GPL-3.0 License",
         "Natural Language :: English",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Operating System :: OS Independent",
