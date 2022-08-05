@@ -1,36 +1,26 @@
-# Downloading MetaCoAG
-You can download the latest release of MetaCoAG from [Releases](https://github.com/Vini2/MetaCoAG/releases) or clone the MetaCoAG repository to your machine.
+# Setting up MetaCoAG
+
+You can install MetaCoAG via [Bioconda](https://anaconda.org/bioconda/metacoag). You can download [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which contains Conda.
+
+Once you have installed Conda, you can install MetaCoAG directly from the bioconda distribution using the command
 
 ```
-git clone https://github.com/Vini2/MetaCoAG.git
+conda install -c bioconda metacoag
 ```
 
-If you have downloaded a release, you will have to extract the files using the following command.
+You can also create a new conda environment and install MetaCoAG from bioconda using the following command and activate it.
 
 ```
-unzip [file_name].zip
-```
-
-Now go into the MetaCoAG folder using the command
-
-```
-cd MetaCoAG/
-```
-
-# Setting up the environment
-We recommend that you use [Conda](https://docs.conda.io/en/latest/) to run MetaCoAG. You can download [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which contains Conda.
-
-Once you have installed Conda, make sure you are in the MetaCoAG folder. Now run the following commands to create a Conda environment and activate it to run MetaCoAG.
-
-```
-conda env create -f environment.yml
+conda create -n metacoag -c bioconda metacoag
 conda activate metacoag
 ```
 
-Now you are ready to run MetaCoAG.
+After setup, check if MetaCoAG is properly installed by typing `metacoag -h` on the command line. You should see the usage options.
 
 If you want to switch back to your normal environment, run the following command.
 
 ```
 conda deactivate
 ```
+
+Now let's prepare our results to run MetaCoAG.
