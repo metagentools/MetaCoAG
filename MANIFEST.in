@@ -1,3 +1,6 @@
+include *.md
+include LICENSE
+
 recursive-include metacoag_utils/ *
 recursive-include metacoag_utils/auxiliary/ *
 
