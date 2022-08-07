@@ -27,29 +27,25 @@ MetaCoAG installation requires Python 3.7 or above (tested on Python 3.7.4). You
 * [numpy](https://numpy.org/) - version 1.17.2
 * [tqdm](https://github.com/tqdm/tqdm) - version 4.36.1
 
-MetaCoAG uses the following tools to scan for single-copy marker genes. These tools are included with the following versions.
+MetaCoAG uses the following tools to scan for single-copy marker genes. These tools have been tested on the following versions.
 * [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) - version 1.31
 * [HMMER](http://hmmer.org/) - version 3.3.2
 
 
 ## Installing MetaCoAG using conda
 
-You can install MetaCoAG via [Conda](https://docs.conda.io/en/latest/) from [bioconda](https://anaconda.org/bioconda/metacoag).
+We recommend that you use [`conda`](https://docs.conda.io/en/latest/) to run MetaCoAG.
 
-```
+You can install MetaCoAG from [bioconda](https://anaconda.org/bioconda/metacoag).
+
+```shell
 # add channels
 conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
 
-# create conda environment
-conda create -n metacoag
-
-# activate conda environment
-conda activate graphbin
-
-# install metacoag
-conda install -c bioconda metacoag
+# create conda environment and install metacoag
+conda create -n metacoag -c bioconda metacoag
 
 # check metacoag installation
 metacoag -h
@@ -70,14 +66,30 @@ Now go into the MetaCoAG folder using the command
 cd MetaCoAG/
 ```
 
-### Setting up the environment
-We recommend that you use [Conda](https://docs.conda.io/en/latest/) to run MetaCoAG.
+### Using `conda`
 
-Once you have installed Conda, make sure you are in the MetaCoAG folder. Now run the following commands to create a Conda environment and activate it to run MetaCoAG.
+Once you have installed `conda`, make sure you are in the MetaCoAG folder. Now run the following commands to create a `conda` environment and activate it to run MetaCoAG.
 
 ```
 conda env create -f environment.yml
 conda activate metacoag
+```
+
+### Using `pip`
+You can run the following command to install MetaCoAG using `pip`. Make sure you are in the MetaCoAG folder.
+
+```
+pip install .
+```
+
+**Note:** If you use pip to setup MetaCoAG for development, you will have to install [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) and [HMMER](http://hmmer.org/) manually and add them to your system path.
+
+### Test the setup
+
+After setting up, run the following command to ensure that metacoag is working.
+
+```
+metacoag -h
 ```
 
 ## Example Usage
