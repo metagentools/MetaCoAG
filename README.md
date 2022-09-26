@@ -109,7 +109,7 @@ metacoag --assembler flye --graph /path/to/assembly_graph.gfa --contigs /path/to
 
 ## Citation
 
-MetaCoAG has been accepted at [RECOMB 2022](https://recomb2022.net/accepted-papers/) and is published in Lecture Notes in Computer Science at [https://doi.org/10.1007/978-3-031-04749-7_5](https://doi.org/10.1007/978-3-031-04749-7_5).
+MetaCoAG has been accepted at [RECOMB 2022](https://recomb2022.net/accepted-papers/) and is published in Lecture Notes in Computer Science at [https://doi.org/10.1007/978-3-031-04749-7_5](https://doi.org/10.1007/978-3-031-04749-7_5) and the journal extension is in press at the [Journal of Computational Biology](https://home.liebertpub.com/publications/journal-of-computational-biology/31).
 
 If you use MetaCoAG in your work, please cite as,
 
