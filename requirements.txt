@@ -1,0 +1,6 @@
+biopython
+python-igraph
+networkx
+scipy
+numpy
+tqdm
