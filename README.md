@@ -7,15 +7,16 @@
 [![CI](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml/badge.svg)](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml)
 ![GitHub](https://img.shields.io/github/license/Vini2/MetaCoAG)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![GitHub](https://img.shields.io/github/v/release/Vini2/MetaCoAG?include_prereleases)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/metacoag/badges/version.svg)](https://anaconda.org/bioconda/metacoag)
+[![PyPI version](https://badge.fury.io/py/metacoag.svg)](https://badge.fury.io/py/metacoag)
 [![Documentation Status](https://readthedocs.org/projects/metacoag/badge/?version=latest)](https://metacoag.readthedocs.io/en/latest/?badge=latest)
 
 MetaCoAG is a metagenomic contig binning tool that makes use of the connectivity information found in assembly graphs, apart from the composition and coverage information. MetaCoAG makes use of single-copy marker genes along with a graph matching technique and a label propagation technique to bin contigs. MetaCoAG is tested on contigs obtained from next-generation sequencing (NGS) data. Currently, MetaCoAG supports contigs assembled using metaSPAdes and MEGAHIT, and recently we have added support for Flye assemblies (has not been tested extensively).
 
 For detailed instructions on installation, usage and visualisation, please refer to the [documentation hosted at Read the Docs](https://metacoag.readthedocs.io/).
 
-**NEW:** The conda package of MetaCoAG is now available on bioconda at 
-[https://anaconda.org/bioconda/metacoag](https://anaconda.org/bioconda/metacoag).
+**NEW:** MetaCoAG is now available on bioconda at 
+[https://anaconda.org/bioconda/metacoag](https://anaconda.org/bioconda/metacoag) and on PyPI at [https://pypi.org/project/metacoag/](https://pypi.org/project/metacoag/).
 
 ## Dependencies
 MetaCoAG installation requires Python 3.7 or above (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
