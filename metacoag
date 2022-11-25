@@ -7,7 +7,6 @@ import logging
 import math
 import operator
 import os
-import pathlib
 import subprocess
 import sys
 import time
@@ -16,10 +15,16 @@ from Bio import SeqIO
 from igraph import *
 from tqdm import tqdm
 
-from metacoag_utils import (feature_utils, file_utils, graph_utils,
-                            label_prop_utils, marker_gene_utils,
-                            matching_utils)
+from metacoag_utils import (
+    feature_utils,
+    file_utils,
+    graph_utils,
+    label_prop_utils,
+    marker_gene_utils,
+    matching_utils,
+)
 from metacoag_utils.bidirectionalmap import BidirectionalMap
+
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -110,7 +115,6 @@ def main():
     logger.info("min_bin_size: " + str(min_bin_size) + " base pairs")
     logger.info("d_limit: " + str(d_limit))
     logger.info("Number of threads: " + str(nthreads))
-
     logger.info("MetaCoAG started")
 
     start_time = time.time()
@@ -336,6 +340,25 @@ def main():
     logger.info("Scanning for single-copy marker genes")
 
     if not os.path.exists(contigs_file + ".hmmout"):
+
+        # Check if FragGeneScan is installed
+        try:
+            p = subprocess.run(['which', 'run_FragGeneScan.pl'], capture_output=True)
+            if p.returncode!= 0:
+                raise Exception('Command does not exist')
+        except:
+            logger.error("FragGeneScan does not exist. Please install from https://omics.informatics.indiana.edu/FragGeneScan/")
+            sys.exit(1)
+
+        # Check if HMMER is installed
+        try:
+            p = subprocess.run(['which', 'hmmsearch'], capture_output=True)
+            if p.returncode != 0:
+                raise Exception('Command does not exist')
+        except:
+            logger.error("hmmsearch does not exist. Please install from http://hmmer.org/")
+            sys.exit(1)
+
         # Run FragGeneScan and HMMER if .hmmout file is not present
         logger.info("Obtaining hmmout file")
         marker_gene_utils.scan_for_marker_genes(
