@@ -6,7 +6,9 @@ import operator
 import sys
 
 import networkx as nx
+
 from scipy.spatial import distance
+
 
 # Constants set from MaxBin 2.0
 MU_INTRA, SIGMA_INTRA = 0, 0.01037897 / 2

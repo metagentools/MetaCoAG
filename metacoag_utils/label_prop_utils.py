@@ -7,6 +7,7 @@ import sys
 
 from metacoag_utils import matching_utils
 
+
 MAX_WEIGHT = sys.float_info.max
 
 # create logger

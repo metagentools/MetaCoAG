@@ -5,10 +5,13 @@ import logging
 import os
 import pickle
 import sys
+
 from multiprocessing import Pool
 
 import numpy as np
+
 from Bio import SeqIO
+
 
 # Create logger
 logger = logging.getLogger("MetaCoaAG 1.1")

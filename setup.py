@@ -2,6 +2,7 @@
 
 import setuptools
 
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -41,7 +42,7 @@ setuptools.setup(
         "scipy",
         "numpy",
         "tqdm",
-        "hmmer"
+        "hmmer",
     ],
     python_requires=">=3.7",
 )
