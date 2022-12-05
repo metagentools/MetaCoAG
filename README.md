@@ -47,6 +47,9 @@ conda config --add channels conda-forge
 # create conda environment and install metacoag
 conda create -n metacoag -c bioconda metacoag
 
+# activate metacoag environment
+conda activate metacoag
+
 # check metacoag installation
 metacoag -h
 ```
