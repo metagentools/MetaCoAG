@@ -13,7 +13,7 @@ data_files = [(".", ["LICENSE", "README.md"])]
 
 setuptools.setup(
     name="metacoag",
-    version="1.1.0",
+    version="1.1.1",
     zip_safe=True,
     author="Vijini Mallawaarachchi and Yu Lin",
     author_email="viji.mallawaarachchi@gmail.com",
