@@ -11,8 +11,8 @@ import subprocess
 import pandas as pd
 
 __author__ = "Vijini Mallawaarachchi"
-__copyright__ = "Copyright 2022, Phables Project"
-__license__ = "MIT"
+__copyright__ = "Copyright 2020, MetaCoAG Project"
+__license__ = "GPL-3.0"
 __type__ = "Support Script"
 __maintainer__ = "Vijini Mallawaarachchi"
 __email__ = "viji.mallawaarachchi@gmail.com"
