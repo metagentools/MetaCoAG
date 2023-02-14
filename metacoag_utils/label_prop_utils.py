@@ -7,7 +7,6 @@ import sys
 
 from metacoag_utils import matching_utils
 
-
 MAX_WEIGHT = sys.float_info.max
 
 # create logger
@@ -33,7 +32,6 @@ def run_bfs_long(
     normalized_tetramer_profiles,
     coverages,
 ):
-
     # Search labelled long contigs using BFS
 
     queue = []
@@ -50,7 +48,6 @@ def run_bfs_long(
         visited.add(active_node)
 
         if active_node in binned_contigs and len(visited) > 1:
-
             # Get the bin of the current contig
             contig_bin = bin_of_contig[active_node]
 
@@ -62,7 +59,6 @@ def run_bfs_long(
             bin_n_contigs = 0
 
             for j in range(n_contigs):
-
                 tetramer_dist = matching_utils.get_tetramer_distance(
                     normalized_tetramer_profiles[node],
                     normalized_tetramer_profiles[bins[contig_bin][j]],
@@ -107,7 +103,6 @@ def run_bfs_long(
 def run_bfs_short(
     node, threhold, binned_contigs, bin_of_contig, assembly_graph, coverages
 ):
-
     # Search labelled contigs using BFS
 
     queue = []
@@ -124,7 +119,6 @@ def run_bfs_short(
         visited.add(active_node)
 
         if active_node in binned_contigs and len(visited) > 1:
-
             # Get the bin of the current contig
             contig_bin = bin_of_contig[active_node]
 
@@ -148,7 +142,6 @@ def run_bfs_short(
 
 
 def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_length):
-
     queu_l = [graph.neighbors(node, mode="ALL")]
     visited_l = [node]
     unlabelled = []
@@ -195,7 +188,6 @@ def label_prop(
     depth,
     weight,
 ):
-
     contigs_to_bin = set()
 
     for contig in bin_of_contig:
@@ -320,12 +312,10 @@ def assign_long(
     bin_tetramer_profiles,
     bin_coverage_profiles,
 ):
-
     bin_weights = []
 
     # Get weight to each bin based on bin profiles
     for b in bin_tetramer_profiles:
-
         log_prob = 0
 
         tetramer_dist = matching_utils.get_tetramer_distance(
@@ -364,13 +354,10 @@ def assign_to_bins(
     contig_markers,
     contig_lengths,
 ):
-
     for contig, min_index, bin_weight in put_to_bins:
-
         contig_bin = min_index
 
         if contig_bin is not None:
-
             can_bin = False
 
             has_mg = False
@@ -392,7 +379,6 @@ def assign_to_bins(
                     can_bin = True
 
             if can_bin:
-
                 bins[contig_bin].append(contig)
                 bin_of_contig[contig] = contig_bin
 
@@ -420,7 +406,6 @@ def final_label_prop(
     depth,
     weight,
 ):
-
     contigs_to_bin = set()
 
     for contig in bin_of_contig:

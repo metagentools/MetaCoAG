@@ -1,9 +1,7 @@
 import subprocess
-
 from pathlib import Path
 
 import pytest
-
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -44,6 +42,7 @@ def exec_command(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     if proc.returncode != 0:
         raise RuntimeError(f"FAILED: {cmnd}\n{err}")
     return out.decode("utf8") if out is not None else None
+
 
 def test_combine_cov(tmp_dir):
     """test metacoag on megahit assembly"""

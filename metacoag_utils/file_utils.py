@@ -7,7 +7,6 @@ import sys
 
 
 def get_args(version):
-
     parser = argparse.ArgumentParser(
         description="""MetaCoAG is a metagenomic contig binning tool that makes use of the 
     connectivity information found in assembly graphs, apart from the composition and coverage information. 
@@ -150,7 +149,6 @@ def get_args(version):
 
 
 def validate(args):
-
     # Validation of inputs
     # ---------------------------------------------------
 

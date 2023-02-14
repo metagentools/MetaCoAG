@@ -1,9 +1,7 @@
 import subprocess
-
 from pathlib import Path
 
 import pytest
-
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -53,7 +51,7 @@ def test_metacoag_spades_command(tmp_dir):
     contigs = dir_name / "contigs.fasta"
     paths = dir_name / "contigs.paths"
     abundance = dir_name / "coverm_mean_coverage.tsv"
-    cmd = f"{EXEC_ROOTDIR}/metacoag --assembler spades --graph {graph} --contigs {contigs} --paths {paths} --abundance {abundance} --output {tmp_dir}"
+    cmd = f"metacoag --assembler spades --graph {graph} --contigs {contigs} --paths {paths} --abundance {abundance} --output {tmp_dir}"
     exec_command(cmd)
 
 
@@ -63,5 +61,5 @@ def test_metacoag_megahit_command(tmp_dir):
     graph = dir_name / "final.gfa"
     contigs = dir_name / "final.contigs.fa"
     abundance = dir_name / "abundance.tsv"
-    cmd = f"{EXEC_ROOTDIR}/metacoag --assembler megahit --graph {graph} --contigs {contigs} --abundance {abundance} --output {tmp_dir}"
+    cmd = f"metacoag --assembler megahit --graph {graph} --contigs {contigs} --abundance {abundance} --output {tmp_dir}"
     exec_command(cmd)

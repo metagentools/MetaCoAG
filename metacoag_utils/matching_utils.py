@@ -6,9 +6,7 @@ import operator
 import sys
 
 import networkx as nx
-
 from scipy.spatial import distance
-
 
 # Constants set from MaxBin 2.0
 MU_INTRA, SIGMA_INTRA = 0, 0.01037897 / 2
@@ -42,12 +40,10 @@ def get_comp_probability(tetramer_dist):
 
 
 def get_cov_probability(cov1, cov2):
-
     poisson_prod_1 = 1
     poisson_prod_2 = 1
 
     for i in range(len(cov1)):
-
         # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
         poisson_pmf_1 = math.exp(
             (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i]
@@ -87,13 +83,11 @@ def match_contigs(
     w_inter,
     d_limit,
 ):
-
     edge_weights_per_iteration = {}
 
     smg_iterations = len(smg_iteration)
 
     for i in range(smg_iterations):
-
         logger.debug(
             "Iteration "
             + str(i)
@@ -103,7 +97,6 @@ def match_contigs(
         )
 
         if i > 0:
-
             B = nx.Graph()
 
             common = set(binned_contigs_with_markers).intersection(
@@ -125,21 +118,17 @@ def match_contigs(
             binned_count = 0
 
             if len(to_bin) != 0:
-
                 for contig in to_bin:
-
                     contigid = contig
 
                     if contigid not in top_nodes:
                         top_nodes.append(contigid)
 
                     for b in range(n_bins):
-
                         log_prob_sum = 0
                         n_contigs = len(bins[b])
 
                         for j in range(n_contigs):
-
                             tetramer_dist = get_tetramer_distance(
                                 normalized_tetramer_profiles[contigid],
                                 normalized_tetramer_profiles[bins[b][j]],
@@ -185,24 +174,22 @@ def match_contigs(
                 bottom_nodes = set(B) - top_nodes
 
                 if len(top_nodes) > 0:
-
-                    my_matching = nx.algorithms.bipartite.matching.minimum_weight_full_matching(
-                        B, top_nodes, "weight"
+                    my_matching = (
+                        nx.algorithms.bipartite.matching.minimum_weight_full_matching(
+                            B, top_nodes, "weight"
+                        )
                     )
 
                     not_binned = {}
 
                     for l in my_matching:
-
                         if l in bin_of_contig:
-
                             b = bin_of_contig[l]
 
                             if (
                                 my_matching[l] not in bins[b]
                                 and (l, my_matching[l]) in edge_weights
                             ):
-
                                 path_len_sum = 0
 
                                 for contig_in_bin in bins[b]:
@@ -222,7 +209,6 @@ def match_contigs(
                                     edge_weights[(l, my_matching[l])] <= w_intra
                                     and avg_path_len <= d_limit
                                 ):
-
                                     can_assign = False
 
                                     common_mgs = set(bin_markers[b]).intersection(
@@ -239,7 +225,6 @@ def match_contigs(
                                     #         can_assign = True
 
                                     if can_assign:
-
                                         bins[b].append(my_matching[l])
                                         bin_of_contig[my_matching[l]] = b
                                         binned_contigs_with_markers.append(
@@ -268,12 +253,10 @@ def match_contigs(
                     longest_nb_contig_mg_count = -1
 
                     for nb in not_binned:
-
                         if (
                             edge_weights_per_iteration[i][(not_binned[nb][0], nb)]
                             > w_inter
                         ):
-
                             if longest_nb_contig_mg_count < len(
                                 contig_markers[not_binned[nb][0]]
                             ):
@@ -301,11 +284,9 @@ def match_contigs(
                                     ]
 
                     if longest_nb_contig != -1:
-
                         path_len_sum = 0
 
                         for contig_in_bin in bins[not_binned[longest_nb_contig][1]]:
-
                             shortest_paths = assembly_graph.get_shortest_paths(
                                 longest_nb_contig, to=contig_in_bin
                             )
@@ -318,7 +299,6 @@ def match_contigs(
                         )
 
                         if math.floor(avg_path_len) >= d_limit or path_len_sum == 0:
-
                             logger.debug("Creating new bin...")
                             logger.debug(
                                 "New bin has contig "
@@ -373,11 +353,8 @@ def further_match_contigs(
     coverages,
     w_intra,
 ):
-
     for contig in unbinned_mg_contigs:
-
         if contig[1] >= min_length:
-
             possible_bins = []
 
             for b in bin_markers:
@@ -388,18 +365,15 @@ def further_match_contigs(
                     possible_bins.append(b)
 
             if len(possible_bins) != 0:
-
                 contigid = contig[0]
 
                 bin_weights = []
 
                 for b in possible_bins:
-
                     log_prob_sum = 0
                     n_contigs = len(bins[b])
 
                     for j in range(n_contigs):
-
                         tetramer_dist = get_tetramer_distance(
                             normalized_tetramer_profiles[contigid],
                             normalized_tetramer_profiles[bins[b][j]],

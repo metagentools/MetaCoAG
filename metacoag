@@ -15,16 +15,10 @@ from Bio import SeqIO
 from igraph import *
 from tqdm import tqdm
 
-from metacoag_utils import (
-    feature_utils,
-    file_utils,
-    graph_utils,
-    label_prop_utils,
-    marker_gene_utils,
-    matching_utils,
-)
+from metacoag_utils import (feature_utils, file_utils, graph_utils,
+                            label_prop_utils, marker_gene_utils,
+                            matching_utils)
 from metacoag_utils.bidirectionalmap import BidirectionalMap
-
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -124,7 +118,6 @@ def main():
 
     try:
         if assembler == "spades":
-
             # Get paths, segments, links and contigs of the assembly graph
             (
                 paths,
@@ -141,7 +134,6 @@ def main():
             contig_names_rev = contig_names.inverse
 
         if assembler == "megahit":
-
             original_contigs = {}
             contig_descriptions = {}
 
@@ -162,7 +154,6 @@ def main():
             contig_names_rev = contig_names.inverse
 
         if assembler == "flye":
-
             # Get contigs map
             contig_names = graph_utils.get_flye_contig_map(contigs_file)
 
@@ -193,7 +184,6 @@ def main():
     all_contigs = [x for x in range(node_count)]
 
     try:
-
         # Create graph
         assembly_graph = Graph()
 
@@ -249,7 +239,6 @@ def main():
         sys.exit(1)
 
     if assembler == "megahit":
-
         # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
         graph_to_contig_map = BidirectionalMap()
 
@@ -325,7 +314,7 @@ def main():
     normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(
         output_path=output_path,
         sequences=sequences,
-        contigs_file = contigs_file,
+        contigs_file=contigs_file,
         contig_lengths=contig_lengths,
         min_length=min_length,
         nthreads=nthreads,
@@ -340,23 +329,26 @@ def main():
     logger.info("Scanning for single-copy marker genes")
 
     if not os.path.exists(contigs_file + ".hmmout"):
-
         # Check if FragGeneScan is installed
         try:
-            p = subprocess.run(['which', 'run_FragGeneScan.pl'], capture_output=True)
-            if p.returncode!= 0:
-                raise Exception('Command does not exist')
+            p = subprocess.run(["which", "run_FragGeneScan.pl"], capture_output=True)
+            if p.returncode != 0:
+                raise Exception("Command does not exist")
         except:
-            logger.error("FragGeneScan does not exist. Please install from https://omics.informatics.indiana.edu/FragGeneScan/")
+            logger.error(
+                "FragGeneScan does not exist. Please install from https://omics.informatics.indiana.edu/FragGeneScan/"
+            )
             sys.exit(1)
 
         # Check if HMMER is installed
         try:
-            p = subprocess.run(['which', 'hmmsearch'], capture_output=True)
+            p = subprocess.run(["which", "hmmsearch"], capture_output=True)
             if p.returncode != 0:
-                raise Exception('Command does not exist')
+                raise Exception("Command does not exist")
         except:
-            logger.error("hmmsearch does not exist. Please install from http://hmmer.org/")
+            logger.error(
+                "hmmsearch does not exist. Please install from http://hmmer.org/"
+            )
             sys.exit(1)
 
         # Run FragGeneScan and HMMER if .hmmout file is not present
@@ -442,16 +434,13 @@ def main():
 
     # Get contigs for each iteration of single-copy marker gene
     for g_count in unique_my_gene_counts:
-
         # Get the single-copy marker genes with maximum count of contigs and
         # sort them in the descending order of the total marker genes contained
 
         total_contig_mgs = {}
 
         for item in marker_contig_counts:
-
             if marker_contig_counts[item] == g_count:
-
                 total_contig_lengths = 0
 
                 for contig in marker_contigs[item]:
@@ -483,7 +472,6 @@ def main():
     # marker gene according to the ordering
 
     for i in range(len(smg_iteration[0])):
-
         binned_contigs_with_markers.append(smg_iteration[0][i])
         contig_num = smg_iteration[0][i]
 
@@ -878,7 +866,6 @@ def main():
     bins_to_rem = []
 
     for b in bins:
-
         possible_bins = []
 
         no_possible_bins = True
@@ -901,7 +888,6 @@ def main():
             common_mgs = list(set(bin_markers[pb]).intersection(set(bin_markers[b])))
 
             if len(common_mgs) == 0:
-
                 tetramer_dist = matching_utils.get_tetramer_distance(
                     bin_seed_tetramer_profiles[b], bin_seed_tetramer_profiles[pb]
                 )
@@ -918,7 +904,6 @@ def main():
                     log_prob = MAX_WEIGHT
 
                 if log_prob <= w_intra:
-
                     prob_cov1 = matching_utils.get_cov_probability(
                         bin_seed_coverage_profiles[pb], bin_seed_coverage_profiles[b]
                     )
@@ -931,7 +916,6 @@ def main():
                         log_prob1 = MAX_WEIGHT
 
                     if log_prob1 <= w_intra:
-
                         possible_bins.append(pb)
 
                         if log_prob < min_pb_weight:
@@ -953,7 +937,6 @@ def main():
     bin_clique_size = {}
 
     for bin_clique in bin_cliques:
-
         bin_name = "_".join(str(x) for x in list(bin_clique))
 
         bin_clique_size[bin_name] = 0
@@ -985,7 +968,6 @@ def main():
         )
 
         for bin_clique in bin_cliques:
-
             bin_name = "_".join(str(x) for x in list(bin_clique))
 
             can_write = True
@@ -994,11 +976,9 @@ def main():
                 can_write = False
 
             if can_write and bin_clique_size[bin_name] >= min_bin_size:
-
                 final_bin_count += 1
 
                 for b in bin_clique:
-
                     for contig in bins[b]:
                         final_bins[contig] = bin_name
 
@@ -1017,9 +997,7 @@ def main():
                             )
 
             else:
-
                 for b in bin_clique:
-
                     for contig in bins[b]:
                         lowq_bins[contig] = bin_name
 
@@ -1041,7 +1019,6 @@ def main():
         enumerate(SeqIO.parse(contigs_file, "fasta")),
         desc="Splitting contigs into bins",
     ):
-
         if assembler == "megahit":
             contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
         else:

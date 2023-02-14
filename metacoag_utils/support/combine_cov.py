@@ -19,7 +19,6 @@ __email__ = "viji.mallawaarachchi@gmail.com"
 
 
 def main():
-
     # Setup argument parser
     # -----------------------
 
