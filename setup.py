@@ -27,6 +27,11 @@ setuptools.setup(
     data_files=data_files,
     include_package_data=True,
     scripts=["metacoag"],
+    entry_points={
+        "console_scripts": [
+            "combine_cov=metacoag_utils.support.combine_cov:main",
+        ],
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",

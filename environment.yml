@@ -11,4 +11,5 @@ dependencies:
   - networkx
   - scipy
   - numpy
+  - pandas
   - tqdm
