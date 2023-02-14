@@ -47,6 +47,7 @@ setuptools.setup(
         "scipy",
         "numpy",
         "tqdm",
+	"pandas",
         "hmmer",
     ],
     python_requires=">=3.7",

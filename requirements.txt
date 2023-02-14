@@ -3,4 +3,5 @@ python-igraph
 networkx
 scipy
 numpy
+pandas
 tqdm
