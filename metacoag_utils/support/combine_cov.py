@@ -67,6 +67,7 @@ def main():
 
     # Save dataframe to file
     final_df.to_csv(output_path + "coverage.tsv", sep="\t", index=False, header=False)
+    final_df.to_csv(output_path + "coverage_with_header.tsv", sep="\t", index=False, header=True)
     print(f"The combined coverage values can be found at {output_path}coverage.tsv")
 
     # Exit program
