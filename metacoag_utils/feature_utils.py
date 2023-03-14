@@ -163,7 +163,8 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
-    n_samples = len(coverages[0])
+    sample_vals = list(coverages.keys())
+    n_samples = len(coverages[sample_vals[0]])
 
     return sequences, coverages, contig_lengths, n_samples
 

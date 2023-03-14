@@ -153,7 +153,7 @@ def validate(args):
     # ---------------------------------------------------
 
     # Check assembler name
-    assemblers = ["spades", "megahit", "flye"]
+    assemblers = ["spades", "megahit", "megahitc", "flye"]
     if args["assembler"].lower() not in assemblers:
         print("\nPlease make sure to provide the correct assembler type.")
         print("Exiting MetaCoAG...\nBye...!\n")

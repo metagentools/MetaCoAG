@@ -303,6 +303,44 @@ def get_links_megahit(assembly_graph_file):
     return node_count, graph_contigs, links, my_map
 
 
+def get_links_megahit_custom(assembly_graph_file):
+
+    my_map = BidirectionalMap()
+
+    node_count = 0
+
+    nodes = []
+
+    links = []
+
+    # Get contig connections from .gfa file
+    with open(assembly_graph_file) as file:
+        for line in file.readlines():
+            line = line.strip()
+
+            # Count the number of contigs
+            if line.startswith("S"):
+                strings = line.split("\t")
+                my_node = strings[1][:-2]
+                my_map[node_count] = my_node
+                nodes.append(my_node)
+                node_count += 1
+
+            # Identify lines with link information
+            elif line.startswith("L"):
+                link = []
+                strings = line.split("\t")
+
+                if strings[1] != strings[3]:
+                    start = strings[1]
+                    end = strings[3]
+                    link.append(start)
+                    link.append(end)
+                    links.append(link)
+
+    return node_count, links, my_map
+
+
 def get_graph_edges_megahit(links, contig_names_rev):
     edge_list = []
 
