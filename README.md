@@ -149,3 +149,11 @@ eprint = {https://doi.org/10.1089/cmb.2022.0262},
 abstract = { Metagenomics enables the recovery of various genetic materials from different species, thus providing valuable insights into microbial communities. Metagenomic binning group sequences belong to different organisms, which is an important step in the early stages of metagenomic analysis pipelines. The classic pipeline followed in metagenomic binning is to assemble short reads into longer contigs and then bin these resulting contigs into groups representing different taxonomic groups in the metagenomic sample. Most of the currently available binning tools are designed to bin metagenomic contigs, but they do not make use of the assembly graphs that produce such assemblies. In this study, we propose MetaCoAG, a metagenomic binning tool that uses assembly graphs with the composition and coverage information of contigs. MetaCoAG estimates the number of initial bins using single-copy marker genes, assigns contigs into bins iteratively, and adjusts the number of bins dynamically throughout the binning process. We show that MetaCoAG significantly outperforms state-of-the-art binning tools by producing similar or more high-quality bins than the second-best binning tool on both simulated and real datasets. To the best of our knowledge, MetaCoAG is the first stand-alone contig-binning tool that directly makes use of the assembly graph information along with other features of the contigs. }
 }
 ```
+
+## Funding
+
+MetaCoAG is funded by an [Essential Open Source Software for Science Grant](https://chanzuckerberg.com/eoss/proposals/cogent3-python-apis-for-iq-tree-and-graphbin-via-a-plug-in-architecture/) from the Chan Zuckerberg Initiative.
+
+<p align="left">
+  <img src="https://raw.githubusercontent.com/metagentools/MetaCoAG/master/docs/images/czi-logo.png" width="300">
+</p>
