@@ -44,22 +44,8 @@ def exec_command(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     return out.decode("utf8") if out is not None else None
 
 
-def test_metacoag_spades_command(tmp_dir):
-    """test metacoag on spades assembly"""
-    dir_name = TEST_ROOTDIR / "data" / "5G_metaspades"
-    graph = dir_name / "assembly_graph_with_scaffolds.gfa"
-    contigs = dir_name / "contigs.fasta"
-    paths = dir_name / "contigs.paths"
-    abundance = dir_name / "coverm_mean_coverage.tsv"
-    cmd = f"metacoag --assembler spades --graph {graph} --contigs {contigs} --paths {paths} --abundance {abundance} --output {tmp_dir}"
-    exec_command(cmd)
-
-
-def test_metacoag_megahit_command(tmp_dir):
+def test_combine_cov(tmp_dir):
     """test metacoag on megahit assembly"""
-    dir_name = TEST_ROOTDIR / "data" / "5G_MEGAHIT"
-    graph = dir_name / "final.gfa"
-    contigs = dir_name / "final.contigs.fa"
-    abundance = dir_name / "abundance.tsv"
-    cmd = f"metacoag --assembler megahit --graph {graph} --contigs {contigs} --abundance {abundance} --output {tmp_dir}"
+    dir_name = TEST_ROOTDIR / "data" / "combine_cov_data"
+    cmd = f"combine_cov --covpath {dir_name} --output {tmp_dir}"
     exec_command(cmd)

@@ -11,7 +11,7 @@ import numpy as np
 from Bio import SeqIO
 
 # Create logger
-logger = logging.getLogger("MetaCoaAG 1.1")
+logger = logging.getLogger("MetaCoaAG 1.1.1")
 
 # Set complements of each nucleotide
 complements = {"A": "T", "C": "G", "G": "C", "T": "A"}
@@ -69,18 +69,23 @@ def count_kmers(args):
     return profile, profile / max(1, sum(profile))
 
 
-def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nthreads):
-
+def get_tetramer_profiles(
+    output_path, sequences, contigs_file, contig_lengths, min_length, nthreads
+):
     tetramer_profiles = {}
     normalized_tetramer_profiles = {}
 
-    if os.path.isfile(output_path + "normalized_contig_tetramers.pickle"):
+    contigs_file = contigs_file.split("/")[-1]
 
-        with open(output_path + "normalized_contig_tetramers.pickle", "rb") as handle:
+    if os.path.isfile(
+        output_path + contigs_file + ".normalized_contig_tetramers.pickle"
+    ):
+        with open(
+            output_path + contigs_file + ".normalized_contig_tetramers.pickle", "rb"
+        ) as handle:
             normalized_tetramer_profiles = pickle.load(handle)
 
     else:
-
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
 
         pool = Pool(nthreads)
@@ -97,7 +102,9 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
             normalized_tetramer_profiles[i] = normalized[l]
             i += 1
 
-        with open(output_path + "normalized_contig_tetramers.pickle", "wb") as handle:
+        with open(
+            output_path + contigs_file + ".normalized_contig_tetramers.pickle", "wb"
+        ) as handle:
             pickle.dump(
                 normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL
             )
@@ -112,7 +119,6 @@ def get_tetramer_profiles(output_path, sequences, contig_lengths, min_length, nt
 
 
 def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
-
     coverages = {}
 
     contig_lengths = {}
@@ -122,7 +128,6 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
     sequences = []
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-
         contig_num = contig_names_rev[record.id]
 
         length = len(record.seq)
@@ -140,9 +145,7 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
             contig_num = contig_names_rev[strings[0]]
 
             if contig_lengths[contig_num] >= min_length:
-
                 for i in range(1, len(strings)):
-
                     contig_coverage = float(strings[i])
 
                     if contig_coverage < VERY_SMALL_VAL:
@@ -154,14 +157,14 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
                         coverages[contig_num].append(contig_coverage)
 
     if len(coverages) == 0:
-
         logger.error(
             "Could not find any contigs longer than " + str(min_length) + "bp."
         )
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
-    n_samples = len(coverages[0])
+    sample_vals = list(coverages.keys())
+    n_samples = len(coverages[sample_vals[0]])
 
     return sequences, coverages, contig_lengths, n_samples
 
@@ -169,7 +172,6 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
 def get_cov_len_megahit(
     contigs_file, contig_names_rev, graph_to_contig_map_rev, min_length, abundance_file
 ):
-
     coverages = {}
 
     contig_lengths = {}
@@ -192,9 +194,7 @@ def get_cov_len_megahit(
             contig_num = contig_names_rev[graph_to_contig_map_rev[strings[0]]]
 
             if contig_lengths[contig_num] >= min_length:
-
                 for i in range(1, len(strings)):
-
                     contig_coverage = float(strings[i])
 
                     if contig_coverage < VERY_SMALL_VAL:
@@ -206,7 +206,6 @@ def get_cov_len_megahit(
                         coverages[contig_num].append(contig_coverage)
 
     if len(coverages) == 0:
-    
         logger.error(
             "Could not find any contigs longer than " + str(min_length) + "bp."
         )
@@ -219,12 +218,10 @@ def get_cov_len_megahit(
 
 
 def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
-
     bin_tetramer_profile = {}
     bin_coverage_profile = {}
 
     for b in bins:
-
         coverage_b = []
         tetramer_b = []
 

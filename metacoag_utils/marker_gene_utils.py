@@ -5,19 +5,20 @@ import os
 import pathlib
 
 # create logger
-logger = logging.getLogger("MetaCoaAG 1.1")
+logger = logging.getLogger("MetaCoaAG 1.1.1")
 
 
 # Modified from SolidBin
 def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
+    software_path = pathlib.Path(__file__).parent.absolute()
 
-    software_path = pathlib.Path(__file__).parent.parent.absolute()
+    if markerURL == "":
+        markerURL = os.path.join(software_path, "auxiliary", "marker.hmm")
 
     fragScanURL = "run_FragGeneScan.pl"
     hmmExeURL = "hmmsearch"
-    markerURL = os.path.join(software_path.parent, "auxiliary", "marker.hmm")
 
-    logger.debug(markerURL)
+    logger.info("Marker file: " + markerURL)
 
     fragResultURL = contigs_file + ".frag.faa"
     hmmResultURL = contigs_file + ".hmmout"
@@ -72,7 +73,6 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
 def get_all_contigs_with_marker_genes(
     contigs_file, contig_names_rev, mg_length_threshold
 ):
-
     contig_markers = {}
 
     with open(contigs_file + ".hmmout", "r") as myfile:
@@ -100,7 +100,6 @@ def get_all_contigs_with_marker_genes(
                 contig_num = contig_names_rev[contig_name]
 
                 if mapped_marker_length > marker_gene_length * mg_length_threshold:
-
                     # Get marker genes in each contig
                     if contig_num not in contig_markers:
                         contig_markers[contig_num] = [marker_gene]
@@ -115,7 +114,6 @@ def get_all_contigs_with_marker_genes(
 def get_contigs_with_marker_genes(
     contigs_file, contig_names_rev, mg_length_threshold, contig_lengths, min_length
 ):
-
     marker_contigs = {}
     marker_contig_counts = {}
     contig_markers = {}
@@ -149,7 +147,6 @@ def get_contigs_with_marker_genes(
                     contig_length >= min_length
                     and mapped_marker_length > marker_gene_length * mg_length_threshold
                 ):
-
                     marker_repeated_in_contig = False
 
                     # Get marker genes in each contig
@@ -187,7 +184,6 @@ def get_contigs_with_marker_genes_megahit(
     contig_lengths,
     min_length,
 ):
-
     marker_contigs = {}
     marker_contig_counts = {}
     contig_markers = {}
@@ -221,7 +217,6 @@ def get_contigs_with_marker_genes_megahit(
                     contig_length >= min_length
                     and mapped_marker_length > marker_gene_length * mg_length_threshold
                 ):
-
                     marker_repeated_in_contig = False
 
                     # Get marker genes in each contig
@@ -251,11 +246,9 @@ def get_contigs_with_marker_genes_megahit(
 
 
 def count_contigs_with_marker_genes(marker_contig_counts):
-
     marker_frequencies = {}
 
     for marker in marker_contig_counts:
-
         if marker_contig_counts[marker] not in marker_frequencies:
             marker_frequencies[marker_contig_counts[marker]] = 1
         else:

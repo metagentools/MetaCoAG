@@ -1,0 +1,11 @@
+include *.md
+include LICENSE
+
+recursive-include metacoag_utils/ *
+recursive-include metacoag_utils/auxiliary/ *
+recursive-include metacoag_utils/support/ *
+
+global-exclude metacoag_utils/ *.pyc
+global-exclude metacoag_utils/__pycache__ *.pyc
+global-exclude metacoag_utils/support/ *.pyc
+global-exclude metacoag_utils/support/__pycache__ *.pyc
