@@ -48,6 +48,7 @@ setuptools.setup(
         "tqdm",
         "pandas",
         "hmmer",
+        "click"
     ],
     python_requires=">=3.7",
 )
