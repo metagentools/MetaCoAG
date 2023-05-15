@@ -3,10 +3,8 @@
 """combine_cov.py: Combine multiple coverage files of samples from CoverM.
 """
 
-import argparse
+import click
 import glob
-import os
-import subprocess
 
 import pandas as pd
 
@@ -18,32 +16,23 @@ __maintainer__ = "Vijini Mallawaarachchi"
 __email__ = "viji.mallawaarachchi@gmail.com"
 
 
-def main():
-    # Setup argument parser
-    # -----------------------
-
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--covpath", required=True, help="path to the .tsv files from CoverM"
-    )
-    ap.add_argument(
-        "--output", required=True, type=str, help="path to the output folder"
-    )
-
-    args = vars(ap.parse_args())
-    covpath = args["covpath"]
-    output_path = args["output"]
-
-    # Validate inputs
-    # ---------------------------------------------------
-
-    # Handle for missing trailing forwardslash in output folder path
-    if output_path[-1:] != "/":
-        output_path = f"{output_path}/"
-
-    # Create output folder if it does not exist
-    if not os.path.isdir(output_path):
-        subprocess.run(f"mkdir -p {output_path}", shell=True)
+@click.command()
+@click.option(
+    "--covpath",
+    help="path to the .tsv files from CoverM",
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.option(
+    "--output",
+    help="path to the output folder",
+    type=click.Path(dir_okay=True, writable=True, readable=True),
+    required=True,
+)
+def main(covpath, output):
+    """
+    combine_cov: Combine multiple coverage files of samples from CoverM
+    """
 
     # Get coverage values from samples
     # ---------------------------------------------------
@@ -66,11 +55,11 @@ def main():
     print(f"Dataframe shape: {final_df.shape}")
 
     # Save dataframe to file
-    final_df.to_csv(f"{output_path}coverage.tsv", sep="\t", index=False, header=False)
+    final_df.to_csv(f"{output}coverage.tsv", sep="\t", index=False, header=False)
     final_df.to_csv(
-        f"{output_path}coverage_with_header.tsv", sep="\t", index=False, header=True
+        f"{output}coverage_with_header.tsv", sep="\t", index=False, header=True
     )
-    print(f"The combined coverage values can be found at {output_path}coverage.tsv")
+    print(f"The combined coverage values can be found at {output}coverage.tsv")
 
     # Exit program
     # --------------

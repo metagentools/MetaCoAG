@@ -189,6 +189,9 @@ def main(
     delimiter,
     nthreads
 ):
+    """
+    MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
+    """
 
     # Parse arguments for paths
     # ------------------------------------------------------------------------
