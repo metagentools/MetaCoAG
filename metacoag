@@ -116,79 +116,79 @@ def main():
     # Get links of the assembly graph
     # ------------------------------------------------------------------------
 
-    # try:
-    if assembler == "spades":
-        # Get paths, segments, links and contigs of the assembly graph
-        (
-            paths,
-            segment_contigs,
-            node_count,
-            contigs_map,
-            contig_names,
-        ) = graph_utils.get_segment_paths_spades(contig_paths_file)
+    try:
+        if assembler == "spades":
+            # Get paths, segments, links and contigs of the assembly graph
+            (
+                paths,
+                segment_contigs,
+                node_count,
+                contigs_map,
+                contig_names,
+            ) = graph_utils.get_segment_paths_spades(contig_paths_file)
 
-        # Get reverse mapping of contig map
-        contigs_map_rev = contigs_map.inverse
+            # Get reverse mapping of contig map
+            contigs_map_rev = contigs_map.inverse
 
-        # Get reverse mapping of contig identifiers
-        contig_names_rev = contig_names.inverse
+            # Get reverse mapping of contig identifiers
+            contig_names_rev = contig_names.inverse
 
-    if assembler == "megahit":
-        original_contigs = {}
-        contig_descriptions = {}
+        if assembler == "megahit":
+            original_contigs = {}
+            contig_descriptions = {}
 
-        # Get mapping of original contig identifiers with descriptions
-        for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-            original_contigs[record.id] = str(record.seq)
-            contig_descriptions[record.id] = record.description
+            # Get mapping of original contig identifiers with descriptions
+            for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
+                original_contigs[record.id] = str(record.seq)
+                contig_descriptions[record.id] = record.description
 
-        # Get links and contigs of the assembly graph
-        (
-            node_count,
-            graph_contigs,
-            links,
-            contig_names,
-        ) = graph_utils.get_links_megahit(assembly_graph_file)
+            # Get links and contigs of the assembly graph
+            (
+                node_count,
+                graph_contigs,
+                links,
+                contig_names,
+            ) = graph_utils.get_links_megahit(assembly_graph_file)
 
-        # Get reverse mapping of contig identifiers
-        contig_names_rev = contig_names.inverse
+            # Get reverse mapping of contig identifiers
+            contig_names_rev = contig_names.inverse
 
-    if assembler == "flye":
-        # Get contigs map
-        contig_names = graph_utils.get_flye_contig_map(contigs_file)
+        if assembler == "flye":
+            # Get contigs map
+            contig_names = graph_utils.get_flye_contig_map(contigs_file)
 
-        # Get reverse mapping of contig identifiers
-        contig_names_rev = contig_names.inverse
+            # Get reverse mapping of contig identifiers
+            contig_names_rev = contig_names.inverse
 
-        # Get links and contigs of the assembly graph
-        (
-            paths,
-            segment_contigs,
-            node_count,
-            contigs_map,
-        ) = graph_utils.get_links_flye(contig_paths_file, contig_names_rev)
+            # Get links and contigs of the assembly graph
+            (
+                paths,
+                segment_contigs,
+                node_count,
+                contigs_map,
+            ) = graph_utils.get_links_flye(contig_paths_file, contig_names_rev)
 
-        # Get reverse mapping of contig map
-        contigs_map_rev = contigs_map.inverse
+            # Get reverse mapping of contig map
+            contigs_map_rev = contigs_map.inverse
 
-    if assembler == "megahitc":
+        if assembler == "megahitc":
 
-        # Get links and contigs of the assembly graph
-        (
-            node_count,
-            links,
-            contig_names,
-        ) = graph_utils.get_links_megahit_custom(assembly_graph_file)
+            # Get links and contigs of the assembly graph
+            (
+                node_count,
+                links,
+                contig_names,
+            ) = graph_utils.get_links_megahit_custom(assembly_graph_file)
 
-        # Get reverse mapping of contig identifiers
-        contig_names_rev = contig_names.inverse
+            # Get reverse mapping of contig identifiers
+            contig_names_rev = contig_names.inverse
 
-    # except:
-    #     logger.error(
-    #         "Please make sure that the correct path to the contig paths file is provided."
-    #     )
-    #     logger.info("Exiting MetaCoAG... Bye...!")
-    #     sys.exit(1)
+    except:
+        logger.error(
+            "Please make sure that the correct path to the contig paths file is provided."
+        )
+        logger.info("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
 
     # Construct the assembly graph
     # -------------------------------
@@ -654,6 +654,7 @@ def main():
         node_count=node_count,
         assembly_graph=assembly_graph,
         binned_contigs=binned_contigs,
+        nthreads=nthreads
     )
 
     logger.debug("Number of non-isolated contigs: " + str(len(non_isolated)))
