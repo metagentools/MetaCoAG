@@ -8,6 +8,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1089/cmb.2022.0262-green)](https://doi.org/10.1089/cmb.2022.0262)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/metacoag/badges/version.svg)](https://anaconda.org/bioconda/metacoag)
 [![PyPI version](https://badge.fury.io/py/metacoag.svg)](https://badge.fury.io/py/metacoag)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/metacoag/badges/downloads.svg)](https://anaconda.org/bioconda/metacoag)
 
 [![CI](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml/badge.svg)](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml)
 ![GitHub](https://img.shields.io/github/license/Vini2/MetaCoAG)
