@@ -20,8 +20,8 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
 
     logger.info("Marker file: " + markerURL)
 
-    fragResultURL = contigs_file + ".frag.faa"
-    hmmResultURL = contigs_file + ".hmmout"
+    fragResultURL = f"{contigs_file}.frag.faa"
+    hmmResultURL = f"{contigs_file}.hmmout"
     if not (os.path.exists(fragResultURL)):
         fragCmd = (
             fragScanURL
@@ -37,7 +37,7 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
             + contigs_file
             + ".frag.err"
         )
-        logger.debug("exec cmd: " + fragCmd)
+        logger.debug(f"exec cmd: {fragCmd}")
         os.system(fragCmd)
 
     if os.path.exists(fragResultURL):
@@ -58,15 +58,13 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
                 + hmmResultURL
                 + ".err"
             )
-            logger.debug("exec cmd: " + hmmCmd)
+            logger.debug(f"exec cmd: {hmmCmd}")
             os.system(hmmCmd)
 
         else:
-            logger.debug(
-                "HMMER search failed! Path: " + hmmResultURL + " does not exist."
-            )
+            logger.debug(f"HMMER search failed! Path: {hmmResultURL} does not exist.")
     else:
-        logger.debug("FragGeneScan failed! Path: " + fragResultURL + " does not exist.")
+        logger.debug(f"FragGeneScan failed! Path: {fragResultURL} does not exist.")
 
 
 # Get contigs containing marker genes
@@ -75,7 +73,7 @@ def get_all_contigs_with_marker_genes(
 ):
     contig_markers = {}
 
-    with open(contigs_file + ".hmmout", "r") as myfile:
+    with open(f"{contigs_file}.hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
@@ -118,7 +116,7 @@ def get_contigs_with_marker_genes(
     marker_contig_counts = {}
     contig_markers = {}
 
-    with open(contigs_file + ".hmmout", "r") as myfile:
+    with open(f"{contigs_file}.hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()
@@ -188,7 +186,7 @@ def get_contigs_with_marker_genes_megahit(
     marker_contig_counts = {}
     contig_markers = {}
 
-    with open(contigs_file + ".hmmout", "r") as myfile:
+    with open(f"{contigs_file}.hmmout", "r") as myfile:
         for line in myfile.readlines():
             if not line.startswith("#"):
                 strings = line.strip().split()

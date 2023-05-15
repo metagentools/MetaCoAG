@@ -39,11 +39,11 @@ def main():
 
     # Handle for missing trailing forwardslash in output folder path
     if output_path[-1:] != "/":
-        output_path = output_path + "/"
+        output_path = f"{output_path}/"
 
     # Create output folder if it does not exist
     if not os.path.isdir(output_path):
-        subprocess.run("mkdir -p " + output_path, shell=True)
+        subprocess.run(f"mkdir -p {output_path}", shell=True)
 
     # Get coverage values from samples
     # ---------------------------------------------------
@@ -66,8 +66,10 @@ def main():
     print(f"Dataframe shape: {final_df.shape}")
 
     # Save dataframe to file
-    final_df.to_csv(output_path + "coverage.tsv", sep="\t", index=False, header=False)
-    final_df.to_csv(output_path + "coverage_with_header.tsv", sep="\t", index=False, header=True)
+    final_df.to_csv(f"{output_path}coverage.tsv", sep="\t", index=False, header=False)
+    final_df.to_csv(
+        f"{output_path}coverage_with_header.tsv", sep="\t", index=False, header=True
+    )
     print(f"The combined coverage values can be found at {output_path}coverage.tsv")
 
     # Exit program

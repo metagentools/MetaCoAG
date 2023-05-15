@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import click
 import concurrent.futures
 import csv
 import gc
@@ -12,11 +11,13 @@ import subprocess
 import sys
 import time
 
+import click
 from Bio import SeqIO
 from igraph import *
 from tqdm import tqdm
 
-from metacoag_utils import (feature_utils, graph_utils, label_prop_utils, marker_gene_utils, matching_utils)
+from metacoag_utils import (feature_utils, graph_utils, label_prop_utils,
+                            marker_gene_utils, matching_utils)
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
@@ -245,7 +246,7 @@ def main(
     # Validate prefix
     if prefix != None:
         if not prefix.endswith("_"):
-            prefix = prefix + "_"
+            prefix = f"{prefix}_"
     else:
         prefix = ""
 
@@ -392,7 +393,7 @@ def main(
 
         # Add vertices
         assembly_graph.add_vertices(node_count)
-        logger.info("Total number of contigs available: " + str(node_count))
+        logger.info(f"Total number of contigs available: {node_count}")
 
         # Name vertices with contig identifiers
         for i in range(node_count):
@@ -429,10 +430,7 @@ def main(
         # Simplify the graph
         assembly_graph.simplify(multiple=True, loops=False, combine_edges=None)
 
-        logger.info(
-            "Total number of edges in the assembly graph: "
-            + str(len(list(assembly_graph.es)))
-        )
+        logger.info(f"Total number of edges in the assembly graph: {len(list(assembly_graph.es))}")
 
     except:
         logger.error(
@@ -454,7 +452,7 @@ def main(
     # Get isolated contigs with no neighbours
     isolated = graph_utils.get_isolated(node_count, assembly_graph)
 
-    logger.info("Total isolated contigs in the assembly graph: " + str(len(isolated)))
+    logger.info(f"Total isolated contigs in the assembly graph: {len(isolated)}")
 
     # Get the number of samples and the length and coverage of contigs
     # ------------------------------------------------------------------------
@@ -495,10 +493,8 @@ def main(
         if contig_lengths[contig] >= min_length:
             isolated_long.append(contig)
 
-    logger.info("Total long contigs: " + str(my_long))
-    logger.info(
-        "Total isolated long contigs in the assembly graph: " + str(len(isolated_long))
-    )
+    logger.info(f"Total long contigs: {my_long}")
+    logger.info(f"Total isolated long contigs in the assembly graph: {len(isolated_long)}")
 
     # Set intra weight and inter weight
     # ------------------------------------------------------------------------
@@ -506,8 +502,8 @@ def main(
     w_intra = bin_threshold * (n_samples + 1)
     w_inter = break_threshold * (n_samples + 1)
 
-    logger.debug("w_intra: " + str(w_intra))
-    logger.debug("w_inter: " + str(w_inter))
+    logger.debug(f"w_intra: {w_intra}")
+    logger.debug("w_inter: {w_inter}")
 
     # Get tetramer composition of contigs
     # ------------------------------------------------------------------------
@@ -531,7 +527,7 @@ def main(
 
     logger.info("Scanning for single-copy marker genes")
 
-    if not os.path.exists(contigs_file + ".hmmout"):
+    if not os.path.exists(f"{contigs_file}.hmmout"):
         # Check if FragGeneScan is installed
         try:
             p = subprocess.run(["which", "run_FragGeneScan.pl"], capture_output=True)
@@ -598,10 +594,7 @@ def main(
             mg_length_threshold=mg_threshold,
         )
 
-    logger.info(
-        "Number of contigs containing single-copy marker genes: "
-        + str(len(contig_markers))
-    )
+    logger.info(f"Number of contigs containing single-copy marker genes: {len(contig_markers)}")
 
     # Check if there are contigs with single-copy marker genes
     if len(contig_markers) == 0:
@@ -683,7 +676,7 @@ def main(
 
         bin_markers[i] = contig_markers[contig_num]
 
-    logger.debug("Number of initial bins detected: " + str(len(smg_iteration[0])))
+    logger.debug(f"Number of initial bins detected: {len(smg_iteration[0])}")
     logger.debug("Initialised bins: ")
     logger.debug(bins)
 
@@ -717,17 +710,14 @@ def main(
         d_limit=d_limit,
     )
 
-    logger.debug("Number of bins after matching: " + str(len(bins)))
+    logger.debug(f"Number of bins after matching: {len(bins)}")
 
     logger.debug("Bins with contigs containing seed marker genes")
 
     for b in bins:
-        logger.debug(str(b) + ": " + str(bins[b]))
+        logger.debug(f"{b}: {bins[b]}")
 
-    logger.debug(
-        "Number of binned contigs with single-copy marker genes: "
-        + str(len(bin_of_contig))
-    )
+    logger.debug(f"Number of binned contigs with single-copy marker genes: {len(bin_of_contig)}")
 
     del smg_iteration
     del my_gene_counts
@@ -757,10 +747,7 @@ def main(
         unbinned_mg_contig_lengths.items(), key=operator.itemgetter(1), reverse=True
     )
 
-    logger.debug(
-        "Number of unbinned contigs with single-copy marker genes: "
-        + str(len(unbinned_mg_contigs))
-    )
+    logger.debug(f"Number of unbinned contigs with single-copy marker genes: {len(unbinned_mg_contigs)}")
 
     logger.info("Further assigning contigs with single-copy marker genes")
 
@@ -790,13 +777,8 @@ def main(
         set(contig_markers.keys()) - set(binned_contigs_with_markers)
     )
 
-    logger.debug(
-        "Remaining number of unbinned MG seed contigs: " + str(len(unbinned_mg_contigs))
-    )
-    logger.debug(
-        "Number of binned contigs with single-copy marker genes: "
-        + str(len(bin_of_contig))
-    )
+    logger.debug(f"Remaining number of unbinned MG seed contigs: {len(unbinned_mg_contigs)}")
+    logger.debug(f"Number of binned contigs with single-copy marker genes: {len(bin_of_contig)}")
 
     del unbinned_mg_contigs
     del unbinned_mg_contig_lengths
@@ -830,12 +812,9 @@ def main(
 
     unbinned_contigs = list(set([x for x in range(node_count)]) - set(binned_contigs))
 
-    logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
-    logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
-    logger.debug(
-        "Number of binned contigs with markers: "
-        + str(len(binned_contigs_with_markers))
-    )
+    logger.debug(f"Number of binned contigs: {len(binned_contigs)}")
+    logger.debug(f"Number of unbinned contigs: {len(unbinned_contigs)}")
+    logger.debug(f"Number of binned contigs with markers: {len(binned_contigs_with_markers)}")
 
     # Get components without labels
     # -----------------------------------------------------
@@ -848,7 +827,7 @@ def main(
         nthreads=nthreads
     )
 
-    logger.debug("Number of non-isolated contigs: " + str(len(non_isolated)))
+    logger.debug(f"Number of non-isolated contigs: {len(non_isolated)}")
 
     # Propagate labels to vertices of unlabelled long contigs
     # -----------------------------------------------------
@@ -878,7 +857,7 @@ def main(
         weight=w_intra,
     )
 
-    logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
+    logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
 
     # Further propagate labels to vertices of unlabelled long contigs
     # --------------------------------------------------------------------------------
@@ -906,7 +885,7 @@ def main(
         weight=w_inter,
     )
 
-    logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
+    logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
 
     # Get binned and unbinned contigs
     # -----------------------------------------------------
@@ -915,8 +894,8 @@ def main(
 
     unbinned_contigs = list(set([x for x in range(node_count)]) - set(binned_contigs))
 
-    logger.debug("Number of binned contigs: " + str(len(binned_contigs)))
-    logger.debug("Number of unbinned contigs: " + str(len(unbinned_contigs)))
+    logger.debug(f"Number of binned contigs: {len(binned_contigs)}")
+    logger.debug(f"Number of unbinned contigs: {len(unbinned_contigs)}")
 
     # Propagate labels to vertices of unlabelled long contigs in isolated components
     # -----------------------------------------------------------------------------------------------
@@ -1001,7 +980,7 @@ def main(
             contig_lengths=contig_lengths,
         )
 
-    logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
+    logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
 
     #  Further propagate labels to vertices of unlabelled long contigs
     # --------------------------------------------------------------------------------
@@ -1032,7 +1011,7 @@ def main(
         weight=MAX_WEIGHT,
     )
 
-    logger.debug("Total number of binned contigs: " + str(len(bin_of_contig)))
+    logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
 
     # Get elapsed time
     # -----------------------------------
@@ -1041,7 +1020,7 @@ def main(
     elapsed_time = time.time() - start_time
 
     # Print elapsed time for the process
-    logger.info("Elapsed time: " + str(elapsed_time) + " seconds")
+    logger.info(f"Elapsed time: {elapsed_time} seconds")
 
     # Get bin sizes
     # -----------------------------------
@@ -1075,14 +1054,7 @@ def main(
         no_possible_bins = True
 
         logger.debug(
-            "Bin "
-            + str(b)
-            + ": # contigs: "
-            + str(len(bins[b]))
-            + ", bin size: "
-            + str(bin_size[b])
-            + "bp, # markers: "
-            + str(len(bin_markers[b]))
+            f"Bin {b}: # contigs: {len(bins[b])}, bin size: {bin_size[b]}bp, # markers: {len(bin_markers[b])}"
         )
 
         min_pb = -1
@@ -1157,9 +1129,9 @@ def main(
 
     # Create output directory for bin files
     if not os.path.isdir(output_bins_path):
-        subprocess.run("mkdir -p " + output_bins_path, shell=True)
+        subprocess.run(f"mkdir -p {output_bins_path}", shell=True)
     if not os.path.isdir(lq_output_bins_path):
-        subprocess.run("mkdir -p " + lq_output_bins_path, shell=True)
+        subprocess.run(f"mkdir -p {lq_output_bins_path}", shell=True)
 
     final_bins = {}
     lowq_bins = {}

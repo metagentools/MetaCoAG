@@ -46,7 +46,7 @@ def get_files_and_seq_counts(output_path):
         seq_counts.append(seq_count)
 
     seq_counts.sort()
-            
+
     return len(output_files), seq_counts
 
 
@@ -105,5 +105,3 @@ def test_n_bins_metacoag_megahit(test_metacoag_megahit_command):
 
     # Assert bin sizes
     assert seq_counts == [36, 40, 46, 84, 127]
-
-

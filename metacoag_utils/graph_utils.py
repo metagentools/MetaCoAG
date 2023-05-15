@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import re
 import multiprocessing as mp
+import re
 from collections import defaultdict
 
 from Bio import SeqIO
@@ -305,7 +305,6 @@ def get_links_megahit(assembly_graph_file):
 
 
 def get_links_megahit_custom(assembly_graph_file):
-
     my_map = BidirectionalMap()
 
     node_count = 0
@@ -399,7 +398,9 @@ def get_connected_components(i, assembly_graph, binned_contigs):
 
 
 def get_non_isolated(node_count, assembly_graph, binned_contigs, nthreads):
-    
     with mp.Pool(processes=nthreads) as pool:
-        non_isolated = pool.starmap(get_connected_components, [(i, assembly_graph, binned_contigs) for i in range(node_count)])
+        non_isolated = pool.starmap(
+            get_connected_components,
+            [(i, assembly_graph, binned_contigs) for i in range(node_count)],
+        )
     return non_isolated

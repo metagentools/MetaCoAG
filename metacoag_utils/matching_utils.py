@@ -89,11 +89,7 @@ def match_contigs(
 
     for i in range(smg_iterations):
         logger.debug(
-            "Iteration "
-            + str(i)
-            + ": "
-            + str(len(smg_iteration[i]))
-            + " contig(s) with seed marker genes"
+            f"Iteration {i}: {len(smg_iteration[i])} contig(s) with seed marker genes"
         )
 
         if i > 0:
@@ -103,7 +99,7 @@ def match_contigs(
                 set(smg_iteration[i])
             )
             to_bin = list(set(smg_iteration[i]) - common)
-            logger.debug(str(len(to_bin)) + " contig(s) to bin in the iteration")
+            logger.debug(f"{len(to_bin)} contig(s) to bin in the iteration")
             n_bins = len(bins)
             bottom_nodes = []
 
@@ -323,7 +319,7 @@ def match_contigs(
                             n_bins += 1
                             binned_contigs_with_markers.append(longest_nb_contig)
 
-            logger.debug(str(binned_count) + " contig(s) binned in the iteration")
+            logger.debug(f"{binned_count} contig(s) binned in the iteration")
 
     if len(smg_iteration) > 0:
         del edge_weights_per_iteration

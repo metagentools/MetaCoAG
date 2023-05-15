@@ -78,10 +78,10 @@ def get_tetramer_profiles(
     contigs_file = contigs_file.split("/")[-1]
 
     if os.path.isfile(
-        output_path + contigs_file + ".normalized_contig_tetramers.pickle"
+        f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle"
     ):
         with open(
-            output_path + contigs_file + ".normalized_contig_tetramers.pickle", "rb"
+            f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle", "rb"
         ) as handle:
             normalized_tetramer_profiles = pickle.load(handle)
 
@@ -103,7 +103,7 @@ def get_tetramer_profiles(
             i += 1
 
         with open(
-            output_path + contigs_file + ".normalized_contig_tetramers.pickle", "wb"
+            f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle", "wb"
         ) as handle:
             pickle.dump(
                 normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL
@@ -157,9 +157,7 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
                         coverages[contig_num].append(contig_coverage)
 
     if len(coverages) == 0:
-        logger.error(
-            "Could not find any contigs longer than " + str(min_length) + "bp."
-        )
+        logger.error(f"Could not find any contigs longer than {min_length}bp.")
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
@@ -206,9 +204,7 @@ def get_cov_len_megahit(
                         coverages[contig_num].append(contig_coverage)
 
     if len(coverages) == 0:
-        logger.error(
-            "Could not find any contigs longer than " + str(min_length) + "bp."
-        )
+        logger.error(f"Could not find any contigs longer than {min_length}bp.")
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
