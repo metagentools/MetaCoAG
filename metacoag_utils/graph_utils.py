@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import re
+import multiprocessing as mp
 from collections import defaultdict
 
 from Bio import SeqIO
@@ -367,42 +368,38 @@ def get_isolated(node_count, assembly_graph):
     return isolated
 
 
-def get_non_isolated(node_count, assembly_graph, binned_contigs):
+def get_connected_components(i, assembly_graph, binned_contigs):
     non_isolated = []
-
-    # Get connectes contigs labelled components
-    for i in range(node_count):
-        if i not in non_isolated and i in binned_contigs:
-            component = []
-            component.append(i)
+    if i not in non_isolated and i in binned_contigs:
+        component = []
+        component.append(i)
+        length = len(component)
+        neighbours = assembly_graph.neighbors(i, mode="ALL")
+        for neighbour in neighbours:
+            if neighbour not in component:
+                component.append(neighbour)
+        component = list(set(component))
+        while length != len(component):
             length = len(component)
-            neighbours = assembly_graph.neighbors(i, mode="ALL")
-
-            for neighbor in neighbours:
-                if neighbor not in component:
-                    component.append(neighbor)
-
-            component = list(set(component))
-
-            while length != len(component):
-                length = len(component)
-
-                for j in component:
-                    neighbours = assembly_graph.neighbors(j, mode="ALL")
-
-                    for neighbor in neighbours:
-                        if neighbor not in component:
-                            component.append(neighbor)
-
-            labelled = False
             for j in component:
-                if j in binned_contigs:
-                    labelled = True
-                    break
+                neighbours = assembly_graph.neighbors(j, mode="ALL")
+                for neighbour in neighbours:
+                    if neighbour not in component:
+                        component.append(neighbour)
+        labelled = False
+        for j in component:
+            if j in binned_contigs:
+                labelled = True
+                break
+        if labelled:
+            for j in component:
+                if j not in non_isolated:
+                    non_isolated.append(j)
+    return non_isolated
 
-            if labelled:
-                for j in component:
-                    if j not in non_isolated:
-                        non_isolated.append(j)
 
+def get_non_isolated(node_count, assembly_graph, binned_contigs, nthreads):
+    
+    with mp.Pool(processes=nthreads) as pool:
+        non_isolated = pool.starmap(get_connected_components, [(i, assembly_graph, binned_contigs) for i in range(node_count)])
     return non_isolated
