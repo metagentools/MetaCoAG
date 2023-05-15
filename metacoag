@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import click
 import concurrent.futures
 import csv
 import gc
@@ -15,9 +16,7 @@ from Bio import SeqIO
 from igraph import *
 from tqdm import tqdm
 
-from metacoag_utils import (feature_utils, file_utils, graph_utils,
-                            label_prop_utils, marker_gene_utils,
-                            matching_utils)
+from metacoag_utils import (feature_utils, graph_utils, label_prop_utils, marker_gene_utils, matching_utils)
 from metacoag_utils.bidirectionalmap import BidirectionalMap
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
@@ -28,49 +27,185 @@ __maintainer__ = "Vijini Mallawaarachchi"
 __email__ = "vijini.mallawaarachchi@anu.edu.au"
 __status__ = "Stable Release"
 
-# Set paramters
+
+# Set global paramters
 # ---------------------------------------------------
 
 MAX_WEIGHT = sys.float_info.max
 M_MARKER_GENES = 108
 
 
-def main():
-    # Setup argument parser
-    # ---------------------------------------------------
+# Setup argument parser
+# ---------------------------------------------------
 
-    args = file_utils.get_args(__version__)
+@click.command()
+@click.option(
+    "--assembler",
+    help="name of the assembler used. (Supports SPAdes, MEGAHIT and Flye)",
+    type=click.Choice(["spades", "megahit", "megahitc", "flye"], case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--graph",
+    help="path to the assembly graph file",
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.option(
+    "--contigs",
+    help="path to the contigs file",
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.option(
+    "--abundance",
+    help="path to the abundance file",
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.option(
+    "--paths",
+    help="path to the contigs.paths (metaSPAdes) or assembly.info (metaFlye) file",
+    type=click.Path(exists=True),
+    required=False,
+)
+@click.option(
+    "--output",
+    help="path to the output folder",
+    type=click.Path(dir_okay=True, writable=True, readable=True),
+    required=True,
+)
+@click.option(
+    "--hmm",
+    help="path to marker.hmm file. [default: auxiliary/marker.hmm]",
+    type=click.Path(exists=True),
+    required=False,
+)
+@click.option(
+    "--prefix",
+    help="prefix for the output file",
+    type=str,
+    required=False,
+)
+@click.option(
+    "--min_length",
+    help="minimum length of contigs to consider for binning.",
+    type=int,
+    default=1000,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--p_intra",
+    help="minimum probability of an edge matching to assign to the same bin.",
+    type=click.FloatRange(0, 1),
+    default=0.1,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--p_inter",
+    help="maximum probability of an edge matching to create a new bin.",
+    type=click.FloatRange(0, 1),
+    default=0.01,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--d_limit",
+    help="distance limit for contig matching.",
+    type=int,
+    default=20,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--depth",
+    help="depth to consider for label propagation.",
+    type=int,
+    default=10,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--mg_threshold",
+    help="length threshold to consider marker genes.",
+    type=click.FloatRange(0, 1, clamp=True),
+    default=0.5,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--bin_mg_threshold",
+    help="minimum fraction of marker genes that should be present in a bin.",
+    type=click.FloatRange(0, 1, clamp=True),
+    default=0.33333,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--min_bin_size",
+    help="minimum size of a bin to output in base pairs (bp).",
+    type=int,
+    default=200000,
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--delimiter",
+    help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) .",
+    type=click.Choice([",", ";", "$'\\t'", "\" \""], case_sensitive=False),
+    default=",",
+    show_default=True,
+    required=False,
+)
+@click.option(
+    "--nthreads",
+    help="number of threads to use.",
+    type=int,
+    default=8,
+    show_default=True,
+    required=False,
+)
+@click.version_option(__version__, "-v", "--version", is_flag=True)
+def main(
+    assembler,
+    graph,
+    contigs,
+    abundance,
+    paths,
+    output,
+    hmm,
+    prefix,
+    min_length,
+    p_intra,
+    p_inter,
+    d_limit,
+    depth,
+    mg_threshold,
+    bin_mg_threshold,
+    min_bin_size,
+    delimiter,
+    nthreads
+):
 
-    # Validate arguments
-    validated_args = file_utils.validate(args)
+    # Parse arguments for paths
+    # ------------------------------------------------------------------------
 
-    # Parse arguments
-    assembler = validated_args["assembler"]
-    contigs_file = validated_args["contigs"]
-    assembly_graph_file = validated_args["graph"]
-    contig_paths_file = validated_args["paths"]
-    abundance_file = validated_args["abundance"]
-    output_path = validated_args["output"]
-    prefix = validated_args["prefix"]
-    min_length = validated_args["min_length"]
-    p_intra = validated_args["p_intra"]
-    p_inter = validated_args["p_inter"]
-    depth = validated_args["depth"]
-    mg_threshold = validated_args["mg_threshold"]
-    bin_mg_threshold = validated_args["bin_mg_threshold"]
-    min_bin_size = validated_args["min_bin_size"]
-    hmm = validated_args["hmm"]
-    d_limit = validated_args["d_limit"]
-    delimiter = validated_args["delimiter"]
-    nthreads = validated_args["nthreads"]
+    contigs_file = contigs
+    assembly_graph_file = graph
+    contig_paths_file = paths
+    abundance_file = abundance
+    output_path = output
 
     bin_threshold = -math.log(p_intra, 10)
     break_threshold = -math.log(p_inter, 10)
 
     n_bins = 0
 
+
     # Setup logger
-    # -----------------------
+    # ------------------------------------------------------------------------
 
     logger = logging.getLogger("MetaCoaAG 1.1.2")
     logger.setLevel(logging.DEBUG)
@@ -82,10 +217,65 @@ def main():
     logger.addHandler(consoleHeader)
 
     # Setup output path for log file
-    fileHandler = logging.FileHandler(output_path + "/" + prefix + "metacoag.log")
+    fileHandler = logging.FileHandler(f"{output_path}/{prefix}metacoag.log")
     fileHandler.setLevel(logging.DEBUG)
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)
+
+
+    # Validate files
+    # ------------------------------------------------------------------------
+
+    # Check if paths file is provided when the assembler type is SPAdes
+    if assembler.lower() == "spades" and contig_paths_file is None:
+        logger.error("Please make sure to provide the path to the contigs.paths file.")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+
+    # Check if paths file is provided when the assembler type is Flye
+    if assembler.lower() == "flye" and contig_paths_file is None:
+        logger.error("Please make sure to provide the path to the assembly_info.txt file.")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+
+    # Skip paths file when the assembler type is MEGAHIT
+    if assembler.lower() == "megahit":
+        contig_paths_file = "None"
+
+    # Validate prefix
+    if prefix != None:
+        if not prefix.endswith("_"):
+            prefix = prefix + "_"
+    else:
+        prefix = ""
+
+    # Validate min_bin_size
+    if min_bin_size <= 0:
+        logger.error("Please enter a valid number for min_bin_size")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+    
+    # Validate depth
+    if depth <= 0:
+        logger.error("Please enter a valid number for depth")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+
+    # Validate d_limit
+    if d_limit <= 0:
+        logger.error("Please enter a valid number for d_limit")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+    
+    # Validate number of threads
+    if nthreads <= 0:
+        logger.error("Please enter a valid number for the number of threads")
+        logger.error("Exiting MetaCoAG... Bye...!")
+        sys.exit(1)
+
+
+    # Start MetaCoAG
+    # ------------------------------------------------------------------------
 
     logger.info(
         "Welcome to MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs."
@@ -109,9 +299,10 @@ def main():
     logger.info(f"min_bin_size: {min_bin_size} base pairs")
     logger.info(f"d_limit: {d_limit}")
     logger.info(f"Number of threads: {nthreads}")
+    
     logger.info("MetaCoAG started")
-
     start_time = time.time()
+
 
     # Get links of the assembly graph
     # ------------------------------------------------------------------------
@@ -961,8 +1152,8 @@ def main():
     # ----------------------------------------------------------
 
     # Get output path
-    output_bins_path = output_path + prefix + "bins/"
-    lq_output_bins_path = output_path + prefix + "low_quality_bins/"
+    output_bins_path = f"{output_path}/{prefix}bins"
+    lq_output_bins_path = f"{output_path}/{prefix}low_quality_bins"
 
     # Create output directory for bin files
     if not os.path.isdir(output_bins_path):
@@ -975,7 +1166,7 @@ def main():
 
     final_bin_count = 0
 
-    with open(output_path + prefix + "contig_to_bin.tsv", mode="w") as out_file:
+    with open(f"{output_path}/{prefix}contig_to_bin.tsv", mode="w") as out_file:
         output_writer = csv.writer(
             out_file, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL
         )
@@ -1020,12 +1211,12 @@ def main():
 
     for bin_name in set(final_bins.values()):
         bin_files[bin_name] = open(
-            output_bins_path + prefix + "bin_" + bin_name + ".fasta", "w+"
+            f"{output_bins_path}/{prefix}bin_{bin_name}.fasta", "w+"
         )
 
     for bin_name in set(lowq_bins.values()):
         bin_files[bin_name] = open(
-            lq_output_bins_path + prefix + "bin_" + bin_name + "_seqs.fasta", "w+"
+            f"{lq_output_bins_path}/{prefix}bin_{bin_name}_seqs.fasta", "w+"
         )
 
     for n, record in tqdm(
@@ -1054,8 +1245,8 @@ def main():
     for c in set(lowq_bins.values()):
         bin_files[c].close()
 
-    logger.info("Producing " + str(final_bin_count) + " bins...")
-    logger.info("Final binning results can be found in " + str(output_bins_path))
+    logger.info(f"Producing {final_bin_count} bins...")
+    logger.info(f"Final binning results can be found in {output_bins_path}")
 
     # Exit program
     # -----------------------------------
