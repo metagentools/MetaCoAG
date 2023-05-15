@@ -13,3 +13,4 @@ dependencies:
   - numpy
   - pandas
   - tqdm
+  - click
