@@ -24,13 +24,15 @@ For detailed instructions on installation, usage and visualisation, please refer
 [https://anaconda.org/bioconda/metacoag](https://anaconda.org/bioconda/metacoag) and on PyPI at [https://pypi.org/project/metacoag/](https://pypi.org/project/metacoag/).
 
 ## Dependencies
-MetaCoAG installation requires Python 3.7 or above (tested on Python 3.7.4). You will need the following python dependencies to run MetaCoAG and related support scripts. The tested versions of the dependencies are listed as well.
-* [python-igraph](https://igraph.org/python/) - version 0.9.6
-* [biopython](https://biopython.org/) - version 1.74
-* [networkx](https://networkx.github.io/) - version 2.4
-* [scipy](https://www.scipy.org/) - version 1.3.1
-* [numpy](https://numpy.org/) - version 1.17.2
-* [tqdm](https://github.com/tqdm/tqdm) - version 4.36.1
+MetaCoAG installation requires Python 3.7 or above. You will need the following python dependencies to run MetaCoAG and related support scripts. The latest tested versions of the dependencies are listed as well.
+* [python](https://www.python.org/) - version 3.11.0
+* [python-igraph](https://igraph.org/python/) - version 0.10.4
+* [biopython](https://biopython.org/) - version 1.80
+* [networkx](https://networkx.github.io/) - version 3.0
+* [scipy](https://www.scipy.org/) - version 1.10.0
+* [numpy](https://numpy.org/) - version 1.24.2
+* [tqdm](https://github.com/tqdm/tqdm) - version 4.64.1
+* [click](https://click.palletsprojects.com/) - version 8.1.3
 
 MetaCoAG uses the following tools to scan for single-copy marker genes. These tools have been tested on the following versions.
 * [FragGeneScan](https://sourceforge.net/projects/fraggenescan/) - version 1.31
