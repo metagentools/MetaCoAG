@@ -10,15 +10,11 @@ logger = logging.getLogger("MetaCoaAG 1.1.2")
 
 # Modified from SolidBin
 def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
-    software_path = pathlib.Path(__file__).parent.absolute()
-
-    if markerURL == "":
-        markerURL = os.path.join(software_path, "auxiliary", "marker.hmm")
 
     fragScanURL = "run_FragGeneScan.pl"
     hmmExeURL = "hmmsearch"
 
-    logger.info("Marker file: " + markerURL)
+    logger.info("Using marker file: " + markerURL)
 
     fragResultURL = f"{contigs_file}.frag.faa"
     hmmResultURL = f"{contigs_file}.hmmout"

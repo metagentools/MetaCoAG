@@ -7,6 +7,7 @@ import logging
 import math
 import operator
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -78,7 +79,9 @@ M_MARKER_GENES = 108
 )
 @click.option(
     "--hmm",
-    help="path to marker.hmm file. [default: auxiliary/marker.hmm]",
+    help="path to marker.hmm file.",
+    default=os.path.join(pathlib.Path(__file__).absolute(), "auxiliary", "marker.hmm"),
+    show_default=True,
     type=click.Path(exists=True),
     required=False,
 )
@@ -292,6 +295,7 @@ def main(
     logger.info(f"Contig paths file: {contig_paths_file}")
     logger.info(f"Abundance file: {abundance_file}")
     logger.info(f"Final binning output file: {output_path}")
+    logger.info(f"Marker gene file hmm: {hmm}")
     logger.info(f"Minimum length of contigs to consider: {min_length}")
     logger.info(f"Depth to consider for label propagation: {depth}")
     logger.info(f"p_intra: {p_intra}")
