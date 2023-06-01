@@ -82,7 +82,7 @@ M_MARKER_GENES = 108
     help="path to marker.hmm file.",
     default=os.path.join(pathlib.Path(__file__).absolute(), "auxiliary", "marker.hmm"),
     show_default=True,
-    type=click.Path(exists=True),
+    type=click.Path(),
     required=False,
 )
 @click.option(
