@@ -34,7 +34,6 @@ __status__ = "Stable Release"
 # ---------------------------------------------------
 
 MAX_WEIGHT = sys.float_info.max
-M_MARKER_GENES = 108
 
 
 # Setup argument parser
@@ -133,6 +132,14 @@ M_MARKER_GENES = 108
     required=False,
 )
 @click.option(
+    "--n_mg",
+    help="total number of marker genes.",
+    type=int,
+    default=108,
+    show_default=True,
+    required=False,
+)
+@click.option(
     "--mg_threshold",
     help="length threshold to consider marker genes.",
     type=click.FloatRange(0, 1, clamp=True),
@@ -187,6 +194,7 @@ def main(
     p_inter,
     d_limit,
     depth,
+    n_mg,
     mg_threshold,
     bin_mg_threshold,
     min_bin_size,
@@ -1108,7 +1116,7 @@ def main(
             bins_graph.add_edge(b, min_pb)
             no_possible_bins = False
 
-        if no_possible_bins and len(bin_markers[b]) < M_MARKER_GENES * bin_mg_threshold:
+        if no_possible_bins and len(bin_markers[b]) < n_mg * bin_mg_threshold:
             bins_to_rem.append(b)
 
     bin_cliques = bins_graph.maximal_cliques()
