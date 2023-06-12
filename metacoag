@@ -89,6 +89,7 @@ M_MARKER_GENES = 108
     "--prefix",
     help="prefix for the output file",
     type=str,
+    default="",
     required=False,
 )
 @click.option(
@@ -210,6 +211,11 @@ def main(
 
     n_bins = 0
 
+    # Validate prefix
+    if prefix != "":
+        if not prefix.endswith("_"):
+            prefix = f"{prefix}_"
+
 
     # Setup logger
     # ------------------------------------------------------------------------
@@ -248,13 +254,6 @@ def main(
     # Skip paths file when the assembler type is MEGAHIT
     if assembler.lower() == "megahit":
         contig_paths_file = "None"
-
-    # Validate prefix
-    if prefix != None:
-        if not prefix.endswith("_"):
-            prefix = f"{prefix}_"
-    else:
-        prefix = ""
 
     # Validate min_bin_size
     if min_bin_size <= 0:
