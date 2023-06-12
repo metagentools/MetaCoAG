@@ -46,7 +46,7 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, no_cut_tc, hard=0):
                 hmmExeURL
                 + " --domtblout "
                 + hmmResultURL
-                + ""
+                + " "
                 + use_cut_tc
                 + " --cpu "
                 + str(nthreads)
