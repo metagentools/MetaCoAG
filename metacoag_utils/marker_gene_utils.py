@@ -9,7 +9,7 @@ logger = logging.getLogger("MetaCoaAG 1.1.2")
 
 
 # Modified from SolidBin
-def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
+def scan_for_marker_genes(contigs_file, nthreads, markerURL, no_cut_tc, hard=0):
 
     fragScanURL = "run_FragGeneScan.pl"
     hmmExeURL = "hmmsearch"
@@ -37,12 +37,18 @@ def scan_for_marker_genes(contigs_file, nthreads, markerURL, hard=0):
         os.system(fragCmd)
 
     if os.path.exists(fragResultURL):
+        use_cut_tc = ""
+        if not no_cut_tc:
+            use_cut_tc = "--cut_tc"
+
         if not (os.path.exists(hmmResultURL)):
             hmmCmd = (
                 hmmExeURL
                 + " --domtblout "
                 + hmmResultURL
-                + " --cut_tc --cpu "
+                + ""
+                + use_cut_tc
+                + " --cpu "
                 + str(nthreads)
                 + " "
                 + markerURL

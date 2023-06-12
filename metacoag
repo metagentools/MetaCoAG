@@ -140,6 +140,15 @@ MAX_WEIGHT = sys.float_info.max
     required=False,
 )
 @click.option(
+    "--no_cut_tc",
+    help="do not use --cut_tc for hmmsearch.",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    required=False,
+)
+
+@click.option(
     "--mg_threshold",
     help="length threshold to consider marker genes.",
     type=click.FloatRange(0, 1, clamp=True),
@@ -195,6 +204,7 @@ def main(
     d_limit,
     depth,
     n_mg,
+    no_cut_tc,
     mg_threshold,
     bin_mg_threshold,
     min_bin_size,
@@ -567,7 +577,10 @@ def main(
         # Run FragGeneScan and HMMER if .hmmout file is not present
         logger.info("Obtaining hmmout file")
         marker_gene_utils.scan_for_marker_genes(
-            contigs_file=contigs_file, nthreads=nthreads, markerURL=hmm
+            contigs_file=contigs_file,
+            nthreads=nthreads, 
+            markerURL=hmm,
+            no_cut_tc = no_cut_tc
         )
     else:
         logger.info(".hmmout file already exists")
