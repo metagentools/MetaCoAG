@@ -3,9 +3,9 @@
 """combine_cov.py: Combine multiple coverage files of samples from CoverM.
 """
 
-import click
 import glob
 
+import click
 import pandas as pd
 
 __author__ = "Vijini Mallawaarachchi"
