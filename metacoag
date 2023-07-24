@@ -79,9 +79,9 @@ MAX_WEIGHT = sys.float_info.max
 @click.option(
     "--hmm",
     help="path to marker.hmm file.",
-    default=os.path.join(pathlib.Path(__file__).parents[0], "metacoag_utils", "auxiliary", "marker.hmm"),
+    default="auxiliary/marker.hmm",
     show_default=True,
-    type=click.Path(),
+    type=str,
     required=False,
 )
 @click.option(
