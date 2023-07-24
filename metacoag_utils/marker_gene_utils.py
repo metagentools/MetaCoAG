@@ -5,7 +5,7 @@ import os
 import pathlib
 
 # create logger
-logger = logging.getLogger("MetaCoaAG 1.1.3")
+logger = logging.getLogger("MetaCoaAG 1.1.4")
 
 
 # Modified from SolidBin
