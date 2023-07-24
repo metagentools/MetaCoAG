@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-12, ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: "actions/checkout@v3"
@@ -37,9 +37,24 @@ jobs:
           pip install pytest pytest-cov
           pytest --cov=./ --cov-report=xml --cov-append
           
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@master
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage.xml
-          fail_ci_if_error: true
+          parallel: true
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-${{ matrix.test_number }}
+          path-to-lcov: "coverage.lcov"
+
+  finish:
+    needs: tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.github_token }}
+        parallel-finished: true
