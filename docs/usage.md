@@ -106,6 +106,6 @@ The output of MetaCoAG will contain the following main files and folders.
 
 * `contig_to_bin.tsv` containing the comma separated records of `contig id, bin number`
 * `bins` containing the identified bins (FASTA file for each bin)
-* `low_quality_bins` containing the identified low-quality bins, i.e., having lower than `bin_mg_threshold` fraction of marker genes (FASTA file for each bin)
+* `low_quality_bins` containing the identified low-quality bins, i.e., having a fraction of marker genes lower than `bin_mg_threshold` (FASTA file for each bin)
 * `*.frag.faa`, `*.frag.ffn` and `*.frag.gff` files containing FragGeneScan output
 * `*.hmmout` containing HMMER output
