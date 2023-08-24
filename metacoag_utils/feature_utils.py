@@ -5,6 +5,7 @@ import logging
 import os
 import pickle
 import sys
+from collections import defaultdict
 from multiprocessing import Pool
 
 import numpy as np
@@ -119,9 +120,9 @@ def get_tetramer_profiles(
 
 
 def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
-    coverages = {}
+    coverages = defaultdict(lambda: [0])
 
-    contig_lengths = {}
+    contig_lengths = defaultdict(int)
 
     i = 0
 

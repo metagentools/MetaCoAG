@@ -29,6 +29,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "combine_cov=metacoag_utils.support.combine_cov:main",
+            "gfa2fasta=metacoag_utils.support.gfa2fasta:main",
         ],
     },
     classifiers=[
