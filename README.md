@@ -10,7 +10,7 @@
 [![PyPI version](https://badge.fury.io/py/metacoag.svg)](https://badge.fury.io/py/metacoag)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/metacoag/badges/downloads.svg)](https://anaconda.org/bioconda/metacoag)
 
-[![CI](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml/badge.svg)](https://github.com/metagentools/MetaCoAG/actions/workflows/testing.yml)
+[![CI](https://github.com/metagentools/MetaCoAG/actions/workflows/testing_python.yml/badge.svg)](https://github.com/metagentools/MetaCoAG/actions/workflows/testing_python.yml)
 ![GitHub](https://img.shields.io/github/license/Vini2/MetaCoAG)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CodeQL](https://github.com/metagentools/MetaCoAG/actions/workflows/codeql.yml/badge.svg)](https://github.com/metagentools/MetaCoAG/actions/workflows/codeql.yml)
