@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/metagentools/MetaCoAG/master/MetaCoAG_Logo.png" width="500" title="MetaCoAG logo" alt="MetaCoAG logo">
+  <img src="https://raw.githubusercontent.com/metagentools/MetaCoAG/master/MetaCoAG_logo_light.png#gh-light-mode-only" width="500" title="MetaCoAG logo" alt="MetaCoAG logo">
+  <img src="https://raw.githubusercontent.com/metagentools/MetaCoAG/master/MetaCoAG_logo_dark.png#gh-dark-mode-only" width="500" title="MetaCoAG logo" alt="MetaCoAG logo">
 </p>
 
 # MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
