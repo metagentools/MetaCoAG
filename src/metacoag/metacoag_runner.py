@@ -357,6 +357,12 @@ def run(args):
             abundance_file=abundance_file,
         )
 
+        # Assign length 0 to graph-only contigs (in GFA but not in FASTA)
+        # so they are excluded by all downstream min_length checks
+        for i in range(node_count):
+            if i not in contig_lengths:
+                contig_lengths[i] = 0
+
     else:
         sequences, coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
             contigs_file=contigs_file,
