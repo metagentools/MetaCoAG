@@ -98,19 +98,24 @@ def get_tetramer_profiles(
     else:
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
 
+        # Handle both list and dict sequences
+        if isinstance(sequences, dict):
+            seq_keys = list(sequences.keys())
+            seq_values = [sequences[k] for k in seq_keys]
+        else:
+            seq_keys = list(range(len(sequences)))
+            seq_values = sequences
+
         pool = Pool(nthreads)
         record_tetramers = pool.map(
-            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in sequences]
+            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seq_values]
         )
         pool.close()
 
         normalized = [x[1] for x in record_tetramers]
 
-        i = 0
-
-        for l in range(len(normalized)):
-            normalized_tetramer_profiles[i] = normalized[l]
-            i += 1
+        for idx, key in enumerate(seq_keys):
+            normalized_tetramer_profiles[key] = normalized[idx]
 
         with open(
             f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle", "wb"
@@ -121,8 +126,8 @@ def get_tetramer_profiles(
 
     tetramer_profiles = {}
 
-    for i in range(len(normalized_tetramer_profiles)):
-        if contig_lengths[i] >= min_length:
+    for i in normalized_tetramer_profiles:
+        if i in contig_lengths and contig_lengths[i] >= min_length:
             tetramer_profiles[i] = normalized_tetramer_profiles[i]
 
     return tetramer_profiles
@@ -186,19 +191,23 @@ def get_cov_len_megahit(
 
     i = 0
 
-    sequences = []
+    sequences = {}
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
+        if record.id not in graph_to_contig_map_rev:
+            continue
         contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
         length = len(record.seq)
         contig_lengths[contig_num] = length
-        sequences.append(str(record.seq))
+        sequences[contig_num] = str(record.seq)
         i += 1
 
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
             strings = line.strip().split("\t")
 
+            if strings[0] not in graph_to_contig_map_rev:
+                continue
             contig_num = contig_names_rev[graph_to_contig_map_rev[strings[0]]]
 
             if contig_lengths[contig_num] >= min_length:

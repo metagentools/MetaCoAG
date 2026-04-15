@@ -223,6 +223,8 @@ def get_contigs_with_marker_genes_megahit(
                 # Contig name
                 contig_name = "_".join(name_strings)
 
+                if contig_name not in graph_to_contig_map_rev:
+                    continue
                 contig_num = contig_names_rev[graph_to_contig_map_rev[contig_name]]
                 contig_length = contig_lengths[contig_num]
 
