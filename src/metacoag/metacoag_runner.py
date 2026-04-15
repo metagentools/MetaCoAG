@@ -322,9 +322,14 @@ def run(args):
         # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
         graph_to_contig_map = BidirectionalMap()
 
-        for (n, m), (n2, m2) in zip(graph_contigs.items(), original_contigs.items()):
-            if m == m2:
-                graph_to_contig_map[n] = n2
+        # Build reverse lookup: sequence -> original contig name
+        original_seq_to_name = {}
+        for name, seq in original_contigs.items():
+            original_seq_to_name[seq] = name
+
+        for graph_name, graph_seq in graph_contigs.items():
+            if graph_seq in original_seq_to_name:
+                graph_to_contig_map[graph_name] = original_seq_to_name[graph_seq]
 
         graph_to_contig_map_rev = graph_to_contig_map.inverse
 
