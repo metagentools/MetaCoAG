@@ -65,6 +65,61 @@ def get_cov_probability(cov1, cov2):
     return float(min(np.prod(pmf_1), np.prod(pmf_2)))
 
 
+def _build_bin_matrices(bins, n_bins, normalized_tetramer_profiles, coverages):
+    """Stack bin members into numpy arrays for vectorised per-iteration scoring."""
+    bin_tetra_mat = {}
+    bin_cov_mat = {}
+    for b in range(n_bins):
+        members = bins[b]
+        bin_tetra_mat[b] = np.array([normalized_tetramer_profiles[c] for c in members])
+        bin_cov_mat[b] = np.array([coverages[c] for c in members], dtype=float)
+    return bin_tetra_mat, bin_cov_mat
+
+
+def _compute_edge_weight_exact(tetra_contig, cov_contig, bin_tetra_mat, bin_cov_mat):
+    """Vectorised, exact equivalent of the original per-member scoring loop.
+
+    Computes mean(-log10(p_comp_j) - log10(p_cov_j)) across all N bin members
+    using numpy/scipy in C — identical numerical result to the Python for-j loop,
+    including the float-overflow -> MAX_WEIGHT behaviour.
+    """
+    # All N tetramer distances in one cdist sweep
+    dists = distance.cdist([tetra_contig], bin_tetra_mat, "euclidean")[0]  # (N,)
+
+    # Composition probabilities for all N members simultaneously
+    gi = np.exp(-0.5 * (dists / SIGMA_INTRA) ** 2) / (SIGMA_INTRA * np.sqrt(2.0 * np.pi))
+    ge = np.exp(-0.5 * ((dists - MU_INTER) / SIGMA_INTER) ** 2) / (SIGMA_INTER * np.sqrt(2.0 * np.pi))
+    prob_comp_vec = gi / (gi + ge)  # (N,)
+
+    # Coverage probabilities: vectorised Poisson PMF over all N members
+    c1 = np.asarray(cov_contig, dtype=float)              # (S,)
+    mat_c = bin_cov_mat                                   # (N, S)
+    s1 = np.where(c1 > 0, c1, VERY_SMALL_DOUBLE)
+    s2 = np.where(mat_c > 0, mat_c, VERY_SMALL_DOUBLE)
+    lp1 = c1 * np.log(s2) - gammaln(c1 + 1.0) - mat_c   # (N, S)
+    lp2 = mat_c * np.log(s1) - gammaln(mat_c + 1.0) - c1 # (N, S)
+    prod1 = np.prod(np.maximum(np.exp(lp1), VERY_SMALL_DOUBLE), axis=1)  # (N,)
+    prod2 = np.prod(np.maximum(np.exp(lp2), VERY_SMALL_DOUBLE), axis=1)  # (N,)
+    prob_cov_vec = np.minimum(prod1, prod2)               # (N,)
+
+    # Per-member log probabilities — same formula as the original scalar path
+    prob_product_vec = prob_comp_vec * prob_cov_vec
+    mask = prob_product_vec > 0.0
+    log_probs = np.where(
+        mask,
+        -(np.log10(np.where(mask, prob_comp_vec, 1.0)) +
+          np.log10(np.where(mask, prob_cov_vec, 1.0))),
+        MAX_WEIGHT,
+    )  # (N,)
+
+    # Reproduce original overflow check: any MAX_WEIGHT entry pushes the sum
+    # to inf, causing the same MAX_WEIGHT result as the original loop.
+    log_prob_sum = float(np.sum(log_probs))
+    if math.isinf(log_prob_sum):
+        return MAX_WEIGHT
+    return log_prob_sum / len(bin_tetra_mat)
+
+
 def match_contigs(
     smg_iteration,
     bins,
@@ -112,6 +167,13 @@ def match_contigs(
 
             binned_count = 0
 
+            # Build per-bin member matrices once per iteration so all members
+            # assigned in previous iterations are included. Rebuilt next
+            # iteration automatically.
+            bin_tetra_mat, bin_cov_mat = _build_bin_matrices(
+                bins, n_bins, normalized_tetramer_profiles, coverages
+            )
+
             if len(to_bin) != 0:
                 for contig in to_bin:
                     contigid = contig
@@ -119,39 +181,17 @@ def match_contigs(
                     if contigid not in top_nodes:
                         top_nodes.append(contigid)
 
+                    tetra_contig = normalized_tetramer_profiles[contigid]
+                    cov_contig = coverages[contigid]
+
                     for b in range(n_bins):
-                        log_prob_sum = 0
-                        n_contigs = len(bins[b])
-
-                        for j in range(n_contigs):
-                            tetramer_dist = get_tetramer_distance(
-                                normalized_tetramer_profiles[contigid],
-                                normalized_tetramer_profiles[bins[b][j]],
-                            )
-                            prob_comp = get_comp_probability(tetramer_dist)
-                            prob_cov = get_cov_probability(
-                                coverages[contigid], coverages[bins[b][j]]
-                            )
-
-                            prob_product = prob_comp * prob_cov
-
-                            log_prob = 0
-
-                            if prob_product > 0.0:
-                                log_prob = -(
-                                    math.log(prob_comp, 10) + math.log(prob_cov, 10)
-                                )
-                            else:
-                                log_prob = MAX_WEIGHT
-
-                            log_prob_sum += log_prob
-
-                        if log_prob_sum != float("inf"):
-                            edges.append(
-                                (bins[b][0], contigid, log_prob_sum / n_contigs)
-                            )
-                        else:
-                            edges.append((bins[b][0], contigid, MAX_WEIGHT))
+                        edge_weight = _compute_edge_weight_exact(
+                            tetra_contig,
+                            cov_contig,
+                            bin_tetra_mat[b],
+                            bin_cov_mat[b],
+                        )
+                        edges.append((bins[b][0], contigid, edge_weight))
 
                 B.add_nodes_from(top_nodes, bipartite=0)
                 B.add_nodes_from(bottom_nodes, bipartite=1)
@@ -331,24 +371,11 @@ def match_contigs(
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers
 
 
-def _compute_bin_mean_profiles(bins, normalized_tetramer_profiles, coverages):
-    """Return mean tetramer and coverage profiles for each bin (numpy arrays)."""
-    bin_tetra_mean = {}
-    bin_cov_mean = {}
-    for b, members in bins.items():
-        if members:
-            bin_tetra_mean[b] = np.mean(
-                [normalized_tetramer_profiles[c] for c in members], axis=0
-            )
-            bin_cov_mean[b] = np.mean(
-                [coverages[c] for c in members], axis=0
-            )
-    return bin_tetra_mean, bin_cov_mean
+def _score_contig_against_bins_exact(args):
+    """Worker: exact vectorised scoring of one contig against its candidate bins.
 
-
-def _score_contig_against_bins(args):
-    """Worker: score one contig against its candidate bins using mean profiles.
-
+    Uses _compute_edge_weight_exact (numpy/cdist) — identical result to the
+    original Python for-j loop, no approximation.
     Returns (contigid, best_bin_index, best_weight) or None.
     """
     (
@@ -356,25 +383,15 @@ def _score_contig_against_bins(args):
         possible_bins,
         tetra_contig,
         cov_contig,
-        bin_tetra_mean,
-        bin_cov_mean,
+        bin_tetra_mat,
+        bin_cov_mat,
         w_intra,
     ) = args
 
-    bin_weights = []
-    for b in possible_bins:
-        tetramer_dist = get_tetramer_distance(tetra_contig, bin_tetra_mean[b])
-        prob_comp = get_comp_probability(tetramer_dist)
-        prob_cov = get_cov_probability(cov_contig, bin_cov_mean[b])
-
-        prob_product = prob_comp * prob_cov
-
-        if prob_product > 0.0:
-            log_prob = -(math.log(prob_comp, 10) + math.log(prob_cov, 10))
-        else:
-            log_prob = MAX_WEIGHT
-
-        bin_weights.append(log_prob)
+    bin_weights = [
+        _compute_edge_weight_exact(tetra_contig, cov_contig, bin_tetra_mat[b], bin_cov_mat[b])
+        for b in possible_bins
+    ]
 
     min_b_index, min_b_value = min(enumerate(bin_weights), key=operator.itemgetter(1))
 
@@ -397,11 +414,11 @@ def further_match_contigs(
     w_intra,
     nthreads=1,
 ):
-    # Pre-compute mean composition and coverage profiles for every bin.
-    # This replaces O(bin_size) per-member comparisons with a single O(1)
-    # distance computation against the bin centroid.
-    bin_tetra_mean, bin_cov_mean = _compute_bin_mean_profiles(
-        bins, normalized_tetramer_profiles, coverages
+    # Build per-bin member matrices once. The scoring phase is read-only so all
+    # workers can share these safely. Assignments happen after scoring completes,
+    # so no incremental updates are needed.
+    bin_tetra_mat, bin_cov_mat = _build_bin_matrices(
+        bins, len(bins), normalized_tetramer_profiles, coverages
     )
 
     # Build work items for the parallel scoring phase.
@@ -421,21 +438,20 @@ def further_match_contigs(
             possible_bins,
             normalized_tetramer_profiles[contigid],
             coverages[contigid],
-            bin_tetra_mean,
-            bin_cov_mean,
+            bin_tetra_mat,
+            bin_cov_mat,
             w_intra,
         ))
 
-    # Score contigs in parallel; assignments are applied sequentially afterwards
-    # to keep bin_tetra_mean / bin_cov_mean consistent (incremental updates).
+    # Score all contigs in parallel; exact per-member computation in each worker.
     with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
-        results = list(executor.map(_score_contig_against_bins, work_items))
+        results = list(executor.map(_score_contig_against_bins_exact, work_items))
 
     for result in results:
         if result is None:
             continue
         contigid, best_bin, _ = result
-        # Guard: contig may have been assigned already if it appeared multiple times
+        # Guard: contig may appear in multiple work items
         if contigid in bin_of_contig:
             continue
         bins[best_bin].append(contigid)
@@ -443,14 +459,6 @@ def further_match_contigs(
         binned_contigs_with_markers.append(contigid)
         bin_markers[best_bin] = list(
             set(bin_markers[best_bin] + contig_markers[contigid])
-        )
-        # Update the mean profiles incrementally so later contigs see current state.
-        n = len(bins[best_bin])
-        bin_tetra_mean[best_bin] = (
-            (bin_tetra_mean[best_bin] * (n - 1) + normalized_tetramer_profiles[contigid]) / n
-        )
-        bin_cov_mean[best_bin] = (
-            (bin_cov_mean[best_bin] * (n - 1) + np.asarray(coverages[contigid])) / n
         )
 
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers

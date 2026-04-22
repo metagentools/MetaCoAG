@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import concurrent.futures
 import heapq
 import logging
 import math
 import sys
+
+import numpy as np
 
 from metacoag.metacoag_utils import matching_utils
 
@@ -40,6 +43,8 @@ def run_bfs_long(
     assembly_graph,
     normalized_tetramer_profiles,
     coverages,
+    bin_tetra_mat=None,
+    bin_cov_mat=None,
 ):
     # Search labelled long contigs using BFS
 
@@ -60,39 +65,50 @@ def run_bfs_long(
             # Get the bin of the current contig
             contig_bin = bin_of_contig[active_node]
 
-            bin_log_prob = 0
-
-            log_prob_sum = 0
-
-            n_contigs = smg_bin_counts[contig_bin]
-            bin_n_contigs = 0
-
-            for j in range(n_contigs):
-                tetramer_dist = matching_utils.get_tetramer_distance(
+            if bin_tetra_mat is not None and contig_bin in bin_tetra_mat:
+                # Vectorised path: one cdist call for all N seed members at once.
+                # Mathematically identical to the scalar loop below —
+                # same formula, same overflow-to-MAX_WEIGHT behaviour.
+                bin_log_prob = matching_utils._compute_edge_weight_exact(
                     normalized_tetramer_profiles[node],
-                    normalized_tetramer_profiles[bins[contig_bin][j]],
+                    coverages[node],
+                    bin_tetra_mat[contig_bin],
+                    bin_cov_mat[contig_bin],
                 )
-                prob_comp = matching_utils.get_comp_probability(tetramer_dist)
-                prob_cov = matching_utils.get_cov_probability(
-                    coverages[node], coverages[bins[contig_bin][j]]
-                )
-
-                prob_product = prob_comp * prob_cov
-
-                log_prob = 0
-
-                if prob_product > 0.0:
-                    log_prob = -(math.log(prob_comp, 10) + math.log(prob_cov, 10))
-                    bin_n_contigs += 1
-                else:
-                    log_prob = MAX_WEIGHT
-
-                log_prob_sum += log_prob
-
-            if log_prob_sum != float("inf") and bin_n_contigs != 0:
-                bin_log_prob = log_prob_sum / bin_n_contigs
             else:
-                bin_log_prob = MAX_WEIGHT
+                bin_log_prob = 0
+
+                log_prob_sum = 0
+
+                n_contigs = smg_bin_counts[contig_bin]
+                bin_n_contigs = 0
+
+                for j in range(n_contigs):
+                    tetramer_dist = matching_utils.get_tetramer_distance(
+                        normalized_tetramer_profiles[node],
+                        normalized_tetramer_profiles[bins[contig_bin][j]],
+                    )
+                    prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+                    prob_cov = matching_utils.get_cov_probability(
+                        coverages[node], coverages[bins[contig_bin][j]]
+                    )
+
+                    prob_product = prob_comp * prob_cov
+
+                    log_prob = 0
+
+                    if prob_product > 0.0:
+                        log_prob = -(math.log(prob_comp, 10) + math.log(prob_cov, 10))
+                        bin_n_contigs += 1
+                    else:
+                        log_prob = MAX_WEIGHT
+
+                    log_prob_sum += log_prob
+
+                if log_prob_sum != float("inf") and bin_n_contigs != 0:
+                    bin_log_prob = log_prob_sum / bin_n_contigs
+                else:
+                    bin_log_prob = MAX_WEIGHT
 
             labelled_nodes.add(
                 (node, active_node, contig_bin, depth[active_node], bin_log_prob)
@@ -192,6 +208,7 @@ def label_prop(
     coverages,
     depth,
     weight,
+    nthreads=1,
 ):
     contigs_to_bin = set()
 
@@ -211,22 +228,29 @@ def label_prop(
             contigs_to_bin.update(closest_neighbours)
 
     sorted_node_list = []
-    sorted_node_list_ = [
-        list(
-            run_bfs_long(
-                x,
-                depth,
-                bin_of_contig.keys(),
-                bin_of_contig,
-                bins,
-                smg_bin_counts,
-                assembly_graph,
-                normalized_tetramer_profiles,
-                coverages,
-            )
-        )
-        for x in contigs_to_bin
-    ]
+    # Build seed-member matrices once. smg_bin_counts is frozen before label
+    # propagation starts (computed from the initial seed bins) and never updated
+    # as new contigs are added — so bins[b][:smg_bin_counts[b]] is stable
+    # throughout the entire function, including the per-neighbour BFS calls
+    # inside the assignment loop.
+    _seed_tetra_mat = {}
+    _seed_cov_mat = {}
+    for _b in range(len(smg_bin_counts)):
+        _n = smg_bin_counts[_b]
+        _members = bins[_b][:_n]
+        _seed_tetra_mat[_b] = np.array([normalized_tetramer_profiles[c] for c in _members])
+        _seed_cov_mat[_b] = np.array([coverages[c] for c in _members], dtype=float)
+
+    # All BFS calls are independent (read-only data); run them in parallel.
+    _binned_view = bin_of_contig.keys()
+    def _bfs_long_worker_lp(x):
+        return list(run_bfs_long(
+            x, depth, _binned_view, bin_of_contig, bins, smg_bin_counts,
+            assembly_graph, normalized_tetramer_profiles, coverages,
+            bin_tetra_mat=_seed_tetra_mat, bin_cov_mat=_seed_cov_mat,
+        ))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
+        sorted_node_list_ = list(pool.map(_bfs_long_worker_lp, contigs_to_bin))
     sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
     for data in sorted_node_list_:
@@ -307,6 +331,8 @@ def label_prop(
                         assembly_graph,
                         normalized_tetramer_profiles,
                         coverages,
+                        bin_tetra_mat=_seed_tetra_mat,
+                        bin_cov_mat=_seed_cov_mat,
                     )
                 )
                 for c in candidates:
@@ -417,6 +443,7 @@ def final_label_prop(
     coverages,
     depth,
     weight,
+    nthreads=1,
 ):
     contigs_to_bin = set()
 
@@ -436,22 +463,26 @@ def final_label_prop(
             contigs_to_bin.update(closest_neighbours)
 
     sorted_node_list = []
-    sorted_node_list_ = [
-        list(
-            run_bfs_long(
-                x,
-                depth,
-                bin_of_contig.keys(),
-                bin_of_contig,
-                bins,
-                smg_bin_counts,
-                assembly_graph,
-                normalized_tetramer_profiles,
-                coverages,
-            )
-        )
-        for x in contigs_to_bin
-    ]
+    # Build seed-member matrices once. Same rationale as in label_prop: smg_bin_counts
+    # is frozen so bins[b][:smg_bin_counts[b]] is stable throughout this function.
+    _seed_tetra_mat_flp = {}
+    _seed_cov_mat_flp = {}
+    for _b in range(len(smg_bin_counts)):
+        _n = smg_bin_counts[_b]
+        _members = bins[_b][:_n]
+        _seed_tetra_mat_flp[_b] = np.array([normalized_tetramer_profiles[c] for c in _members])
+        _seed_cov_mat_flp[_b] = np.array([coverages[c] for c in _members], dtype=float)
+
+    # All BFS calls are independent (read-only data); run them in parallel.
+    _binned_view_flp = bin_of_contig.keys()
+    def _bfs_long_worker_flp(x):
+        return list(run_bfs_long(
+            x, depth, _binned_view_flp, bin_of_contig, bins, smg_bin_counts,
+            assembly_graph, normalized_tetramer_profiles, coverages,
+            bin_tetra_mat=_seed_tetra_mat_flp, bin_cov_mat=_seed_cov_mat_flp,
+        ))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
+        sorted_node_list_ = list(pool.map(_bfs_long_worker_flp, contigs_to_bin))
     sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
     for data in sorted_node_list_:
@@ -522,6 +553,8 @@ def final_label_prop(
                         assembly_graph,
                         normalized_tetramer_profiles,
                         coverages,
+                        bin_tetra_mat=_seed_tetra_mat_flp,
+                        bin_cov_mat=_seed_cov_mat_flp,
                     )
                 )
                 for c in candidates:

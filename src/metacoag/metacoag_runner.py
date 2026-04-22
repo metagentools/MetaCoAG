@@ -749,6 +749,7 @@ def run(args):
         coverages=coverages,
         depth=1,
         weight=w_intra,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
@@ -777,6 +778,7 @@ def run(args):
         coverages=coverages,
         depth=depth,
         weight=w_inter,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
@@ -903,6 +905,7 @@ def run(args):
         coverages=coverages,
         depth=depth,
         weight=MAX_WEIGHT,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
