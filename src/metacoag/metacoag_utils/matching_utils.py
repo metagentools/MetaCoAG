@@ -188,7 +188,7 @@ def match_contigs(
                                 # Batch all targets in the bin into a single
                                 # igraph distances() call (one BFS sweep).
                                 all_paths = assembly_graph.distances(
-                                    my_matching[l], to=bins[b]
+                                    my_matching[l], target=bins[b]
                                 )
                                 # distances() returns a 2-D list; row 0 for our source
                                 path_len_sum = sum(
@@ -281,7 +281,7 @@ def match_contigs(
                     if longest_nb_contig != -1:
                         target_bin = not_binned[longest_nb_contig][1]
                         all_paths = assembly_graph.distances(
-                            longest_nb_contig, to=bins[target_bin]
+                            longest_nb_contig, target=bins[target_bin]
                         )
                         path_len_sum = sum(
                             d for d in all_paths[0] if d != float("inf")
