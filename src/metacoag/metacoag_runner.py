@@ -663,6 +663,7 @@ def run(args):
         normalized_tetramer_profiles=normalized_tetramer_profiles,
         coverages=coverages,
         w_intra=w_intra,
+        nthreads=nthreads,
     )
 
     # Get remaining contigs with single-copy marker genes which are not assigned to bins

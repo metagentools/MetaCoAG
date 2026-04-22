@@ -151,14 +151,15 @@ def run_bfs_short(
 
 
 def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_length):
+    # binned_contigs must support O(1) membership tests (set or dict)
     queu_l = [graph.neighbors(node, mode="ALL")]
-    visited_l = [node]
+    visited_l = {node}
     unlabelled = []
 
     while len(queu_l) > 0:
         active_level = queu_l.pop(0)
         is_finish = False
-        visited_l += active_level
+        visited_l.update(active_level)
 
         for n in active_level:
             if contig_lengths[n] >= min_length and n not in binned_contigs:
@@ -167,15 +168,10 @@ def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_leng
         if is_finish:
             return unlabelled
         else:
-            temp = []
+            temp = set()
             for n in active_level:
-                temp += graph.neighbors(n, mode="ALL")
-                temp = list(set(temp))
-            temp2 = []
-
-            for n in temp:
-                if n not in visited_l:
-                    temp2.append(n)
+                temp.update(graph.neighbors(n, mode="ALL"))
+            temp2 = [n for n in temp if n not in visited_l]
             if len(temp2) > 0:
                 queu_l.append(temp2)
     return unlabelled
@@ -199,6 +195,7 @@ def label_prop(
 ):
     contigs_to_bin = set()
 
+    # Use bin_of_contig directly (dict) for O(1) membership in getClosestLongVertices
     for contig in bin_of_contig:
         if contig in non_isolated and contig_lengths[contig] >= min_length:
             closest_neighbours = filter(
@@ -206,7 +203,7 @@ def label_prop(
                 getClosestLongVertices(
                     assembly_graph,
                     contig,
-                    list(bin_of_contig.keys()),
+                    bin_of_contig,
                     contig_lengths,
                     min_length,
                 ),
@@ -233,12 +230,18 @@ def label_prop(
     sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
     for data in sorted_node_list_:
-        heapObj = DataWrap(data)
-        heapq.heappush(sorted_node_list, heapObj)
+        heapq.heappush(sorted_node_list, DataWrap(data))
+
+    # Lazy-deletion set: contigs that already have a fresh BFS entry queued
+    stale = set()
 
     while sorted_node_list:
         best_choice = heapq.heappop(sorted_node_list)
         to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+
+        # Skip stale entries whose neighbourhood has already been re-queued
+        if to_bin in stale:
+            continue
 
         can_bin = False
 
@@ -276,30 +279,28 @@ def label_prop(
                     set(bin_markers[bin_] + contig_markers[to_bin])
                 )
 
-            # Discover to_bin's neighbours
+            # Discover to_bin's neighbours; mark old entries stale instead of
+            # rebuilding the heap, then push fresh BFS results.
             unbinned_neighbours = set(
                 filter(
                     lambda x: contig_lengths[x] >= min_length,
                     getClosestLongVertices(
                         assembly_graph,
                         to_bin,
-                        list(bin_of_contig.keys()),
+                        bin_of_contig,
                         contig_lengths,
                         min_length,
                     ),
                 )
             )
-            sorted_node_list = list(
-                filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list)
-            )
-            heapq.heapify(sorted_node_list)
+            stale.update(unbinned_neighbours)
 
             for un in unbinned_neighbours:
                 candidates = list(
                     run_bfs_long(
                         un,
                         depth,
-                        list(bin_of_contig.keys()),
+                        bin_of_contig.keys(),
                         bin_of_contig,
                         bins,
                         smg_bin_counts,
@@ -310,6 +311,8 @@ def label_prop(
                 )
                 for c in candidates:
                     heapq.heappush(sorted_node_list, DataWrap(c))
+                # Fresh entry is now queued; remove from stale so it can be processed
+                stale.discard(un)
 
     return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
 
@@ -417,6 +420,7 @@ def final_label_prop(
 ):
     contigs_to_bin = set()
 
+    # Use bin_of_contig directly (dict) for O(1) membership in getClosestLongVertices
     for contig in bin_of_contig:
         if contig_lengths[contig] >= min_length:
             closest_neighbours = filter(
@@ -424,7 +428,7 @@ def final_label_prop(
                 getClosestLongVertices(
                     assembly_graph,
                     contig,
-                    list(bin_of_contig.keys()),
+                    bin_of_contig,
                     contig_lengths,
                     min_length,
                 ),
@@ -451,12 +455,18 @@ def final_label_prop(
     sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
 
     for data in sorted_node_list_:
-        heapObj = DataWrap(data)
-        heapq.heappush(sorted_node_list, heapObj)
+        heapq.heappush(sorted_node_list, DataWrap(data))
+
+    # Lazy-deletion set: contigs that already have a fresh BFS entry queued
+    stale = set()
 
     while sorted_node_list:
         best_choice = heapq.heappop(sorted_node_list)
         to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+
+        # Skip stale entries whose neighbourhood has already been re-queued
+        if to_bin in stale:
+            continue
 
         has_mg = False
 
@@ -484,30 +494,28 @@ def final_label_prop(
                     set(bin_markers[bin_] + contig_markers[to_bin])
                 )
 
-            # Discover to_bin's neighbours
+            # Discover to_bin's neighbours; mark old entries stale instead of
+            # rebuilding the heap, then push fresh BFS results.
             unbinned_neighbours = set(
                 filter(
                     lambda x: contig_lengths[x] >= min_length,
                     getClosestLongVertices(
                         assembly_graph,
                         to_bin,
-                        list(bin_of_contig.keys()),
+                        bin_of_contig,
                         contig_lengths,
                         min_length,
                     ),
                 )
             )
-            sorted_node_list = list(
-                filter(lambda x: x.data[0] not in unbinned_neighbours, sorted_node_list)
-            )
-            heapq.heapify(sorted_node_list)
+            stale.update(unbinned_neighbours)
 
             for un in unbinned_neighbours:
                 candidates = list(
                     run_bfs_long(
                         un,
                         depth,
-                        list(bin_of_contig.keys()),
+                        bin_of_contig.keys(),
                         bin_of_contig,
                         bins,
                         smg_bin_counts,
@@ -518,5 +526,7 @@ def final_label_prop(
                 )
                 for c in candidates:
                     heapq.heappush(sorted_node_list, DataWrap(c))
+                # Fresh entry is now queued; remove from stale so it can be processed
+                stale.discard(un)
 
     return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
