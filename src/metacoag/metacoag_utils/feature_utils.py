@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
+import hashlib
 import itertools
 import logging
 import pickle
 import sys
-from collections import defaultdict
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -98,13 +98,8 @@ def _get_tetramer_cache_signature(contigs_file, min_length, contig_lengths):
     return {
         "contigs_file": _get_contigs_file_metadata(contigs_file),
         "min_length": min_length,
-        "eligible_contigs": tuple(
-            sorted(
-                (contig, length)
-                for contig, length in contig_lengths.items()
-                if length >= min_length
-            )
-        ),
+        "node_count": len(contig_lengths),
+        "contig_lengths_digest": hashlib.sha256(contig_lengths.tobytes()).digest(),
     }
 
 
@@ -115,14 +110,18 @@ def _load_cached_tetramer_profiles(cache_path, signature):
     with open(cache_path, "rb") as handle:
         cached = pickle.load(handle)
 
-    if not isinstance(cached, dict) or cached.get("version") != 2:
+    if not isinstance(cached, dict) or cached.get("version") != 3:
         return None
 
     if cached.get("signature") != signature:
         return None
 
     profiles = cached.get("profiles")
-    if not isinstance(profiles, dict):
+    if (
+        not isinstance(profiles, np.ndarray)
+        or profiles.ndim != 2
+        or profiles.shape[0] != signature["node_count"]
+    ):
         return None
 
     return profiles
@@ -171,8 +170,10 @@ def get_tetramer_profiles(
     normalized_tetramer_profiles = _load_cached_tetramer_profiles(cache_path, signature)
 
     if normalized_tetramer_profiles is None:
-        normalized_tetramer_profiles = {}
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
+        normalized_tetramer_profiles = np.zeros(
+            (len(contig_lengths), kmer_count_len_4), dtype=float
+        )
         work_items = _iter_tetramer_work_items(
             contigs_file=contigs_file,
             contig_names_rev=contig_names_rev,
@@ -196,7 +197,7 @@ def get_tetramer_profiles(
         with open(cache_path, "wb") as handle:
             pickle.dump(
                 {
-                    "version": 2,
+                    "version": 3,
                     "signature": signature,
                     "profiles": normalized_tetramer_profiles,
                 },
@@ -207,43 +208,57 @@ def get_tetramer_profiles(
     return normalized_tetramer_profiles
 
 
-def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
-    coverages = defaultdict(lambda: [0])
+def _validate_coverage_rows(coverages, contig_lengths, min_length):
+    eligible_contigs = np.flatnonzero(contig_lengths >= min_length)
+    missing = eligible_contigs[
+        ~np.isfinite(coverages[eligible_contigs]).all(axis=1)
+    ]
+    if len(missing) > 0:
+        raise ValueError(
+            f"Missing coverage values for {len(missing)} contigs longer than "
+            f"{min_length}bp"
+        )
 
-    contig_lengths = defaultdict(int)
+
+def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
+    node_count = len(contig_names_rev)
+    contig_lengths = np.zeros(node_count, dtype=np.int64)
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
         contig_num = contig_names_rev[record.id]
+        contig_lengths[contig_num] = len(record.seq)
 
-        length = len(record.seq)
-
-        contig_lengths[contig_num] = length
-
+    coverages = None
+    has_coverage = False
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
             strings = line.strip().split("\t")
+            if not strings or strings == [""]:
+                continue
+
+            if coverages is None:
+                n_samples = len(strings) - 1
+                if n_samples <= 0:
+                    raise ValueError("Abundance file does not contain sample values")
+                coverages = np.full((node_count, n_samples), np.nan, dtype=float)
+            elif len(strings) - 1 != n_samples:
+                raise ValueError("Inconsistent number of samples in abundance file")
 
             contig_num = contig_names_rev[strings[0]]
 
             if contig_lengths[contig_num] >= min_length:
-                for i in range(1, len(strings)):
-                    contig_coverage = float(strings[i])
+                contig_coverage = np.asarray(strings[1:], dtype=float)
+                coverages[contig_num] = np.maximum(
+                    contig_coverage, VERY_SMALL_VAL
+                )
+                has_coverage = True
 
-                    if contig_coverage < VERY_SMALL_VAL:
-                        contig_coverage = VERY_SMALL_VAL
-
-                    if contig_num not in coverages:
-                        coverages[contig_num] = [contig_coverage]
-                    else:
-                        coverages[contig_num].append(contig_coverage)
-
-    if len(coverages) == 0:
+    if not has_coverage:
         logger.error(f"Could not find any contigs longer than {min_length}bp.")
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
-    sample_vals = list(coverages.keys())
-    n_samples = len(coverages[sample_vals[0]])
+    _validate_coverage_rows(coverages, contig_lengths, min_length)
 
     return coverages, contig_lengths, n_samples
 
@@ -251,43 +266,48 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
 def get_cov_len_megahit(
     contigs_file, contig_names_rev, graph_to_contig_map_rev, min_length, abundance_file
 ):
-    coverages = {}
-
-    contig_lengths = {}
+    node_count = len(contig_names_rev)
+    contig_lengths = np.zeros(node_count, dtype=np.int64)
 
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
         if record.id not in graph_to_contig_map_rev:
             continue
         contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
-        length = len(record.seq)
-        contig_lengths[contig_num] = length
+        contig_lengths[contig_num] = len(record.seq)
 
+    coverages = None
+    has_coverage = False
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
             strings = line.strip().split("\t")
+            if not strings or strings == [""]:
+                continue
+
+            if coverages is None:
+                n_samples = len(strings) - 1
+                if n_samples <= 0:
+                    raise ValueError("Abundance file does not contain sample values")
+                coverages = np.full((node_count, n_samples), np.nan, dtype=float)
+            elif len(strings) - 1 != n_samples:
+                raise ValueError("Inconsistent number of samples in abundance file")
 
             if strings[0] not in graph_to_contig_map_rev:
                 continue
             contig_num = contig_names_rev[graph_to_contig_map_rev[strings[0]]]
 
             if contig_lengths[contig_num] >= min_length:
-                for i in range(1, len(strings)):
-                    contig_coverage = float(strings[i])
+                contig_coverage = np.asarray(strings[1:], dtype=float)
+                coverages[contig_num] = np.maximum(
+                    contig_coverage, VERY_SMALL_VAL
+                )
+                has_coverage = True
 
-                    if contig_coverage < VERY_SMALL_VAL:
-                        contig_coverage = VERY_SMALL_VAL
-
-                    if contig_num not in coverages:
-                        coverages[contig_num] = [contig_coverage]
-                    else:
-                        coverages[contig_num].append(contig_coverage)
-
-    if len(coverages) == 0:
+    if not has_coverage:
         logger.error(f"Could not find any contigs longer than {min_length}bp.")
         logger.info("Exiting MetaCoAG... Bye...!")
         sys.exit(1)
 
-    n_samples = len(coverages[list(coverages.keys())[0]])
+    _validate_coverage_rows(coverages, contig_lengths, min_length)
 
     return coverages, contig_lengths, n_samples
 
@@ -297,15 +317,9 @@ def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
     bin_coverage_profile = {}
 
     for b in bins:
-        coverage_b = []
-        tetramer_b = []
-
-        for contig in bins[b]:
-            coverage_b.append(coverages[contig])
-            tetramer_b.append(normalized_tetramer_profiles[contig])
-
-        coverage_b = np.array(coverage_b)
-        tetramer_b = np.array(tetramer_b)
+        members = np.asarray(bins[b], dtype=np.intp)
+        coverage_b = coverages[members]
+        tetramer_b = normalized_tetramer_profiles[members]
 
         bin_coverage_profile[b] = np.mean(coverage_b, axis=0)
         bin_tetramer_profile[b] = np.mean(tetramer_b, axis=0)

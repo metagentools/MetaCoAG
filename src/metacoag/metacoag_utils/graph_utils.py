@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 
+import hashlib
 import re
 from collections import defaultdict
 
 from Bio import SeqIO
 
 from metacoag.metacoag_utils.bidirectionalmap import BidirectionalMap
+
+
+def hash_sequence(sequence):
+    """Return a stable, compact digest for sequence identity matching."""
+    return hashlib.sha256(str(sequence).encode("utf-8")).digest()
 
 
 def get_segment_paths_spades(contig_paths):
@@ -265,7 +271,7 @@ def get_graph_edges_flye(
 def get_links_megahit(assembly_graph_file):
     node_count = 0
 
-    graph_contigs = {}
+    graph_contig_hashes = {}
 
     links = []
 
@@ -294,13 +300,13 @@ def get_links_megahit(assembly_graph_file):
 
                 my_map[node_count] = strings[1]
 
-                graph_contigs[strings[1]] = strings[2]
+                graph_contig_hashes[strings[1]] = hash_sequence(strings[2])
 
                 node_count += 1
 
             line = file.readline()
 
-    return node_count, graph_contigs, links, my_map
+    return node_count, graph_contig_hashes, links, my_map
 
 
 def get_links_megahit_custom(assembly_graph_file):

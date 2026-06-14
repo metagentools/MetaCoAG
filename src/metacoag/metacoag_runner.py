@@ -11,6 +11,7 @@ import pathlib
 import subprocess
 import sys
 import time
+from collections import OrderedDict
 
 from Bio import SeqIO
 from igraph import *
@@ -32,6 +33,40 @@ __status__ = "Stable Release"
 # ---------------------------------------------------
 
 MAX_WEIGHT = sys.float_info.max
+MAX_OPEN_BIN_FILES = 32
+
+
+class _BinFastaWriter:
+    def __init__(self, paths, max_open_files=MAX_OPEN_BIN_FILES):
+        if max_open_files <= 0:
+            raise ValueError("max_open_files must be positive")
+
+        self.paths = set(paths)
+        self.max_open_files = max_open_files
+        self.open_files = OrderedDict()
+
+    def __enter__(self):
+        # Truncate existing outputs without keeping every file descriptor open.
+        for path in self.paths:
+            with open(path, "w"):
+                pass
+        return self
+
+    def write(self, path, record):
+        output_file = self.open_files.pop(path, None)
+        if output_file is None:
+            if len(self.open_files) >= self.max_open_files:
+                _, oldest_file = self.open_files.popitem(last=False)
+                oldest_file.close()
+            output_file = open(path, "a")
+
+        self.open_files[path] = output_file
+        output_file.write(f">{record.id}\n{record.seq}\n")
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for output_file in self.open_files.values():
+            output_file.close()
+        self.open_files.clear()
 
 
 def run(args):
@@ -192,18 +227,18 @@ def run(args):
         contig_names_rev = contig_names.inverse
 
     if assembler == "megahit":
-        original_contigs = {}
+        original_hash_to_name = {}
         contig_descriptions = {}
 
-        # Get mapping of original contig identifiers with descriptions
+        # Map sequence digests to original contig identifiers and descriptions.
         for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-            original_contigs[record.id] = str(record.seq)
+            original_hash_to_name[graph_utils.hash_sequence(record.seq)] = record.id
             contig_descriptions[record.id] = record.description
 
         # Get links and contigs of the assembly graph
         (
             node_count,
-            graph_contigs,
+            graph_contig_hashes,
             links,
             contig_names,
         ) = graph_utils.get_links_megahit(assembly_graph_file)
@@ -322,14 +357,9 @@ def run(args):
         # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
         graph_to_contig_map = BidirectionalMap()
 
-        # Build reverse lookup: sequence -> original contig name
-        original_seq_to_name = {}
-        for name, seq in original_contigs.items():
-            original_seq_to_name[seq] = name
-
-        for graph_name, graph_seq in graph_contigs.items():
-            if graph_seq in original_seq_to_name:
-                graph_to_contig_map[graph_name] = original_seq_to_name[graph_seq]
+        for graph_name, graph_hash in graph_contig_hashes.items():
+            if graph_hash in original_hash_to_name:
+                graph_to_contig_map[graph_name] = original_hash_to_name[graph_hash]
 
         graph_to_contig_map_rev = graph_to_contig_map.inverse
 
@@ -356,12 +386,6 @@ def run(args):
             abundance_file=abundance_file,
         )
 
-        # Assign length 0 to graph-only contigs (in GFA but not in FASTA)
-        # so they are excluded by all downstream min_length checks
-        for i in range(node_count):
-            if i not in contig_lengths:
-                contig_lengths[i] = 0
-
     else:
         coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
             contigs_file=contigs_file,
@@ -372,11 +396,7 @@ def run(args):
 
     isolated_long = []
 
-    my_long = 0
-
-    for contig in contig_lengths:
-        if contig_lengths[contig] >= min_length:
-            my_long += 1
+    my_long = int((contig_lengths >= min_length).sum())
 
     for contig in isolated:
         if contig_lengths[contig] >= min_length:
@@ -1075,43 +1095,38 @@ def run(args):
 
     logger.info("Writing the Final Binning result to file")
 
-    bin_files = {}
+    final_bin_paths = {
+        bin_name: pathlib.Path(output_bins_path) / f"{prefix}bin_{bin_name}.fasta"
+        for bin_name in set(final_bins.values())
+    }
+    lowq_bin_paths = {
+        bin_name: pathlib.Path(lq_output_bins_path)
+        / f"{prefix}bin_{bin_name}_seqs.fasta"
+        for bin_name in set(lowq_bins.values())
+    }
 
-    for bin_name in set(final_bins.values()):
-        bin_files[bin_name] = open(
-            f"{output_bins_path}/{prefix}bin_{bin_name}.fasta", "w+"
-        )
+    with _BinFastaWriter(
+        [*final_bin_paths.values(), *lowq_bin_paths.values()]
+    ) as bin_writer:
+        for record in tqdm(
+            SeqIO.parse(contigs_file, "fasta"),
+            desc="Splitting contigs into bins",
+        ):
+            if assembler == "megahit":
+                contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
+            else:
+                contig_num = contig_names_rev[record.id]
 
-    for bin_name in set(lowq_bins.values()):
-        bin_files[bin_name] = open(
-            f"{lq_output_bins_path}/{prefix}bin_{bin_name}_seqs.fasta", "w+"
-        )
-
-    for n, record in tqdm(
-        enumerate(SeqIO.parse(contigs_file, "fasta")),
-        desc="Splitting contigs into bins",
-    ):
-        if assembler == "megahit":
-            contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
-        else:
-            contig_num = contig_names_rev[record.id]
-
-        if contig_num in final_bins:
-            bin_files[final_bins[contig_num]].write(
-                f">{str(record.id)}\n{str(record.seq)}\n"
-            )
-
-        elif contig_num in lowq_bins:
-            bin_files[lowq_bins[contig_num]].write(
-                f">{str(record.id)}\n{str(record.seq)}\n"
-            )
-
-    # Close output files
-    for c in set(final_bins.values()):
-        bin_files[c].close()
-
-    for c in set(lowq_bins.values()):
-        bin_files[c].close()
+            if contig_num in final_bins:
+                bin_writer.write(
+                    final_bin_paths[final_bins[contig_num]],
+                    record,
+                )
+            elif contig_num in lowq_bins:
+                bin_writer.write(
+                    lowq_bin_paths[lowq_bins[contig_num]],
+                    record,
+                )
 
     logger.info(f"Producing {final_bin_count} bins...")
     logger.info(f"Final binning results can be found in {output_bins_path}")

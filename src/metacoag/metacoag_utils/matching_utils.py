@@ -74,9 +74,9 @@ def _build_bin_matrices(bins, n_bins, normalized_tetramer_profiles, coverages):
     bin_tetra_mat = {}
     bin_cov_mat = {}
     for b in range(n_bins):
-        members = bins[b]
-        bin_tetra_mat[b] = np.array([normalized_tetramer_profiles[c] for c in members])
-        bin_cov_mat[b] = np.array([coverages[c] for c in members], dtype=float)
+        members = np.asarray(bins[b], dtype=np.intp)
+        bin_tetra_mat[b] = normalized_tetramer_profiles[members]
+        bin_cov_mat[b] = coverages[members]
     return bin_tetra_mat, bin_cov_mat
 
 

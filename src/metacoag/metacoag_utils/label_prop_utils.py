@@ -238,9 +238,9 @@ def label_prop(
     _seed_cov_mat = {}
     for _b in range(len(smg_bin_counts)):
         _n = smg_bin_counts[_b]
-        _members = bins[_b][:_n]
-        _seed_tetra_mat[_b] = np.array([normalized_tetramer_profiles[c] for c in _members])
-        _seed_cov_mat[_b] = np.array([coverages[c] for c in _members], dtype=float)
+        _members = np.asarray(bins[_b][:_n], dtype=np.intp)
+        _seed_tetra_mat[_b] = normalized_tetramer_profiles[_members]
+        _seed_cov_mat[_b] = coverages[_members]
 
     # All BFS calls are independent (read-only data); run them in parallel.
     _binned_view = bin_of_contig.keys()
@@ -460,9 +460,9 @@ def final_label_prop(
     _seed_cov_mat_flp = {}
     for _b in range(len(smg_bin_counts)):
         _n = smg_bin_counts[_b]
-        _members = bins[_b][:_n]
-        _seed_tetra_mat_flp[_b] = np.array([normalized_tetramer_profiles[c] for c in _members])
-        _seed_cov_mat_flp[_b] = np.array([coverages[c] for c in _members], dtype=float)
+        _members = np.asarray(bins[_b][:_n], dtype=np.intp)
+        _seed_tetra_mat_flp[_b] = normalized_tetramer_profiles[_members]
+        _seed_cov_mat_flp[_b] = coverages[_members]
 
     # All BFS calls are independent (read-only data); run them in parallel.
     _binned_view_flp = bin_of_contig.keys()
