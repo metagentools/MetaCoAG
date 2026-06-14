@@ -145,7 +145,7 @@ def get_links_flye(contig_paths, contig_names_rev):
     my_map = BidirectionalMap()
 
     with open(contig_paths) as file:
-        for line in file.readlines():
+        for line in file:
             if not line.startswith("#"):
                 strings = line.strip().split()
 
@@ -320,7 +320,7 @@ def get_links_megahit_custom(assembly_graph_file):
 
     # Get contig connections from .gfa file
     with open(assembly_graph_file) as file:
-        for line in file.readlines():
+        for line in file:
             line = line.strip()
 
             # Count the number of contigs
@@ -357,7 +357,7 @@ def get_links_custom(assembly_graph_file):
 
     # Get contig connections from .gfa file
     with open(assembly_graph_file) as file:
-        for line in file.readlines():
+        for line in file:
             line = line.strip()
 
             # Count the number of contigs

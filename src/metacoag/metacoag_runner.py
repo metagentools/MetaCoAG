@@ -962,63 +962,53 @@ def run(args):
         bins_graph.vs[i]["id"] = i
         bins_graph.vs[i]["label"] = "bin " + str(i + 1)
 
-    bins_to_rem = []
+    bin_ids = list(bins)
+    bin_marker_sets = {b: frozenset(bin_markers[b]) for b in bin_ids}
+    best_merge_bins = {b: -1 for b in bin_ids}
+    best_merge_weights = {b: MAX_WEIGHT for b in bin_ids}
 
-    for b in bins:
-        possible_bins = []
-
-        no_possible_bins = True
-
+    for b in bin_ids:
         logger.debug(
-            f"Bin {b}: # contigs: {len(bins[b])}, bin size: {bin_size[b]}bp, # markers: {len(bin_markers[b])}"
+            f"Bin {b}: # contigs: {len(bins[b])}, bin size: {bin_size[b]}bp, # markers: {len(bin_marker_sets[b])}"
         )
 
-        min_pb = -1
-        min_pb_weight = MAX_WEIGHT
+    for index, b in enumerate(bin_ids):
+        for pb_index in range(index + 1, len(bin_ids)):
+            pb = bin_ids[pb_index]
+            if not bin_marker_sets[b].isdisjoint(bin_marker_sets[pb]):
+                continue
 
-        for pb in bin_markers:
-            common_mgs = bin_markers[pb] & bin_markers[b]
+            tetramer_dist = matching_utils.get_tetramer_distance(
+                bin_seed_tetramer_profiles[b], bin_seed_tetramer_profiles[pb]
+            )
+            prob_comp = matching_utils.get_comp_probability(tetramer_dist)
+            prob_cov = matching_utils.get_cov_probability(
+                bin_seed_coverage_profiles[b], bin_seed_coverage_profiles[pb]
+            )
+            prob_product = prob_comp * prob_cov
 
-            if len(common_mgs) == 0:
-                tetramer_dist = matching_utils.get_tetramer_distance(
-                    bin_seed_tetramer_profiles[b], bin_seed_tetramer_profiles[pb]
-                )
-                prob_comp = matching_utils.get_comp_probability(tetramer_dist)
-                prob_cov = matching_utils.get_cov_probability(
-                    bin_seed_coverage_profiles[pb], bin_seed_coverage_profiles[b]
-                )
-                prob_product = prob_comp * prob_cov
-                log_prob = 0
+            if prob_product > 0.0:
+                log_prob = -(math.log(prob_comp, 10) + math.log(prob_cov, 10))
+            else:
+                log_prob = MAX_WEIGHT
 
-                if prob_product > 0.0:
-                    log_prob = -(math.log(prob_comp, 10) + math.log(prob_cov, 10))
-                else:
-                    log_prob = MAX_WEIGHT
+            if log_prob > w_intra:
+                continue
 
-                if log_prob <= w_intra:
-                    prob_cov1 = matching_utils.get_cov_probability(
-                        bin_seed_coverage_profiles[pb], bin_seed_coverage_profiles[b]
-                    )
-                    prob_product1 = prob_comp * prob_cov1
-                    log_prob1 = 0
+            if log_prob < best_merge_weights[b]:
+                best_merge_weights[b] = log_prob
+                best_merge_bins[b] = pb
 
-                    if prob_product1 > 0.0:
-                        log_prob1 = -(math.log(prob_comp, 10) + math.log(prob_cov1, 10))
-                    else:
-                        log_prob1 = MAX_WEIGHT
+            if log_prob < best_merge_weights[pb]:
+                best_merge_weights[pb] = log_prob
+                best_merge_bins[pb] = b
 
-                    if log_prob1 <= w_intra:
-                        possible_bins.append(pb)
+    bins_to_rem = []
 
-                        if log_prob < min_pb_weight:
-                            min_pb_weight = log_prob
-                            min_pb = pb
-
-        if min_pb != -1:
-            bins_graph.add_edge(b, min_pb)
-            no_possible_bins = False
-
-        if no_possible_bins and len(bin_markers[b]) < n_mg * bin_mg_threshold:
+    for b in bin_ids:
+        if best_merge_bins[b] != -1:
+            bins_graph.add_edge(b, best_merge_bins[b])
+        elif len(bin_marker_sets[b]) < n_mg * bin_mg_threshold:
             bins_to_rem.append(b)
 
     bin_cliques = bins_graph.maximal_cliques()

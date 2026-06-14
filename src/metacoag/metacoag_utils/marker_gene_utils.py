@@ -89,7 +89,7 @@ def get_all_contigs_with_marker_genes(
     contig_markers = {}
 
     with open(f"{contigs_file}.hmmout", "r") as myfile:
-        for line in myfile.readlines():
+        for line in myfile:
             if not line.startswith("#"):
                 strings = line.strip().split()
 
@@ -127,7 +127,7 @@ def get_contigs_with_marker_genes(
     contig_markers = {}
 
     with open(f"{contigs_file}.hmmout", "r") as myfile:
-        for line in myfile.readlines():
+        for line in myfile:
             if not line.startswith("#"):
                 strings = line.strip().split()
 
@@ -192,7 +192,7 @@ def get_contigs_with_marker_genes_megahit(
     contig_markers = {}
 
     with open(f"{contigs_file}.hmmout", "r") as myfile:
-        for line in myfile.readlines():
+        for line in myfile:
             if not line.startswith("#"):
                 strings = line.strip().split()
 
