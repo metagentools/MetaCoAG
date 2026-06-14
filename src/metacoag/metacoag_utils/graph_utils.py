@@ -314,8 +314,6 @@ def get_links_megahit_custom(assembly_graph_file):
 
     node_count = 0
 
-    nodes = []
-
     links = []
 
     # Get contig connections from .gfa file
@@ -328,7 +326,6 @@ def get_links_megahit_custom(assembly_graph_file):
                 strings = line.split("\t")
                 my_node = strings[1][:-2]
                 my_map[node_count] = my_node
-                nodes.append(my_node)
                 node_count += 1
 
             # Identify lines with link information
@@ -351,8 +348,6 @@ def get_links_custom(assembly_graph_file):
 
     node_count = 0
 
-    nodes = []
-
     links = []
 
     # Get contig connections from .gfa file
@@ -365,7 +360,6 @@ def get_links_custom(assembly_graph_file):
                 strings = line.split("\t")
                 my_node = strings[1]
                 my_map[node_count] = my_node
-                nodes.append(my_node)
                 node_count += 1
 
             # Identify lines with link information

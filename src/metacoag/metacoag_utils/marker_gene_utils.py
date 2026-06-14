@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
-import os
 import pathlib
+import subprocess
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -19,103 +19,56 @@ logger = logging.getLogger(f"MetaCoaAG {__version__}")
 
 # Modified from SolidBin
 def scan_for_marker_genes(contigs_file, nthreads, markerURL, no_cut_tc, hard=0):
-
-    fragScanURL = "run_FragGeneScan.pl"
-    hmmExeURL = "hmmsearch"
-
     if markerURL == "auxiliary/marker.hmm":
-        software_path = pathlib.Path(__file__).parent.absolute()
-        markerURL = os.path.join(software_path, "auxiliary", "marker.hmm")
+        markerURL = pathlib.Path(__file__).parent / "auxiliary" / "marker.hmm"
 
-    logger.info("Using marker file: " + markerURL)
+    marker_path = pathlib.Path(markerURL)
+    contigs_path = pathlib.Path(contigs_file)
+    frag_prefix = pathlib.Path(f"{contigs_file}.frag")
+    frag_result = pathlib.Path(f"{frag_prefix}.faa")
+    hmm_result = pathlib.Path(f"{contigs_file}.hmmout")
 
-    fragResultURL = f"{contigs_file}.frag.faa"
-    hmmResultURL = f"{contigs_file}.hmmout"
-    if not (os.path.exists(fragResultURL)):
-        fragCmd = (
-            fragScanURL
-            + " -genome="
-            + contigs_file
-            + " -out="
-            + contigs_file
-            + ".frag -complete=0 -train=complete -thread="
-            + str(nthreads)
-            + " 1>"
-            + contigs_file
-            + ".frag.out 2>"
-            + contigs_file
-            + ".frag.err"
+    logger.info("Using marker file: %s", marker_path)
+
+    if not frag_result.exists():
+        frag_command = [
+            "run_FragGeneScan.pl",
+            f"-genome={contigs_path}",
+            f"-out={frag_prefix}",
+            "-complete=0",
+            "-train=complete",
+            f"-thread={nthreads}",
+        ]
+        logger.debug("exec cmd: %s", subprocess.list2cmdline(frag_command))
+        with open(f"{frag_prefix}.out", "w") as stdout, open(
+            f"{frag_prefix}.err", "w"
+        ) as stderr:
+            subprocess.run(frag_command, stdout=stdout, stderr=stderr, check=True)
+
+    if not frag_result.exists():
+        raise FileNotFoundError(
+            f"FragGeneScan completed without creating expected output: {frag_result}"
         )
-        logger.debug(f"exec cmd: {fragCmd}")
-        os.system(fragCmd)
 
-    if os.path.exists(fragResultURL):
-        use_cut_tc = ""
-        if not no_cut_tc:
-            use_cut_tc = "--cut_tc"
+    if hmm_result.exists():
+        return
 
-        if not (os.path.exists(hmmResultURL)):
-            hmmCmd = (
-                hmmExeURL
-                + " --domtblout "
-                + hmmResultURL
-                + " "
-                + use_cut_tc
-                + " --cpu "
-                + str(nthreads)
-                + " "
-                + markerURL
-                + " "
-                + fragResultURL
-                + " 1>"
-                + hmmResultURL
-                + ".out 2>"
-                + hmmResultURL
-                + ".err"
-            )
-            logger.debug(f"exec cmd: {hmmCmd}")
-            os.system(hmmCmd)
+    hmm_command = ["hmmsearch", "--domtblout", str(hmm_result)]
+    if not no_cut_tc:
+        hmm_command.append("--cut_tc")
+    hmm_command.extend(
+        ["--cpu", str(nthreads), str(marker_path), str(frag_result)]
+    )
+    logger.debug("exec cmd: %s", subprocess.list2cmdline(hmm_command))
+    with open(f"{hmm_result}.out", "w") as stdout, open(
+        f"{hmm_result}.err", "w"
+    ) as stderr:
+        subprocess.run(hmm_command, stdout=stdout, stderr=stderr, check=True)
 
-        else:
-            logger.debug(f"HMMER search failed! Path: {hmmResultURL} does not exist.")
-    else:
-        logger.debug(f"FragGeneScan failed! Path: {fragResultURL} does not exist.")
-
-
-# Get contigs containing marker genes
-def get_all_contigs_with_marker_genes(
-    contigs_file, contig_names_rev, mg_length_threshold
-):
-    contig_markers = {}
-
-    with open(f"{contigs_file}.hmmout", "r") as myfile:
-        for line in myfile:
-            if not line.startswith("#"):
-                strings = line.strip().split()
-
-                contig = strings[0]
-
-                # Marker gene name
-                marker_gene = strings[3]
-
-                # Marker gene length
-                marker_gene_length = int(strings[5])
-
-                # Mapped marker gene length
-                mapped_marker_length = int(strings[16]) - int(strings[15])
-
-                name_strings = contig.split("_")
-                name_strings = name_strings[: len(name_strings) - 3]
-
-                # Contig name
-                contig_name = "_".join(name_strings)
-
-                contig_num = contig_names_rev[contig_name]
-
-                if mapped_marker_length > marker_gene_length * mg_length_threshold:
-                    contig_markers.setdefault(contig_num, set()).add(marker_gene)
-
-    return contig_markers
+    if not hmm_result.exists():
+        raise FileNotFoundError(
+            f"hmmsearch completed without creating expected output: {hmm_result}"
+        )
 
 
 # Get contigs containing marker genes

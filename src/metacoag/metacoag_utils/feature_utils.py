@@ -80,8 +80,10 @@ def count_kmers(args):
 
 
 def _get_tetramer_cache_path(output_path, contigs_file):
+    output_dir = Path(output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
     contigs_name = Path(contigs_file).name
-    return Path(output_path) / f"{contigs_name}.normalized_contig_tetramers.pickle"
+    return output_dir / f"{contigs_name}.normalized_contig_tetramers.pickle"
 
 
 def _get_contigs_file_metadata(contigs_file):

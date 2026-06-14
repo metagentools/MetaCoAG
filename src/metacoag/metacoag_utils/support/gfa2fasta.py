@@ -7,8 +7,8 @@ The assembly graph file of Flye (assembly_graph.gfa) should be provided as input
 import click
 import logging
 import os
+import pathlib
 import re
-import subprocess
 import sys
 
 from cogent3.format.fasta import alignment_to_fasta
@@ -44,7 +44,8 @@ def main(graph, output, log):
     # -----------------------
 
     assembly_graph_file = graph
-    output_path = output
+    output_path = pathlib.Path(output)
+    output_path.mkdir(parents=True, exist_ok=True)
     log_file = log
     prefix = ""
 
@@ -62,7 +63,7 @@ def main(graph, output, log):
 
     # Setup output path for log file
     if log_file is None:
-        fileHandler = logging.FileHandler(f"{output_path}/gfa2fasta.log")
+        fileHandler = logging.FileHandler(output_path / "gfa2fasta.log")
     else:
         fileHandler = logging.FileHandler(f"{log_file}")
 
@@ -77,17 +78,6 @@ def main(graph, output, log):
         )
         logger.info("Exiting gfa2fasta.py...\nBye...!\n")
         sys.exit(1)
-
-    # Check if output folder exists
-    # ---------------------------------------------------
-
-    # Handle for missing trailing forwardslash in output folder path
-    if output_path[-1:] != "/":
-        output_path = f"{output_path}/"
-
-    # Create output folder if it does not exist
-    if not os.path.isdir(output_path):
-        subprocess.run("mkdir -p " + output_path, shell=True)
 
     # Get the sequences corresponding to edges of the graph.
     # ---------------------------------------------------
@@ -108,7 +98,7 @@ def main(graph, output, log):
 
     logger.info("Writing edge sequences to FASTA file")
 
-    with open(f"{output_path}{prefix}edges.fasta", "w") as output:
+    with open(output_path / f"{prefix}edges.fasta", "w") as output:
         output.write(alignment_to_fasta(seqs))
 
     logger.info(
