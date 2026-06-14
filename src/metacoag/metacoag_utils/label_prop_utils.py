@@ -5,6 +5,7 @@ import heapq
 import logging
 import math
 import sys
+from collections import deque
 
 import numpy as np
 
@@ -48,7 +49,7 @@ def run_bfs_long(
 ):
     # Search labelled long contigs using BFS
 
-    queue = []
+    queue = deque()
     visited = set()
     queue.append(node)
     depth = {}
@@ -57,8 +58,8 @@ def run_bfs_long(
 
     labelled_nodes = set()
 
-    while len(queue) > 0:
-        active_node = queue.pop(0)
+    while queue:
+        active_node = queue.popleft()
         visited.add(active_node)
 
         if active_node in binned_contigs and len(visited) > 1:
@@ -130,7 +131,7 @@ def run_bfs_short(
 ):
     # Search labelled contigs using BFS
 
-    queue = []
+    queue = deque()
     visited = set()
     queue.append(node)
     depth = {}
@@ -139,8 +140,8 @@ def run_bfs_short(
 
     labelled_nodes = set()
 
-    while len(queue) > 0:
-        active_node = queue.pop(0)
+    while queue:
+        active_node = queue.popleft()
         visited.add(active_node)
 
         if active_node in binned_contigs and len(visited) > 1:
@@ -168,12 +169,12 @@ def run_bfs_short(
 
 def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_length):
     # binned_contigs must support O(1) membership tests (set or dict)
-    queu_l = [graph.neighbors(node, mode="ALL")]
+    queu_l = deque([graph.neighbors(node, mode="ALL")])
     visited_l = {node}
     unlabelled = []
 
-    while len(queu_l) > 0:
-        active_level = queu_l.pop(0)
+    while queu_l:
+        active_level = queu_l.popleft()
         is_finish = False
         visited_l.update(active_level)
 
