@@ -345,7 +345,6 @@ def run(args):
 
     if assembler == "megahit":
         (
-            sequences,
             coverages,
             contig_lengths,
             n_samples,
@@ -364,7 +363,7 @@ def run(args):
                 contig_lengths[i] = 0
 
     else:
-        sequences, coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
+        coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
             contigs_file=contigs_file,
             contig_names_rev=contig_names_rev,
             min_length=min_length,
@@ -402,15 +401,15 @@ def run(args):
 
     normalized_tetramer_profiles = feature_utils.get_tetramer_profiles(
         output_path=output_path,
-        sequences=sequences,
         contigs_file=contigs_file,
+        contig_names_rev=contig_names_rev,
         contig_lengths=contig_lengths,
         min_length=min_length,
         nthreads=nthreads,
+        graph_to_contig_map_rev=(
+            graph_to_contig_map_rev if assembler == "megahit" else None
+        ),
     )
-
-    del sequences
-    gc.collect()
 
     # Get contigs with marker genes
     # -----------------------------------------------------

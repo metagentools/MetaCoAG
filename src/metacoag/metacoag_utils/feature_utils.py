@@ -2,11 +2,11 @@
 
 import itertools
 import logging
-import os
 import pickle
 import sys
 from collections import defaultdict
 from multiprocessing import Pool
+from pathlib import Path
 
 import numpy as np
 from Bio import SeqIO
@@ -67,70 +67,144 @@ def compute_kmer_inds(k):
 
 
 def count_kmers(args):
-    seq, k, kmer_inds, kmer_count_len = args
+    contig_num, seq, k, kmer_inds, kmer_count_len = args
     profile = np.zeros(kmer_count_len)
-    seq = list(seq.strip())
+    seq = seq.strip()
 
     for i in range(0, len(seq) - k + 1):
         bit_mer = mer2bits(seq[i : (i + k)])
         index = kmer_inds[bit_mer]
         profile[index] += 1
 
-    return profile, profile / max(1, sum(profile))
+    return contig_num, profile / max(1, sum(profile))
+
+
+def _get_tetramer_cache_path(output_path, contigs_file):
+    contigs_name = Path(contigs_file).name
+    return Path(output_path) / f"{contigs_name}.normalized_contig_tetramers.pickle"
+
+
+def _get_contigs_file_metadata(contigs_file):
+    contigs_path = Path(contigs_file)
+    stat = contigs_path.stat()
+    return {
+        "path": str(contigs_path.resolve()),
+        "size": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def _get_tetramer_cache_signature(contigs_file, min_length, contig_lengths):
+    return {
+        "contigs_file": _get_contigs_file_metadata(contigs_file),
+        "min_length": min_length,
+        "eligible_contigs": tuple(
+            sorted(
+                (contig, length)
+                for contig, length in contig_lengths.items()
+                if length >= min_length
+            )
+        ),
+    }
+
+
+def _load_cached_tetramer_profiles(cache_path, signature):
+    if not cache_path.is_file():
+        return None
+
+    with open(cache_path, "rb") as handle:
+        cached = pickle.load(handle)
+
+    if not isinstance(cached, dict) or cached.get("version") != 2:
+        return None
+
+    if cached.get("signature") != signature:
+        return None
+
+    profiles = cached.get("profiles")
+    if not isinstance(profiles, dict):
+        return None
+
+    return profiles
+
+
+def _iter_tetramer_work_items(
+    contigs_file,
+    contig_names_rev,
+    graph_to_contig_map_rev,
+    contig_lengths,
+    min_length,
+    kmer_inds,
+    kmer_count_len,
+):
+    for record in SeqIO.parse(contigs_file, "fasta"):
+        if graph_to_contig_map_rev is None:
+            if record.id not in contig_names_rev:
+                continue
+            contig_num = contig_names_rev[record.id]
+        else:
+            if record.id not in graph_to_contig_map_rev:
+                continue
+            contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
+
+        if contig_lengths[contig_num] >= min_length:
+            yield (
+                contig_num,
+                str(record.seq),
+                4,
+                kmer_inds,
+                kmer_count_len,
+            )
 
 
 def get_tetramer_profiles(
-    output_path, sequences, contigs_file, contig_lengths, min_length, nthreads
+    output_path,
+    contigs_file,
+    contig_names_rev,
+    contig_lengths,
+    min_length,
+    nthreads,
+    graph_to_contig_map_rev=None,
 ):
-    tetramer_profiles = {}
-    normalized_tetramer_profiles = {}
+    cache_path = _get_tetramer_cache_path(output_path, contigs_file)
+    signature = _get_tetramer_cache_signature(contigs_file, min_length, contig_lengths)
+    normalized_tetramer_profiles = _load_cached_tetramer_profiles(cache_path, signature)
 
-    contigs_file = contigs_file.split("/")[-1]
-
-    if os.path.isfile(
-        f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle"
-    ):
-        with open(
-            f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle", "rb"
-        ) as handle:
-            normalized_tetramer_profiles = pickle.load(handle)
-
-    else:
+    if normalized_tetramer_profiles is None:
+        normalized_tetramer_profiles = {}
         kmer_inds_4, kmer_count_len_4 = compute_kmer_inds(4)
-
-        # Handle both list and dict sequences
-        if isinstance(sequences, dict):
-            seq_keys = list(sequences.keys())
-            seq_values = [sequences[k] for k in seq_keys]
-        else:
-            seq_keys = list(range(len(sequences)))
-            seq_values = sequences
-
-        pool = Pool(nthreads)
-        record_tetramers = pool.map(
-            count_kmers, [(seq, 4, kmer_inds_4, kmer_count_len_4) for seq in seq_values]
+        work_items = _iter_tetramer_work_items(
+            contigs_file=contigs_file,
+            contig_names_rev=contig_names_rev,
+            graph_to_contig_map_rev=graph_to_contig_map_rev,
+            contig_lengths=contig_lengths,
+            min_length=min_length,
+            kmer_inds=kmer_inds_4,
+            kmer_count_len=kmer_count_len_4,
         )
-        pool.close()
 
-        normalized = [x[1] for x in record_tetramers]
+        if nthreads == 1:
+            for contig_num, normalized_profile in map(count_kmers, work_items):
+                normalized_tetramer_profiles[contig_num] = normalized_profile
+        else:
+            with Pool(nthreads) as pool:
+                for contig_num, normalized_profile in pool.imap_unordered(
+                    count_kmers, work_items, chunksize=100
+                ):
+                    normalized_tetramer_profiles[contig_num] = normalized_profile
 
-        for idx, key in enumerate(seq_keys):
-            normalized_tetramer_profiles[key] = normalized[idx]
-
-        with open(
-            f"{output_path}{contigs_file}.normalized_contig_tetramers.pickle", "wb"
-        ) as handle:
+        with open(cache_path, "wb") as handle:
             pickle.dump(
-                normalized_tetramer_profiles, handle, protocol=pickle.HIGHEST_PROTOCOL
+                {
+                    "version": 2,
+                    "signature": signature,
+                    "profiles": normalized_tetramer_profiles,
+                },
+                handle,
+                protocol=pickle.HIGHEST_PROTOCOL,
             )
 
-    tetramer_profiles = {}
-
-    for i in normalized_tetramer_profiles:
-        if i in contig_lengths and contig_lengths[i] >= min_length:
-            tetramer_profiles[i] = normalized_tetramer_profiles[i]
-
-    return tetramer_profiles
+    return normalized_tetramer_profiles
 
 
 def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
@@ -138,20 +212,12 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
 
     contig_lengths = defaultdict(int)
 
-    i = 0
-
-    sequences = []
-
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
         contig_num = contig_names_rev[record.id]
 
         length = len(record.seq)
 
         contig_lengths[contig_num] = length
-
-        sequences.append(str(record.seq))
-
-        i += 1
 
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
@@ -179,7 +245,7 @@ def get_cov_len(contigs_file, contig_names_rev, min_length, abundance_file):
     sample_vals = list(coverages.keys())
     n_samples = len(coverages[sample_vals[0]])
 
-    return sequences, coverages, contig_lengths, n_samples
+    return coverages, contig_lengths, n_samples
 
 
 def get_cov_len_megahit(
@@ -189,18 +255,12 @@ def get_cov_len_megahit(
 
     contig_lengths = {}
 
-    i = 0
-
-    sequences = {}
-
     for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
         if record.id not in graph_to_contig_map_rev:
             continue
         contig_num = contig_names_rev[graph_to_contig_map_rev[record.id]]
         length = len(record.seq)
         contig_lengths[contig_num] = length
-        sequences[contig_num] = str(record.seq)
-        i += 1
 
     with open(abundance_file, "r") as my_abundance:
         for line in my_abundance:
@@ -229,7 +289,7 @@ def get_cov_len_megahit(
 
     n_samples = len(coverages[list(coverages.keys())[0]])
 
-    return sequences, coverages, contig_lengths, n_samples
+    return coverages, contig_lengths, n_samples
 
 
 def get_bin_profiles(bins, coverages, normalized_tetramer_profiles):
