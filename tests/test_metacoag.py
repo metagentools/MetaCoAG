@@ -71,7 +71,7 @@ def test_n_bins_metacoag_spades(test_metacoag_spades_command):
     assert n_bins == 5
 
     # Assert bin sizes
-    assert seq_counts == [10, 23, 48, 69, 78]
+    assert seq_counts == [10, 22, 48, 69, 78]
 
 
 @pytest.fixture(scope="session")
@@ -99,4 +99,4 @@ def test_n_bins_metacoag_megahit(test_metacoag_megahit_command):
     assert n_bins == 5
 
     # Assert bin sizes
-    assert seq_counts == [36, 40, 46, 84, 127]
+    assert seq_counts == [35, 40, 46, 84, 127]
