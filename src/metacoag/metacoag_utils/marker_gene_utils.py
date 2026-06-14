@@ -113,12 +113,7 @@ def get_all_contigs_with_marker_genes(
                 contig_num = contig_names_rev[contig_name]
 
                 if mapped_marker_length > marker_gene_length * mg_length_threshold:
-                    # Get marker genes in each contig
-                    if contig_num not in contig_markers:
-                        contig_markers[contig_num] = [marker_gene]
-                    else:
-                        if marker_gene not in contig_markers[contig_num]:
-                            contig_markers[contig_num].append(marker_gene)
+                    contig_markers.setdefault(contig_num, set()).add(marker_gene)
 
     return contig_markers
 
@@ -162,12 +157,7 @@ def get_contigs_with_marker_genes(
                 ):
                     marker_repeated_in_contig = False
 
-                    # Get marker genes in each contig
-                    if contig_num not in contig_markers:
-                        contig_markers[contig_num] = [marker_gene]
-                    else:
-                        if marker_gene not in contig_markers[contig_num]:
-                            contig_markers[contig_num].append(marker_gene)
+                    contig_markers.setdefault(contig_num, set()).add(marker_gene)
 
                     # Get contigs containing each marker gene
                     if marker_gene not in marker_contigs:
@@ -234,12 +224,7 @@ def get_contigs_with_marker_genes_megahit(
                 ):
                     marker_repeated_in_contig = False
 
-                    # Get marker genes in each contig
-                    if contig_num not in contig_markers:
-                        contig_markers[contig_num] = [marker_gene]
-                    else:
-                        if marker_gene not in contig_markers[contig_num]:
-                            contig_markers[contig_num].append(marker_gene)
+                    contig_markers.setdefault(contig_num, set()).add(marker_gene)
 
                     # Get contigs containing each marker gene
                     if marker_gene not in marker_contigs:

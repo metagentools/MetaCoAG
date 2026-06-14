@@ -566,7 +566,7 @@ def run(args):
         bins[i] = [contig_num]
         bin_of_contig[contig_num] = i
 
-        bin_markers[i] = contig_markers[contig_num]
+        bin_markers[i] = contig_markers[contig_num].copy()
 
     logger.debug(f"Number of initial bins detected: {len(smg_iteration[0])}")
     logger.debug("Initialised bins: ")
@@ -957,7 +957,7 @@ def run(args):
         min_pb_weight = MAX_WEIGHT
 
         for pb in bin_markers:
-            common_mgs = list(set(bin_markers[pb]).intersection(set(bin_markers[b])))
+            common_mgs = bin_markers[pb] & bin_markers[b]
 
             if len(common_mgs) == 0:
                 tetramer_dist = matching_utils.get_tetramer_distance(

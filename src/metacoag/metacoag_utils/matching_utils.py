@@ -246,8 +246,9 @@ def match_contigs(
                                 ):
                                     can_assign = False
 
-                                    common_mgs = set(bin_markers[b]).intersection(
-                                        set(contig_markers[my_matching[l]])
+                                    common_mgs = (
+                                        bin_markers[b]
+                                        & contig_markers[my_matching[l]]
                                     )
 
                                     if len(common_mgs) == 0:
@@ -270,11 +271,8 @@ def match_contigs(
                                         # logger.debug("Assigning contig " + contig_names[my_matching[l]] + " to bin "+str(
                                         #     b+1) + " based on contig " + str(l) + " weight="+str(edge_weights[(l, my_matching[l])]))
 
-                                        bin_markers[b] = list(
-                                            set(
-                                                bin_markers[b]
-                                                + contig_markers[my_matching[l]]
-                                            )
+                                        bin_markers[b].update(
+                                            contig_markers[my_matching[l]]
                                         )
 
                                     else:
@@ -350,7 +348,9 @@ def match_contigs(
                             bin_of_contig[longest_nb_contig] = n_bins
                             binned_count += 1
 
-                            bin_markers[n_bins] = contig_markers[longest_nb_contig]
+                            bin_markers[n_bins] = contig_markers[
+                                longest_nb_contig
+                            ].copy()
                             n_bins += 1
                             binned_contigs_with_markers.append(longest_nb_contig)
 
@@ -427,9 +427,9 @@ def further_match_contigs(
         if contig[1] < min_length:
             continue
         contigid = contig[0]
-        contig_mg_set = set(contig_markers[contigid])
+        contig_mg_set = contig_markers[contigid]
         possible_bins = [
-            b for b in bin_markers if not set(bin_markers[b]).intersection(contig_mg_set)
+            b for b in bin_markers if bin_markers[b].isdisjoint(contig_mg_set)
         ]
         if not possible_bins:
             continue
@@ -457,8 +457,6 @@ def further_match_contigs(
         bins[best_bin].append(contigid)
         bin_of_contig[contigid] = best_bin
         binned_contigs_with_markers.append(contigid)
-        bin_markers[best_bin] = list(
-            set(bin_markers[best_bin] + contig_markers[contigid])
-        )
+        bin_markers[best_bin].update(contig_markers[contigid])
 
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers

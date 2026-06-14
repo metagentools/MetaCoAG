@@ -275,13 +275,11 @@ def label_prop(
 
         if to_bin in contig_markers:
             has_mg = True
-            common_mgs = set(bin_markers[bin_]).intersection(
-                set(contig_markers[to_bin])
-            )
+            common_mgs = bin_markers[bin_] & contig_markers[to_bin]
 
             if binned in contig_markers and dist == 1:
-                neighbour_common_mgs = set(contig_markers[binned]).intersection(
-                    set(contig_markers[to_bin])
+                neighbour_common_mgs = (
+                    contig_markers[binned] & contig_markers[to_bin]
                 )
 
                 if neighbour_common_mgs == common_mgs:
@@ -299,9 +297,7 @@ def label_prop(
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
-                bin_markers[bin_] = list(
-                    set(bin_markers[bin_] + contig_markers[to_bin])
-                )
+                bin_markers[bin_].update(contig_markers[to_bin])
 
             # Discover to_bin's neighbours; mark old entries stale instead of
             # rebuilding the heap, then push fresh BFS results.
@@ -400,15 +396,11 @@ def assign_to_bins(
 
             has_mg = False
 
-            common_mgs = []
+            common_mgs = set()
 
             if contig in contig_markers:
                 has_mg = True
-                common_mgs = list(
-                    set(bin_markers[contig_bin]).intersection(
-                        set(contig_markers[contig])
-                    )
-                )
+                common_mgs = bin_markers[contig_bin] & contig_markers[contig]
 
             if contig not in bin_of_contig and bin_weight != MAX_WEIGHT:
                 if len(common_mgs) == 0:
@@ -422,9 +414,7 @@ def assign_to_bins(
 
                 if has_mg:
                     binned_contigs_with_markers.append(contig)
-                    bin_markers[contig_bin] = list(
-                        set(bin_markers[contig_bin] + contig_markers[contig])
-                    )
+                    bin_markers[contig_bin].update(contig_markers[contig])
 
     return bins, bin_of_contig, bin_markers, binned_contigs_with_markers
 
@@ -503,13 +493,11 @@ def final_label_prop(
 
         if to_bin in contig_markers:
             has_mg = True
-            common_mgs = set(bin_markers[bin_]).intersection(
-                set(contig_markers[to_bin])
-            )
+            common_mgs = bin_markers[bin_] & contig_markers[to_bin]
 
             if binned in contig_markers and dist == 1:
-                neighbour_common_mgs = set(contig_markers[binned]).intersection(
-                    set(contig_markers[to_bin])
+                neighbour_common_mgs = (
+                    contig_markers[binned] & contig_markers[to_bin]
                 )
 
                 if neighbour_common_mgs == common_mgs:
@@ -521,9 +509,7 @@ def final_label_prop(
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
-                bin_markers[bin_] = list(
-                    set(bin_markers[bin_] + contig_markers[to_bin])
-                )
+                bin_markers[bin_].update(contig_markers[to_bin])
 
             # Discover to_bin's neighbours; mark old entries stale instead of
             # rebuilding the heap, then push fresh BFS results.
