@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
+import concurrent.futures
 import logging
 import math
 import operator
 import sys
 
 import networkx as nx
+import numpy as np
 from scipy.spatial import distance
+from scipy.special import gammaln
 
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -28,10 +31,9 @@ logger = logging.getLogger(f"MetaCoaAG {__version__}")
 
 
 def normpdf(x, mean, sd):
-    var = float(sd) ** 2
-    denom = sd * (2 * math.pi) ** 0.5
-    num = math.exp(-((float(x) - float(mean)) ** 2) / (2 * var))
-    return num / denom
+    # Vectorised via numpy; scalar inputs also work.
+    x = np.asarray(x, dtype=float)
+    return np.exp(-0.5 * ((x - mean) / sd) ** 2) / (sd * np.sqrt(2.0 * np.pi))
 
 
 def get_tetramer_distance(seq1, seq2):
@@ -45,34 +47,77 @@ def get_coverage_distance(cov1, cov2):
 def get_comp_probability(tetramer_dist):
     gaus_intra = normpdf(tetramer_dist, MU_INTRA, SIGMA_INTRA)
     gaus_inter = normpdf(tetramer_dist, MU_INTER, SIGMA_INTER)
-    return gaus_intra / (gaus_intra + gaus_inter)
+    return float(gaus_intra / (gaus_intra + gaus_inter))
 
 
 def get_cov_probability(cov1, cov2):
-    poisson_prod_1 = 1
-    poisson_prod_2 = 1
+    # Vectorised Poisson PMF computation.
+    # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
+    c1 = np.asarray(cov1, dtype=float)
+    c2 = np.asarray(cov2, dtype=float)
+    # Guard against log(0): replace zeros with a tiny positive value
+    safe_c1 = np.where(c1 > 0, c1, VERY_SMALL_DOUBLE)
+    safe_c2 = np.where(c2 > 0, c2, VERY_SMALL_DOUBLE)
+    log_pmf_1 = c1 * np.log(safe_c2) - gammaln(c1 + 1.0) - c2
+    log_pmf_2 = c2 * np.log(safe_c1) - gammaln(c2 + 1.0) - c1
+    pmf_1 = np.maximum(np.exp(log_pmf_1), VERY_SMALL_DOUBLE)
+    pmf_2 = np.maximum(np.exp(log_pmf_2), VERY_SMALL_DOUBLE)
+    return float(min(np.prod(pmf_1), np.prod(pmf_2)))
 
-    for i in range(len(cov1)):
-        # Adapted from http://www.masaers.com/2013/10/08/Implementing-Poisson-pmf.html
-        poisson_pmf_1 = math.exp(
-            (cov1[i] * math.log(cov2[i])) - math.lgamma(cov1[i] + 1.0) - cov2[i]
-        )
 
-        poisson_pmf_2 = math.exp(
-            (cov2[i] * math.log(cov1[i])) - math.lgamma(cov2[i] + 1.0) - cov1[i]
-        )
+def _build_bin_matrices(bins, n_bins, normalized_tetramer_profiles, coverages):
+    """Stack bin members into numpy arrays for vectorised per-iteration scoring."""
+    bin_tetra_mat = {}
+    bin_cov_mat = {}
+    for b in range(n_bins):
+        members = bins[b]
+        bin_tetra_mat[b] = np.array([normalized_tetramer_profiles[c] for c in members])
+        bin_cov_mat[b] = np.array([coverages[c] for c in members], dtype=float)
+    return bin_tetra_mat, bin_cov_mat
 
-        if poisson_pmf_1 < VERY_SMALL_DOUBLE:
-            poisson_pmf_1 = VERY_SMALL_DOUBLE
 
-        if poisson_pmf_2 < VERY_SMALL_DOUBLE:
-            poisson_pmf_2 = VERY_SMALL_DOUBLE
+def _compute_edge_weight_exact(tetra_contig, cov_contig, bin_tetra_mat, bin_cov_mat):
+    """Vectorised, exact equivalent of the original per-member scoring loop.
 
-        poisson_prod_1 = poisson_prod_1 * poisson_pmf_1
+    Computes mean(-log10(p_comp_j) - log10(p_cov_j)) across all N bin members
+    using numpy/scipy in C — identical numerical result to the Python for-j loop,
+    including the float-overflow -> MAX_WEIGHT behaviour.
+    """
+    # All N tetramer distances in one cdist sweep
+    dists = distance.cdist([tetra_contig], bin_tetra_mat, "euclidean")[0]  # (N,)
 
-        poisson_prod_2 = poisson_prod_2 * poisson_pmf_2
+    # Composition probabilities for all N members simultaneously
+    gi = np.exp(-0.5 * (dists / SIGMA_INTRA) ** 2) / (SIGMA_INTRA * np.sqrt(2.0 * np.pi))
+    ge = np.exp(-0.5 * ((dists - MU_INTER) / SIGMA_INTER) ** 2) / (SIGMA_INTER * np.sqrt(2.0 * np.pi))
+    prob_comp_vec = gi / (gi + ge)  # (N,)
 
-    return min(poisson_prod_1, poisson_prod_2)
+    # Coverage probabilities: vectorised Poisson PMF over all N members
+    c1 = np.asarray(cov_contig, dtype=float)              # (S,)
+    mat_c = bin_cov_mat                                   # (N, S)
+    s1 = np.where(c1 > 0, c1, VERY_SMALL_DOUBLE)
+    s2 = np.where(mat_c > 0, mat_c, VERY_SMALL_DOUBLE)
+    lp1 = c1 * np.log(s2) - gammaln(c1 + 1.0) - mat_c   # (N, S)
+    lp2 = mat_c * np.log(s1) - gammaln(mat_c + 1.0) - c1 # (N, S)
+    prod1 = np.prod(np.maximum(np.exp(lp1), VERY_SMALL_DOUBLE), axis=1)  # (N,)
+    prod2 = np.prod(np.maximum(np.exp(lp2), VERY_SMALL_DOUBLE), axis=1)  # (N,)
+    prob_cov_vec = np.minimum(prod1, prod2)               # (N,)
+
+    # Per-member log probabilities — same formula as the original scalar path
+    prob_product_vec = prob_comp_vec * prob_cov_vec
+    mask = prob_product_vec > 0.0
+    log_probs = np.where(
+        mask,
+        -(np.log10(np.where(mask, prob_comp_vec, 1.0)) +
+          np.log10(np.where(mask, prob_cov_vec, 1.0))),
+        MAX_WEIGHT,
+    )  # (N,)
+
+    # Reproduce original overflow check: any MAX_WEIGHT entry pushes the sum
+    # to inf, causing the same MAX_WEIGHT result as the original loop.
+    log_prob_sum = float(np.sum(log_probs))
+    if math.isinf(log_prob_sum):
+        return MAX_WEIGHT
+    return log_prob_sum / len(bin_tetra_mat)
 
 
 def match_contigs(
@@ -122,6 +167,13 @@ def match_contigs(
 
             binned_count = 0
 
+            # Build per-bin member matrices once per iteration so all members
+            # assigned in previous iterations are included. Rebuilt next
+            # iteration automatically.
+            bin_tetra_mat, bin_cov_mat = _build_bin_matrices(
+                bins, n_bins, normalized_tetramer_profiles, coverages
+            )
+
             if len(to_bin) != 0:
                 for contig in to_bin:
                     contigid = contig
@@ -129,39 +181,17 @@ def match_contigs(
                     if contigid not in top_nodes:
                         top_nodes.append(contigid)
 
+                    tetra_contig = normalized_tetramer_profiles[contigid]
+                    cov_contig = coverages[contigid]
+
                     for b in range(n_bins):
-                        log_prob_sum = 0
-                        n_contigs = len(bins[b])
-
-                        for j in range(n_contigs):
-                            tetramer_dist = get_tetramer_distance(
-                                normalized_tetramer_profiles[contigid],
-                                normalized_tetramer_profiles[bins[b][j]],
-                            )
-                            prob_comp = get_comp_probability(tetramer_dist)
-                            prob_cov = get_cov_probability(
-                                coverages[contigid], coverages[bins[b][j]]
-                            )
-
-                            prob_product = prob_comp * prob_cov
-
-                            log_prob = 0
-
-                            if prob_product > 0.0:
-                                log_prob = -(
-                                    math.log(prob_comp, 10) + math.log(prob_cov, 10)
-                                )
-                            else:
-                                log_prob = MAX_WEIGHT
-
-                            log_prob_sum += log_prob
-
-                        if log_prob_sum != float("inf"):
-                            edges.append(
-                                (bins[b][0], contigid, log_prob_sum / n_contigs)
-                            )
-                        else:
-                            edges.append((bins[b][0], contigid, MAX_WEIGHT))
+                        edge_weight = _compute_edge_weight_exact(
+                            tetra_contig,
+                            cov_contig,
+                            bin_tetra_mat[b],
+                            bin_cov_mat[b],
+                        )
+                        edges.append((bins[b][0], contigid, edge_weight))
 
                 B.add_nodes_from(top_nodes, bipartite=0)
                 B.add_nodes_from(bottom_nodes, bipartite=1)
@@ -195,15 +225,15 @@ def match_contigs(
                                 my_matching[l] not in bins[b]
                                 and (l, my_matching[l]) in edge_weights
                             ):
-                                path_len_sum = 0
-
-                                for contig_in_bin in bins[b]:
-                                    shortest_paths = assembly_graph.get_shortest_paths(
-                                        my_matching[l], to=contig_in_bin
-                                    )
-
-                                    if len(shortest_paths) != 0:
-                                        path_len_sum += len(shortest_paths[0])
+                                # Batch all targets in the bin into a single
+                                # igraph distances() call (one BFS sweep).
+                                all_paths = assembly_graph.distances(
+                                    my_matching[l], target=bins[b]
+                                )
+                                # distances() returns a 2-D list; row 0 for our source
+                                path_len_sum = sum(
+                                    d for d in all_paths[0] if d != float("inf")
+                                )
 
                                 avg_path_len = math.floor(path_len_sum / len(bins[b]))
 
@@ -289,19 +319,15 @@ def match_contigs(
                                     ]
 
                     if longest_nb_contig != -1:
-                        path_len_sum = 0
-
-                        for contig_in_bin in bins[not_binned[longest_nb_contig][1]]:
-                            shortest_paths = assembly_graph.get_shortest_paths(
-                                longest_nb_contig, to=contig_in_bin
-                            )
-
-                            if len(shortest_paths) != 0:
-                                path_len_sum += len(shortest_paths[0])
-
-                        avg_path_len = path_len_sum / len(
-                            bins[not_binned[longest_nb_contig][1]]
+                        target_bin = not_binned[longest_nb_contig][1]
+                        all_paths = assembly_graph.distances(
+                            longest_nb_contig, target=bins[target_bin]
                         )
+                        path_len_sum = sum(
+                            d for d in all_paths[0] if d != float("inf")
+                        )
+
+                        avg_path_len = path_len_sum / len(bins[target_bin])
 
                         if math.floor(avg_path_len) >= d_limit or path_len_sum == 0:
                             logger.debug("Creating new bin...")
@@ -345,6 +371,35 @@ def match_contigs(
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers
 
 
+def _score_contig_against_bins_exact(args):
+    """Worker: exact vectorised scoring of one contig against its candidate bins.
+
+    Uses _compute_edge_weight_exact (numpy/cdist) — identical result to the
+    original Python for-j loop, no approximation.
+    Returns (contigid, best_bin_index, best_weight) or None.
+    """
+    (
+        contigid,
+        possible_bins,
+        tetra_contig,
+        cov_contig,
+        bin_tetra_mat,
+        bin_cov_mat,
+        w_intra,
+    ) = args
+
+    bin_weights = [
+        _compute_edge_weight_exact(tetra_contig, cov_contig, bin_tetra_mat[b], bin_cov_mat[b])
+        for b in possible_bins
+    ]
+
+    min_b_index, min_b_value = min(enumerate(bin_weights), key=operator.itemgetter(1))
+
+    if min_b_value <= w_intra:
+        return (contigid, possible_bins[min_b_index], min_b_value)
+    return None
+
+
 def further_match_contigs(
     unbinned_mg_contigs,
     min_length,
@@ -357,69 +412,53 @@ def further_match_contigs(
     normalized_tetramer_profiles,
     coverages,
     w_intra,
+    nthreads=1,
 ):
+    # Build per-bin member matrices once. The scoring phase is read-only so all
+    # workers can share these safely. Assignments happen after scoring completes,
+    # so no incremental updates are needed.
+    bin_tetra_mat, bin_cov_mat = _build_bin_matrices(
+        bins, len(bins), normalized_tetramer_profiles, coverages
+    )
+
+    # Build work items for the parallel scoring phase.
+    work_items = []
     for contig in unbinned_mg_contigs:
-        if contig[1] >= min_length:
-            possible_bins = []
+        if contig[1] < min_length:
+            continue
+        contigid = contig[0]
+        contig_mg_set = set(contig_markers[contigid])
+        possible_bins = [
+            b for b in bin_markers if not set(bin_markers[b]).intersection(contig_mg_set)
+        ]
+        if not possible_bins:
+            continue
+        work_items.append((
+            contigid,
+            possible_bins,
+            normalized_tetramer_profiles[contigid],
+            coverages[contigid],
+            bin_tetra_mat,
+            bin_cov_mat,
+            w_intra,
+        ))
 
-            for b in bin_markers:
-                common_mgs = list(
-                    set(bin_markers[b]).intersection(set(contig_markers[contig[0]]))
-                )
-                if len(common_mgs) == 0:
-                    possible_bins.append(b)
+    # Score all contigs in parallel; exact per-member computation in each worker.
+    with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
+        results = list(executor.map(_score_contig_against_bins_exact, work_items))
 
-            if len(possible_bins) != 0:
-                contigid = contig[0]
-
-                bin_weights = []
-
-                for b in possible_bins:
-                    log_prob_sum = 0
-                    n_contigs = len(bins[b])
-
-                    for j in range(n_contigs):
-                        tetramer_dist = get_tetramer_distance(
-                            normalized_tetramer_profiles[contigid],
-                            normalized_tetramer_profiles[bins[b][j]],
-                        )
-                        prob_comp = get_comp_probability(tetramer_dist)
-                        prob_cov = get_cov_probability(
-                            coverages[contigid], coverages[bins[b][j]]
-                        )
-
-                        prob_product = prob_comp * prob_cov
-
-                        log_prob = 0
-
-                        if prob_product > 0.0:
-                            log_prob = -(
-                                math.log(prob_comp, 10) + math.log(prob_cov, 10)
-                            )
-                        else:
-                            log_prob = MAX_WEIGHT
-
-                        log_prob_sum += log_prob
-
-                    if log_prob_sum != float("inf"):
-                        bin_weights.append(log_prob_sum / n_contigs)
-                    else:
-                        bin_weights.append(MAX_WEIGHT)
-
-                min_b_index, min_b_value = min(
-                    enumerate(bin_weights), key=operator.itemgetter(1)
-                )
-
-                if min_b_value <= w_intra:
-                    bins[possible_bins[min_b_index]].append(contigid)
-                    bin_of_contig[contigid] = possible_bins[min_b_index]
-                    binned_contigs_with_markers.append(contigid)
-
-                    bin_markers[possible_bins[min_b_index]] = list(
-                        set(
-                            bin_markers[possible_bins[min_b_index]]
-                            + contig_markers[contigid]
-                        )
-                    )
+    for result in results:
+        if result is None:
+            continue
+        contigid, best_bin, _ = result
+        # Guard: contig may appear in multiple work items
+        if contigid in bin_of_contig:
+            continue
+        bins[best_bin].append(contigid)
+        bin_of_contig[contigid] = best_bin
+        binned_contigs_with_markers.append(contigid)
+        bin_markers[best_bin] = list(
+            set(bin_markers[best_bin] + contig_markers[contigid])
+        )
 
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers

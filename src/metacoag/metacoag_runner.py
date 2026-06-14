@@ -322,9 +322,14 @@ def run(args):
         # Map original contig identifiers to contig identifiers of MEGAHIT assembly graph
         graph_to_contig_map = BidirectionalMap()
 
-        for (n, m), (n2, m2) in zip(graph_contigs.items(), original_contigs.items()):
-            if m == m2:
-                graph_to_contig_map[n] = n2
+        # Build reverse lookup: sequence -> original contig name
+        original_seq_to_name = {}
+        for name, seq in original_contigs.items():
+            original_seq_to_name[seq] = name
+
+        for graph_name, graph_seq in graph_contigs.items():
+            if graph_seq in original_seq_to_name:
+                graph_to_contig_map[graph_name] = original_seq_to_name[graph_seq]
 
         graph_to_contig_map_rev = graph_to_contig_map.inverse
 
@@ -351,6 +356,12 @@ def run(args):
             min_length=min_length,
             abundance_file=abundance_file,
         )
+
+        # Assign length 0 to graph-only contigs (in GFA but not in FASTA)
+        # so they are excluded by all downstream min_length checks
+        for i in range(node_count):
+            if i not in contig_lengths:
+                contig_lengths[i] = 0
 
     else:
         sequences, coverages, contig_lengths, n_samples = feature_utils.get_cov_len(
@@ -652,6 +663,7 @@ def run(args):
         normalized_tetramer_profiles=normalized_tetramer_profiles,
         coverages=coverages,
         w_intra=w_intra,
+        nthreads=nthreads,
     )
 
     # Get remaining contigs with single-copy marker genes which are not assigned to bins
@@ -737,6 +749,7 @@ def run(args):
         coverages=coverages,
         depth=1,
         weight=w_intra,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
@@ -765,6 +778,7 @@ def run(args):
         coverages=coverages,
         depth=depth,
         weight=w_inter,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
@@ -891,6 +905,7 @@ def run(args):
         coverages=coverages,
         depth=depth,
         weight=MAX_WEIGHT,
+        nthreads=nthreads,
     )
 
     logger.debug(f"Total number of binned contigs: {len(bin_of_contig)}")
