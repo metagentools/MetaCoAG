@@ -29,6 +29,10 @@ MAX_WEIGHT = sys.float_info.max
 # create logger
 logger = logging.getLogger(f"MetaCoaAG {__version__}")
 
+_WORKER_BIN_TETRA_MAT = None
+_WORKER_BIN_COV_MAT = None
+_WORKER_W_INTRA = None
+
 
 def normpdf(x, mean, sd):
     # Vectorised via numpy; scalar inputs also work.
@@ -371,33 +375,56 @@ def match_contigs(
     return bins, bin_of_contig, n_bins, bin_markers, binned_contigs_with_markers
 
 
-def _score_contig_against_bins_exact(args):
-    """Worker: exact vectorised scoring of one contig against its candidate bins.
-
-    Uses _compute_edge_weight_exact (numpy/cdist) — identical result to the
-    original Python for-j loop, no approximation.
-    Returns (contigid, best_bin_index, best_weight) or None.
-    """
-    (
-        contigid,
-        possible_bins,
-        tetra_contig,
-        cov_contig,
-        bin_tetra_mat,
-        bin_cov_mat,
-        w_intra,
-    ) = args
-
+def _score_contig_against_bins_exact(
+    contigid,
+    possible_bins,
+    tetra_contig,
+    cov_contig,
+    bin_tetra_mat,
+    bin_cov_mat,
+    w_intra,
+):
+    """Score one contig against its candidate bins."""
     bin_weights = [
-        _compute_edge_weight_exact(tetra_contig, cov_contig, bin_tetra_mat[b], bin_cov_mat[b])
+        _compute_edge_weight_exact(
+            tetra_contig,
+            cov_contig,
+            bin_tetra_mat[b],
+            bin_cov_mat[b],
+        )
         for b in possible_bins
     ]
 
-    min_b_index, min_b_value = min(enumerate(bin_weights), key=operator.itemgetter(1))
+    min_b_index, min_b_value = min(
+        enumerate(bin_weights), key=operator.itemgetter(1)
+    )
 
     if min_b_value <= w_intra:
-        return (contigid, possible_bins[min_b_index], min_b_value)
+        return contigid, possible_bins[min_b_index], min_b_value
     return None
+
+
+def _init_contig_scoring_worker(bin_tetra_mat, bin_cov_mat, w_intra):
+    """Install read-only scoring data once in each worker process."""
+    global _WORKER_BIN_TETRA_MAT, _WORKER_BIN_COV_MAT, _WORKER_W_INTRA
+
+    _WORKER_BIN_TETRA_MAT = bin_tetra_mat
+    _WORKER_BIN_COV_MAT = bin_cov_mat
+    _WORKER_W_INTRA = w_intra
+
+
+def _score_contig_against_bins_worker(args):
+    """Process-pool wrapper using matrices initialized once per worker."""
+    contigid, possible_bins, tetra_contig, cov_contig = args
+    return _score_contig_against_bins_exact(
+        contigid=contigid,
+        possible_bins=possible_bins,
+        tetra_contig=tetra_contig,
+        cov_contig=cov_contig,
+        bin_tetra_mat=_WORKER_BIN_TETRA_MAT,
+        bin_cov_mat=_WORKER_BIN_COV_MAT,
+        w_intra=_WORKER_W_INTRA,
+    )
 
 
 def further_match_contigs(
@@ -414,9 +441,8 @@ def further_match_contigs(
     w_intra,
     nthreads=1,
 ):
-    # Build per-bin member matrices once. The scoring phase is read-only so all
-    # workers can share these safely. Assignments happen after scoring completes,
-    # so no incremental updates are needed.
+    # Build per-bin member matrices once. Parallel workers receive these once
+    # during initialization instead of with every contig-scoring task.
     bin_tetra_mat, bin_cov_mat = _build_bin_matrices(
         bins, len(bins), normalized_tetramer_profiles, coverages
     )
@@ -438,14 +464,37 @@ def further_match_contigs(
             possible_bins,
             normalized_tetramer_profiles[contigid],
             coverages[contigid],
-            bin_tetra_mat,
-            bin_cov_mat,
-            w_intra,
         ))
 
-    # Score all contigs in parallel; exact per-member computation in each worker.
-    with concurrent.futures.ProcessPoolExecutor(max_workers=nthreads) as executor:
-        results = list(executor.map(_score_contig_against_bins_exact, work_items))
+    if nthreads == 1:
+        results = [
+            _score_contig_against_bins_exact(
+                contigid=contigid,
+                possible_bins=possible_bins,
+                tetra_contig=tetra_contig,
+                cov_contig=cov_contig,
+                bin_tetra_mat=bin_tetra_mat,
+                bin_cov_mat=bin_cov_mat,
+                w_intra=w_intra,
+            )
+            for contigid, possible_bins, tetra_contig, cov_contig in work_items
+        ]
+    elif work_items:
+        chunksize = max(1, math.ceil(len(work_items) / (nthreads * 4)))
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=nthreads,
+            initializer=_init_contig_scoring_worker,
+            initargs=(bin_tetra_mat, bin_cov_mat, w_intra),
+        ) as executor:
+            results = list(
+                executor.map(
+                    _score_contig_against_bins_worker,
+                    work_items,
+                    chunksize=chunksize,
+                )
+            )
+    else:
+        results = []
 
     for result in results:
         if result is None:
