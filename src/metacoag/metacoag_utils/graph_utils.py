@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import multiprocessing as mp
 import re
 from collections import defaultdict
 
@@ -404,40 +403,16 @@ def get_isolated(node_count, assembly_graph):
     return isolated
 
 
-def get_connected_components(i, assembly_graph, binned_contigs):
-    non_isolated = []
-    if i not in non_isolated and i in binned_contigs:
-        component = []
-        component.append(i)
-        length = len(component)
-        neighbours = assembly_graph.neighbors(i, mode="ALL")
-        for neighbour in neighbours:
-            if neighbour not in component:
-                component.append(neighbour)
-        component = list(set(component))
-        while length != len(component):
-            length = len(component)
-            for j in component:
-                neighbours = assembly_graph.neighbors(j, mode="ALL")
-                for neighbour in neighbours:
-                    if neighbour not in component:
-                        component.append(neighbour)
-        labelled = False
-        for j in component:
-            if j in binned_contigs:
-                labelled = True
-                break
-        if labelled:
-            for j in component:
-                if j not in non_isolated:
-                    non_isolated.append(j)
-    return non_isolated
-
-
 def get_non_isolated(node_count, assembly_graph, binned_contigs, nthreads):
-    with mp.Pool(processes=nthreads) as pool:
-        non_isolated = pool.starmap(
-            get_connected_components,
-            [(i, assembly_graph, binned_contigs) for i in range(node_count)],
-        )
+    """Return contigs in connected components that contain at least one bin label.
+
+    ``node_count`` and ``nthreads`` are kept for compatibility with the runner.
+    """
+    binned_contigs = set(binned_contigs)
+    non_isolated = set()
+
+    for component in assembly_graph.connected_components():
+        if any(contig in binned_contigs for contig in component):
+            non_isolated.update(component)
+
     return non_isolated
