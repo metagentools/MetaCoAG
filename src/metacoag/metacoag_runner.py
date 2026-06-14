@@ -5,6 +5,7 @@ import time
 
 from metacoag import metacoag_pipeline
 
+
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
 __license__ = "GPL-3.0"
@@ -15,7 +16,7 @@ __status__ = "Stable Release"
 
 
 def _configure_logger(config):
-    logger = logging.getLogger(f"MetaCoaAG {__version__}")
+    logger = logging.getLogger(f"MetaCoAG {__version__}")
     logger.setLevel(logging.DEBUG)
     logging.captureWarnings(True)
 
@@ -48,21 +49,15 @@ def run(args):
         features = metacoag_pipeline.extract_features(
             config, graph_data, isolated, logger
         )
-        markers = metacoag_pipeline.parse_markers(
-            config, graph_data, features, logger
-        )
+        markers = metacoag_pipeline.parse_markers(config, graph_data, features, logger)
         bins = metacoag_pipeline.match_seed_bins(
             config, graph_data, features, markers, logger
         )
         bins = metacoag_pipeline.propagate_bins(
             config, graph_data, features, markers, bins, logger
         )
-        merge_plan = metacoag_pipeline.merge_bins(
-            config, features, bins, logger
-        )
-        metacoag_pipeline.write_output(
-            config, graph_data, bins, merge_plan, logger
-        )
+        merge_plan = metacoag_pipeline.merge_bins(config, features, bins, logger)
+        metacoag_pipeline.write_output(config, graph_data, bins, merge_plan, logger)
 
         logger.info("Elapsed time: %s seconds", time.time() - start_time)
         logger.info("Thank you for using MetaCoAG!")

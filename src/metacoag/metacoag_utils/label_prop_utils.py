@@ -5,11 +5,13 @@ import heapq
 import logging
 import math
 import sys
+
 from collections import deque
 
 import numpy as np
 
 from metacoag.metacoag_utils import matching_utils
+
 
 MAX_WEIGHT = sys.float_info.max
 
@@ -22,11 +24,10 @@ __email__ = "vijini.mallawaarachchi@anu.edu.au"
 __status__ = "Stable Release"
 
 
-# create logger
-logger = logging.getLogger(f"MetaCoaAG {__version__}")
+logger = logging.getLogger(f"MetaCoAG {__version__}")
 
 
-class DataWrap:
+class QueueItem:
     def __init__(self, data):
         self.data = data
 
@@ -36,7 +37,7 @@ class DataWrap:
 
 def run_bfs_long(
     node,
-    threhold,
+    threshold,
     binned_contigs,
     bin_of_contig,
     bins,
@@ -44,8 +45,8 @@ def run_bfs_long(
     assembly_graph,
     normalized_tetramer_profiles,
     coverages,
-    bin_tetra_mat=None,
-    bin_cov_mat=None,
+    bin_tetramer_matrices=None,
+    bin_coverage_matrices=None,
 ):
     # Search labelled long contigs using BFS
 
@@ -66,15 +67,18 @@ def run_bfs_long(
             # Get the bin of the current contig
             contig_bin = bin_of_contig[active_node]
 
-            if bin_tetra_mat is not None and contig_bin in bin_tetra_mat:
+            if (
+                bin_tetramer_matrices is not None
+                and contig_bin in bin_tetramer_matrices
+            ):
                 # Vectorised path: one cdist call for all N seed members at once.
                 # Mathematically identical to the scalar loop below —
                 # same formula, same overflow-to-MAX_WEIGHT behaviour.
                 bin_log_prob = matching_utils._compute_edge_weight_exact(
                     normalized_tetramer_profiles[node],
                     coverages[node],
-                    bin_tetra_mat[contig_bin],
-                    bin_cov_mat[contig_bin],
+                    bin_tetramer_matrices[contig_bin],
+                    bin_coverage_matrices[contig_bin],
                 )
             else:
                 bin_log_prob = 0
@@ -119,7 +123,7 @@ def run_bfs_long(
             for neighbour in assembly_graph.neighbors(active_node, mode="ALL"):
                 if neighbour not in visited:
                     depth[neighbour] = depth[active_node] + 1
-                    if depth[neighbour] > threhold:
+                    if depth[neighbour] > threshold:
                         continue
                     queue.append(neighbour)
 
@@ -127,7 +131,7 @@ def run_bfs_long(
 
 
 def run_bfs_short(
-    node, threhold, binned_contigs, bin_of_contig, assembly_graph, coverages
+    node, threshold, binned_contigs, bin_of_contig, assembly_graph, coverages
 ):
     # Search labelled contigs using BFS
 
@@ -160,38 +164,47 @@ def run_bfs_short(
             for neighbour in assembly_graph.neighbors(active_node, mode="ALL"):
                 if neighbour not in visited:
                     depth[neighbour] = depth[active_node] + 1
-                    if depth[neighbour] > threhold:
+                    if depth[neighbour] > threshold:
                         continue
                     queue.append(neighbour)
 
     return labelled_nodes
 
 
-def getClosestLongVertices(graph, node, binned_contigs, contig_lengths, min_length):
+def get_closest_long_vertices(graph, node, binned_contigs, contig_lengths, min_length):
     # binned_contigs must support O(1) membership tests (set or dict)
-    queu_l = deque([graph.neighbors(node, mode="ALL")])
-    visited_l = {node}
+    level_queue = deque([graph.neighbors(node, mode="ALL")])
+    visited = {node}
     unlabelled = []
 
-    while queu_l:
-        active_level = queu_l.popleft()
-        is_finish = False
-        visited_l.update(active_level)
+    while level_queue:
+        active_level = level_queue.popleft()
+        found_unlabelled = False
+        visited.update(active_level)
 
-        for n in active_level:
-            if contig_lengths[n] >= min_length and n not in binned_contigs:
-                is_finish = True
-                unlabelled.append(n)
-        if is_finish:
+        for contig_id in active_level:
+            if (
+                contig_lengths[contig_id] >= min_length
+                and contig_id not in binned_contigs
+            ):
+                found_unlabelled = True
+                unlabelled.append(contig_id)
+        if found_unlabelled:
             return unlabelled
-        else:
-            temp = set()
-            for n in active_level:
-                temp.update(graph.neighbors(n, mode="ALL"))
-            temp2 = [n for n in temp if n not in visited_l]
-            if len(temp2) > 0:
-                queu_l.append(temp2)
+
+        neighbours = set()
+        for contig_id in active_level:
+            neighbours.update(graph.neighbors(contig_id, mode="ALL"))
+        next_level = [contig_id for contig_id in neighbours if contig_id not in visited]
+        if next_level:
+            level_queue.append(next_level)
+
     return unlabelled
+
+
+# Backward-compatible aliases for older imports.
+DataWrap = QueueItem
+getClosestLongVertices = get_closest_long_vertices
 
 
 def label_prop(
@@ -213,12 +226,12 @@ def label_prop(
 ):
     contigs_to_bin = set()
 
-    # Use bin_of_contig directly (dict) for O(1) membership in getClosestLongVertices
+    # Use bin_of_contig directly for O(1) membership checks.
     for contig in bin_of_contig:
         if contig in non_isolated and contig_lengths[contig] >= min_length:
             closest_neighbours = filter(
                 lambda x: contig_lengths[x] >= min_length,
-                getClosestLongVertices(
+                get_closest_long_vertices(
                     assembly_graph,
                     contig,
                     bin_of_contig,
@@ -234,35 +247,46 @@ def label_prop(
     # as new contigs are added — so bins[b][:smg_bin_counts[b]] is stable
     # throughout the entire function, including the per-neighbour BFS calls
     # inside the assignment loop.
-    _seed_tetra_mat = {}
-    _seed_cov_mat = {}
-    for _b in range(len(smg_bin_counts)):
-        _n = smg_bin_counts[_b]
-        _members = np.asarray(bins[_b][:_n], dtype=np.intp)
-        _seed_tetra_mat[_b] = normalized_tetramer_profiles[_members]
-        _seed_cov_mat[_b] = coverages[_members]
+    seed_tetramer_matrices = {}
+    seed_coverage_matrices = {}
+    for bin_id, seed_count in enumerate(smg_bin_counts):
+        members = np.asarray(bins[bin_id][:seed_count], dtype=np.intp)
+        seed_tetramer_matrices[bin_id] = normalized_tetramer_profiles[members]
+        seed_coverage_matrices[bin_id] = coverages[members]
 
     # All BFS calls are independent (read-only data); run them in parallel.
-    _binned_view = bin_of_contig.keys()
-    def _bfs_long_worker_lp(x):
-        return list(run_bfs_long(
-            x, depth, _binned_view, bin_of_contig, bins, smg_bin_counts,
-            assembly_graph, normalized_tetramer_profiles, coverages,
-            bin_tetra_mat=_seed_tetra_mat, bin_cov_mat=_seed_cov_mat,
-        ))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
-        sorted_node_list_ = list(pool.map(_bfs_long_worker_lp, contigs_to_bin))
-    sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
+    binned_view = bin_of_contig.keys()
 
-    for data in sorted_node_list_:
-        heapq.heappush(sorted_node_list, DataWrap(data))
+    def bfs_long_worker(contig_id):
+        return list(
+            run_bfs_long(
+                contig_id,
+                depth,
+                binned_view,
+                bin_of_contig,
+                bins,
+                smg_bin_counts,
+                assembly_graph,
+                normalized_tetramer_profiles,
+                coverages,
+                bin_tetramer_matrices=seed_tetramer_matrices,
+                bin_coverage_matrices=seed_coverage_matrices,
+            )
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
+        bfs_results = list(pool.map(bfs_long_worker, contigs_to_bin))
+    flattened_results = [item for result in bfs_results for item in result]
+
+    for data in flattened_results:
+        heapq.heappush(sorted_node_list, QueueItem(data))
 
     # Lazy-deletion set: contigs that already have a fresh BFS entry queued
     stale = set()
 
     while sorted_node_list:
         best_choice = heapq.heappop(sorted_node_list)
-        to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+        to_bin, binned, target_bin, distance, profile_difference = best_choice.data
 
         # Skip stale entries whose neighbourhood has already been re-queued
         if to_bin in stale:
@@ -276,36 +300,38 @@ def label_prop(
 
         if to_bin in contig_markers:
             has_mg = True
-            common_mgs = bin_markers[bin_] & contig_markers[to_bin]
+            common_mgs = bin_markers[target_bin] & contig_markers[to_bin]
 
-            if binned in contig_markers and dist == 1:
-                neighbour_common_mgs = (
-                    contig_markers[binned] & contig_markers[to_bin]
-                )
+            if binned in contig_markers and distance == 1:
+                neighbour_common_mgs = contig_markers[binned] & contig_markers[to_bin]
 
                 if neighbour_common_mgs == common_mgs:
                     common_mgs = set()
 
-        if to_bin not in bin_of_contig and cov_comp_diff < weight and dist <= depth:
+        if (
+            to_bin not in bin_of_contig
+            and profile_difference < weight
+            and distance <= depth
+        ):
             if len(common_mgs) == 0:
                 can_bin = True
             elif len(common_mgs) <= 1 and contig_lengths[to_bin] > 100000:
                 can_bin = True
 
         if can_bin:
-            bins[bin_].append(to_bin)
-            bin_of_contig[to_bin] = bin_
+            bins[target_bin].append(to_bin)
+            bin_of_contig[to_bin] = target_bin
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
-                bin_markers[bin_].update(contig_markers[to_bin])
+                bin_markers[target_bin].update(contig_markers[to_bin])
 
             # Discover to_bin's neighbours; mark old entries stale instead of
             # rebuilding the heap, then push fresh BFS results.
             unbinned_neighbours = set(
                 filter(
                     lambda x: contig_lengths[x] >= min_length,
-                    getClosestLongVertices(
+                    get_closest_long_vertices(
                         assembly_graph,
                         to_bin,
                         bin_of_contig,
@@ -328,12 +354,12 @@ def label_prop(
                         assembly_graph,
                         normalized_tetramer_profiles,
                         coverages,
-                        bin_tetra_mat=_seed_tetra_mat,
-                        bin_cov_mat=_seed_cov_mat,
+                        bin_tetramer_matrices=seed_tetramer_matrices,
+                        bin_coverage_matrices=seed_coverage_matrices,
                     )
                 )
-                for c in candidates:
-                    heapq.heappush(sorted_node_list, DataWrap(c))
+                for candidate in candidates:
+                    heapq.heappush(sorted_node_list, QueueItem(candidate))
                 # Fresh entry is now queued; remove from stale so it can be processed
                 stale.discard(un)
 
@@ -341,7 +367,7 @@ def label_prop(
 
 
 def assign_long(
-    contigid,
+    contig_id,
     coverages,
     normalized_tetramer_profiles,
     bin_tetramer_profiles,
@@ -354,11 +380,11 @@ def assign_long(
         log_prob = 0
 
         tetramer_dist = matching_utils.get_tetramer_distance(
-            normalized_tetramer_profiles[contigid], bin_tetramer_profiles[b]
+            normalized_tetramer_profiles[contig_id], bin_tetramer_profiles[b]
         )
         prob_comp = matching_utils.get_comp_probability(tetramer_dist)
         prob_cov = matching_utils.get_cov_probability(
-            coverages[contigid], bin_coverage_profiles[b]
+            coverages[contig_id], bin_coverage_profiles[b]
         )
 
         prob_product = prob_comp * prob_cov
@@ -375,7 +401,7 @@ def assign_long(
     min_index, min_weight = min(enumerate(bin_weights), key=lambda item: item[1])
 
     if min_weight != MAX_WEIGHT:
-        return contigid, min_index, min_weight
+        return contig_id, min_index, min_weight
 
     return None
 
@@ -438,12 +464,12 @@ def final_label_prop(
 ):
     contigs_to_bin = set()
 
-    # Use bin_of_contig directly (dict) for O(1) membership in getClosestLongVertices
+    # Use bin_of_contig directly for O(1) membership checks.
     for contig in bin_of_contig:
         if contig_lengths[contig] >= min_length:
             closest_neighbours = filter(
                 lambda x: contig_lengths[x] >= min_length,
-                getClosestLongVertices(
+                get_closest_long_vertices(
                     assembly_graph,
                     contig,
                     bin_of_contig,
@@ -456,35 +482,46 @@ def final_label_prop(
     sorted_node_list = []
     # Build seed-member matrices once. Same rationale as in label_prop: smg_bin_counts
     # is frozen so bins[b][:smg_bin_counts[b]] is stable throughout this function.
-    _seed_tetra_mat_flp = {}
-    _seed_cov_mat_flp = {}
-    for _b in range(len(smg_bin_counts)):
-        _n = smg_bin_counts[_b]
-        _members = np.asarray(bins[_b][:_n], dtype=np.intp)
-        _seed_tetra_mat_flp[_b] = normalized_tetramer_profiles[_members]
-        _seed_cov_mat_flp[_b] = coverages[_members]
+    seed_tetramer_matrices = {}
+    seed_coverage_matrices = {}
+    for bin_id, seed_count in enumerate(smg_bin_counts):
+        members = np.asarray(bins[bin_id][:seed_count], dtype=np.intp)
+        seed_tetramer_matrices[bin_id] = normalized_tetramer_profiles[members]
+        seed_coverage_matrices[bin_id] = coverages[members]
 
     # All BFS calls are independent (read-only data); run them in parallel.
-    _binned_view_flp = bin_of_contig.keys()
-    def _bfs_long_worker_flp(x):
-        return list(run_bfs_long(
-            x, depth, _binned_view_flp, bin_of_contig, bins, smg_bin_counts,
-            assembly_graph, normalized_tetramer_profiles, coverages,
-            bin_tetra_mat=_seed_tetra_mat_flp, bin_cov_mat=_seed_cov_mat_flp,
-        ))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
-        sorted_node_list_ = list(pool.map(_bfs_long_worker_flp, contigs_to_bin))
-    sorted_node_list_ = [item for sublist in sorted_node_list_ for item in sublist]
+    binned_view = bin_of_contig.keys()
 
-    for data in sorted_node_list_:
-        heapq.heappush(sorted_node_list, DataWrap(data))
+    def bfs_long_worker(contig_id):
+        return list(
+            run_bfs_long(
+                contig_id,
+                depth,
+                binned_view,
+                bin_of_contig,
+                bins,
+                smg_bin_counts,
+                assembly_graph,
+                normalized_tetramer_profiles,
+                coverages,
+                bin_tetramer_matrices=seed_tetramer_matrices,
+                bin_coverage_matrices=seed_coverage_matrices,
+            )
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as pool:
+        bfs_results = list(pool.map(bfs_long_worker, contigs_to_bin))
+    flattened_results = [item for result in bfs_results for item in result]
+
+    for data in flattened_results:
+        heapq.heappush(sorted_node_list, QueueItem(data))
 
     # Lazy-deletion set: contigs that already have a fresh BFS entry queued
     stale = set()
 
     while sorted_node_list:
         best_choice = heapq.heappop(sorted_node_list)
-        to_bin, binned, bin_, dist, cov_comp_diff = best_choice.data
+        to_bin, binned, target_bin, distance, profile_difference = best_choice.data
 
         # Skip stale entries whose neighbourhood has already been re-queued
         if to_bin in stale:
@@ -494,30 +531,28 @@ def final_label_prop(
 
         if to_bin in contig_markers:
             has_mg = True
-            common_mgs = bin_markers[bin_] & contig_markers[to_bin]
+            common_mgs = bin_markers[target_bin] & contig_markers[to_bin]
 
-            if binned in contig_markers and dist == 1:
-                neighbour_common_mgs = (
-                    contig_markers[binned] & contig_markers[to_bin]
-                )
+            if binned in contig_markers and distance == 1:
+                neighbour_common_mgs = contig_markers[binned] & contig_markers[to_bin]
 
                 if neighbour_common_mgs == common_mgs:
                     common_mgs = set()
 
-        if to_bin not in bin_of_contig and cov_comp_diff != weight:
-            bins[bin_].append(to_bin)
-            bin_of_contig[to_bin] = bin_
+        if to_bin not in bin_of_contig and profile_difference != weight:
+            bins[target_bin].append(to_bin)
+            bin_of_contig[to_bin] = target_bin
 
             if has_mg:
                 binned_contigs_with_markers.append(to_bin)
-                bin_markers[bin_].update(contig_markers[to_bin])
+                bin_markers[target_bin].update(contig_markers[to_bin])
 
             # Discover to_bin's neighbours; mark old entries stale instead of
             # rebuilding the heap, then push fresh BFS results.
             unbinned_neighbours = set(
                 filter(
                     lambda x: contig_lengths[x] >= min_length,
-                    getClosestLongVertices(
+                    get_closest_long_vertices(
                         assembly_graph,
                         to_bin,
                         bin_of_contig,
@@ -540,12 +575,12 @@ def final_label_prop(
                         assembly_graph,
                         normalized_tetramer_profiles,
                         coverages,
-                        bin_tetra_mat=_seed_tetra_mat_flp,
-                        bin_cov_mat=_seed_cov_mat_flp,
+                        bin_tetramer_matrices=seed_tetramer_matrices,
+                        bin_coverage_matrices=seed_coverage_matrices,
                     )
                 )
-                for c in candidates:
-                    heapq.heappush(sorted_node_list, DataWrap(c))
+                for candidate in candidates:
+                    heapq.heappush(sorted_node_list, QueueItem(candidate))
                 # Fresh entry is now queued; remove from stale so it can be processed
                 stale.discard(un)
 

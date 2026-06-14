@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+
 from collections import defaultdict
 
 from Bio import SeqIO
@@ -19,11 +20,9 @@ def get_segment_paths_spades(contig_paths):
     segment_contigs = {}
     node_count = 0
 
-    my_map = BidirectionalMap()
-
+    contig_map = BidirectionalMap()
     contig_names = BidirectionalMap()
-
-    current_contig_num = ""
+    current_contig_id = ""
 
     with open(contig_paths) as file:
         name = file.readline().strip()
@@ -33,31 +32,27 @@ def get_segment_paths_spades(contig_paths):
             while ";" in path:
                 path = path[:-2] + "," + file.readline()
 
-            start = "NODE_"
-            end = "_length_"
-            contig_num = str(int(re.search("%s(.*)%s" % (start, end), name).group(1)))
+            match = re.search(r"NODE_(.*)_length_", name)
+            contig_id = str(int(match.group(1)))
 
             segments = path.rstrip().split(",")
 
-            if current_contig_num != contig_num:
-                my_map[node_count] = int(contig_num)
+            if current_contig_id != contig_id:
+                contig_map[node_count] = int(contig_id)
                 contig_names[node_count] = name.strip()
-                current_contig_num = contig_num
+                current_contig_id = contig_id
                 node_count += 1
 
-            if contig_num not in paths:
-                paths[contig_num] = segments
+            if contig_id not in paths:
+                paths[contig_id] = segments
 
             for segment in segments:
-                if segment not in segment_contigs:
-                    segment_contigs[segment] = set([contig_num])
-                else:
-                    segment_contigs[segment].add(contig_num)
+                segment_contigs.setdefault(segment, set()).add(contig_id)
 
             name = file.readline().strip()
             path = file.readline().strip()
 
-    return paths, segment_contigs, node_count, my_map, contig_names
+    return paths, segment_contigs, node_count, contig_map, contig_names
 
 
 def get_graph_edges_spades(
@@ -73,55 +68,56 @@ def get_graph_edges_spades(
         while line != "":
             # Identify lines with link information
             if "L" in line:
-                strings = line.split("\t")
-                f1, f2 = strings[1] + strings[2], strings[3] + strings[4]
-                links_map[f1].add(f2)
-                links_map[f2].add(f1)
-                links.append(strings[1] + strings[2] + " " + strings[3] + strings[4])
+                fields = line.split("\t")
+                first_segment = fields[1] + fields[2]
+                second_segment = fields[3] + fields[4]
+                links_map[first_segment].add(second_segment)
+                links_map[second_segment].add(first_segment)
+                links.append(f"{first_segment} {second_segment}")
             line = file.readline()
 
     # Create list of edges
     edge_list = []
 
-    for i in range(len(paths)):
-        segments = paths[str(contigs_map[i])]
+    for contig_id in range(len(paths)):
+        segments = paths[str(contigs_map[contig_id])]
 
         new_links = []
 
         for segment in segments:
-            my_segment = segment
-
-            my_segment_rev = ""
-
-            if my_segment.endswith("+"):
-                my_segment_rev = my_segment[:-1] + "-"
+            active_segment = segment
+            if active_segment.endswith("+"):
+                reverse_segment = active_segment[:-1] + "-"
             else:
-                my_segment_rev = my_segment[:-1] + "+"
+                reverse_segment = active_segment[:-1] + "+"
 
             if segment in links_map:
-                new_links.extend(list(links_map[segment]))
+                new_links.extend(links_map[segment])
 
-            if my_segment_rev in links_map:
-                new_links.extend(list(links_map[my_segment_rev]))
+            if reverse_segment in links_map:
+                new_links.extend(links_map[reverse_segment])
 
-        if my_segment in segment_contigs:
-            for contig in segment_contigs[my_segment]:
-                if i != contigs_map_rev[int(contig)]:
+        if active_segment in segment_contigs:
+            for linked_contig in segment_contigs[active_segment]:
+                linked_contig_id = contigs_map_rev[int(linked_contig)]
+                if contig_id != linked_contig_id:
                     # Add edge to list of edges
-                    edge_list.append((i, contigs_map_rev[int(contig)]))
+                    edge_list.append((contig_id, linked_contig_id))
 
-        if my_segment_rev in segment_contigs:
-            for contig in segment_contigs[my_segment_rev]:
-                if i != contigs_map_rev[int(contig)]:
+        if reverse_segment in segment_contigs:
+            for linked_contig in segment_contigs[reverse_segment]:
+                linked_contig_id = contigs_map_rev[int(linked_contig)]
+                if contig_id != linked_contig_id:
                     # Add edge to list of edges
-                    edge_list.append((i, contigs_map_rev[int(contig)]))
+                    edge_list.append((contig_id, linked_contig_id))
 
         for new_link in new_links:
             if new_link in segment_contigs:
-                for contig in segment_contigs[new_link]:
-                    if i != contigs_map_rev[int(contig)]:
+                for linked_contig in segment_contigs[new_link]:
+                    linked_contig_id = contigs_map_rev[int(linked_contig)]
+                    if contig_id != linked_contig_id:
                         # Add edge to list of edges
-                        edge_list.append((i, contigs_map_rev[int(contig)]))
+                        edge_list.append((contig_id, linked_contig_id))
 
     return edge_list
 
@@ -129,11 +125,8 @@ def get_graph_edges_spades(
 def get_flye_contig_map(contigs_file):
     contig_names = BidirectionalMap()
 
-    contig_num = 0
-
-    for index, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
-        contig_names[contig_num] = record.id
-        contig_num += 1
+    for contig_id, record in enumerate(SeqIO.parse(contigs_file, "fasta")):
+        contig_names[contig_id] = record.id
 
     return contig_names
 
@@ -142,16 +135,16 @@ def get_links_flye(contig_paths, contig_names_rev):
     paths = {}
     segment_contigs = {}
 
-    my_map = BidirectionalMap()
+    contig_map = BidirectionalMap()
 
     with open(contig_paths) as file:
         for line in file:
             if not line.startswith("#"):
-                strings = line.strip().split()
+                fields = line.strip().split()
 
-                contig_name = strings[0]
+                contig_name = fields[0]
 
-                path = strings[-1]
+                path = fields[-1]
                 path = path.replace("*", "")
 
                 if path.startswith(","):
@@ -162,18 +155,15 @@ def get_links_flye(contig_paths, contig_names_rev):
 
                 segments = path.rstrip().split(",")
 
-                contig_num = contig_names_rev[contig_name]
+                contig_id = contig_names_rev[contig_name]
 
-                if contig_num not in paths:
-                    paths[contig_num] = segments
+                if contig_id not in paths:
+                    paths[contig_id] = segments
 
                 for segment in segments:
-                    if segment not in segment_contigs:
-                        segment_contigs[segment] = set([contig_num])
-                    else:
-                        segment_contigs[segment].add(contig_num)
+                    segment_contigs.setdefault(segment, set()).add(contig_id)
 
-    return paths, segment_contigs, len(contig_names_rev), my_map
+    return paths, segment_contigs, len(contig_names_rev), contig_map
 
 
 def get_graph_edges_flye(
@@ -275,7 +265,7 @@ def get_links_megahit(assembly_graph_file):
 
     links = []
 
-    my_map = BidirectionalMap()
+    contig_names = BidirectionalMap()
 
     # Get links from .gfa file
     with open(assembly_graph_file) as file:
@@ -286,31 +276,30 @@ def get_links_megahit(assembly_graph_file):
             if line.startswith("L"):
                 link = []
 
-                strings = line.split("\t")
+                fields = line.split("\t")
 
-                link1 = strings[1]
-                link2 = strings[3]
+                link1 = fields[1]
+                link2 = fields[3]
 
                 link.append(link1)
                 link.append(link2)
                 links.append(link)
 
             elif line.startswith("S"):
-                strings = line.split()
+                fields = line.split()
 
-                my_map[node_count] = strings[1]
-
-                graph_contig_hashes[strings[1]] = hash_sequence(strings[2])
+                contig_names[node_count] = fields[1]
+                graph_contig_hashes[fields[1]] = hash_sequence(fields[2])
 
                 node_count += 1
 
             line = file.readline()
 
-    return node_count, graph_contig_hashes, links, my_map
+    return node_count, graph_contig_hashes, links, contig_names
 
 
 def get_links_megahit_custom(assembly_graph_file):
-    my_map = BidirectionalMap()
+    contig_names = BidirectionalMap()
 
     node_count = 0
 
@@ -323,28 +312,26 @@ def get_links_megahit_custom(assembly_graph_file):
 
             # Count the number of contigs
             if line.startswith("S"):
-                strings = line.split("\t")
-                my_node = strings[1][:-2]
-                my_map[node_count] = my_node
+                fields = line.split("\t")
+                node_name = fields[1][:-2]
+                contig_names[node_count] = node_name
                 node_count += 1
 
             # Identify lines with link information
             elif line.startswith("L"):
                 link = []
-                strings = line.split("\t")
+                fields = line.split("\t")
 
-                if strings[1] != strings[3]:
-                    start = strings[1]
-                    end = strings[3]
-                    link.append(start)
-                    link.append(end)
+                if fields[1] != fields[3]:
+                    link.append(fields[1])
+                    link.append(fields[3])
                     links.append(link)
 
-    return node_count, links, my_map
+    return node_count, links, contig_names
 
 
 def get_links_custom(assembly_graph_file):
-    my_map = BidirectionalMap()
+    contig_names = BidirectionalMap()
 
     node_count = 0
 
@@ -357,24 +344,22 @@ def get_links_custom(assembly_graph_file):
 
             # Count the number of contigs
             if line.startswith("S"):
-                strings = line.split("\t")
-                my_node = strings[1]
-                my_map[node_count] = my_node
+                fields = line.split("\t")
+                node_name = fields[1]
+                contig_names[node_count] = node_name
                 node_count += 1
 
             # Identify lines with link information
             elif line.startswith("L"):
                 link = []
-                strings = line.split("\t")
+                fields = line.split("\t")
 
-                if strings[1] != strings[3]:
-                    start = strings[1]
-                    end = strings[3]
-                    link.append(start)
-                    link.append(end)
+                if fields[1] != fields[3]:
+                    link.append(fields[1])
+                    link.append(fields[3])
                     links.append(link)
 
-    return node_count, links, my_map
+    return node_count, links, contig_names
 
 
 def get_graph_edges_megahit(links, contig_names_rev):

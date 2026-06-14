@@ -1,17 +1,18 @@
-"""gfa2fasta.py: Obtain the sequences corresponding to edges in the Flye and Miniasm assembly graphs in FASTA format.
+"""Convert Flye and Miniasm GFA segment sequences to FASTA.
 
-The assembly graph file of Flye (assembly_graph.gfa) should be provided as inputs.
-
+The Flye assembly graph file (assembly_graph.gfa) is expected as input.
 """
 
-import click
 import logging
-import os
-import pathlib
 import re
-import sys
+
+from pathlib import Path
+
+import click
 
 from cogent3.format.fasta import alignment_to_fasta
+
+
 __author__ = "Vijini Mallawaarachchi"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
 __license__ = "GPL-3.0"
@@ -40,75 +41,49 @@ __email__ = "viji.mallawaarachchi@gmail.com"
     required=False,
 )
 def main(graph, output, log):
-    # Get arguments
-    # -----------------------
-
-    assembly_graph_file = graph
-    output_path = pathlib.Path(output)
+    assembly_graph_path = Path(graph)
+    output_path = Path(output)
     output_path.mkdir(parents=True, exist_ok=True)
-    log_file = log
-    prefix = ""
 
-    # Setup logger
-    # ----------------------------------------------------------------------
-
-    logger = logging.getLogger("gfa2fasta")
+    logger = logging.getLogger("metacoag.gfa2fasta")
     logger.setLevel(logging.DEBUG)
     logging.captureWarnings(True)
+
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    consoleHeader = logging.StreamHandler()
-    consoleHeader.setFormatter(formatter)
-    consoleHeader.setLevel(logging.INFO)
-    logger.addHandler(consoleHeader)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
 
-    # Setup output path for log file
-    if log_file is None:
-        fileHandler = logging.FileHandler(output_path / "gfa2fasta.log")
-    else:
-        fileHandler = logging.FileHandler(f"{log_file}")
-
-    fileHandler.setLevel(logging.DEBUG)
-    fileHandler.setFormatter(formatter)
-    logger.addHandler(fileHandler)
-
-    # Check assembly graph file
-    if not os.path.isfile(assembly_graph_file):
-        logger.error(
-            "Failed to open the assembly graph file. Please make sure to provife the .gfa file."
-        )
-        logger.info("Exiting gfa2fasta.py...\nBye...!\n")
-        sys.exit(1)
-
-    # Get the sequences corresponding to edges of the graph.
-    # ---------------------------------------------------
+    log_path = Path(log) if log is not None else output_path / "gfa2fasta.log"
+    file_handler = logging.FileHandler(log_path)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
     logger.info("Obtaining edge sequences")
 
-    seqs = {}
-
-    with open(assembly_graph_file) as file:
-        line = file.readline()
-
-        while line != "":
-            if "S" in line:
-                strings = line.split("\t")
-                seqs[str(strings[1])] = re.sub("[^GATC]", "", str(strings[2]).upper())
-
-            line = file.readline()
+    sequences = {}
+    with open(assembly_graph_path) as graph_file:
+        for line in graph_file:
+            if not line.startswith("S"):
+                continue
+            fields = line.split("\t")
+            sequences[fields[1]] = re.sub("[^GATC]", "", fields[2].upper())
 
     logger.info("Writing edge sequences to FASTA file")
 
-    with open(output_path / f"{prefix}edges.fasta", "w") as output:
-        output.write(alignment_to_fasta(seqs))
+    fasta_path = output_path / "edges.fasta"
+    with open(fasta_path, "w") as output_file:
+        output_file.write(alignment_to_fasta(sequences))
 
-    logger.info(
-        f"The FASTA file with unitig sequences can be found at {output.name}"
-    )
-
-    # Exit program
-    # --------------
-
+    logger.info("The FASTA file with unitig sequences can be found at %s", fasta_path)
     logger.info("Thank you for using gfa2fasta!")
+
+    logger.removeHandler(file_handler)
+    logger.removeHandler(console_handler)
+    file_handler.close()
+    console_handler.close()
 
 
 if __name__ == "__main__":

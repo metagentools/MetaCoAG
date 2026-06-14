@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
-"""combine_cov.py: Combine multiple coverage files of samples from CoverM.
-"""
+"""Combine multiple CoverM sample coverage files."""
 
-import glob
+from pathlib import Path
 
 import click
 import pandas as pd
+
 
 __author__ = "Vijini Mallawaarachchi"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
@@ -30,40 +30,33 @@ __email__ = "viji.mallawaarachchi@gmail.com"
     required=True,
 )
 def main(covpath, output):
-    """
-    combine_cov: Combine multiple coverage files of samples from CoverM
-    """
+    """Combine multiple coverage files from CoverM."""
+    coverage_files = sorted(Path(covpath).glob("*.tsv"))
+    combined_coverage = pd.DataFrame()
 
-    # Get coverage values from samples
-    # ---------------------------------------------------
+    for coverage_file in coverage_files:
+        coverage_frame = pd.read_csv(coverage_file, sep="\t", header=0)
 
-    # Get coverage files
-    cov_files = glob.glob(f"{covpath}/*.tsv")
-
-    final_df = pd.DataFrame()
-
-    for file in cov_files:
-        df = pd.read_csv(file, sep="\t", header=0)
-
-        if final_df.empty:
-            final_df = df
+        if combined_coverage.empty:
+            combined_coverage = coverage_frame
         else:
-            final_df = pd.concat(
-                [final_df, df[list(df.columns)[1]]], axis=1, join="inner"
+            sample_column = coverage_frame.columns[1]
+            combined_coverage = pd.concat(
+                [combined_coverage, coverage_frame[sample_column]],
+                axis=1,
+                join="inner",
             )
 
-    print(f"Dataframe shape: {final_df.shape}")
+    print(f"Dataframe shape: {combined_coverage.shape}")
 
-    # Save dataframe to file
-    final_df.to_csv(f"{output}coverage.tsv", sep="\t", index=False, header=False)
-    final_df.to_csv(
-        f"{output}coverage_with_header.tsv", sep="\t", index=False, header=True
-    )
-    print(f"The combined coverage values can be found at {output}coverage.tsv")
+    output_path = Path(output)
+    output_path.mkdir(parents=True, exist_ok=True)
+    coverage_path = output_path / "coverage.tsv"
+    header_path = output_path / "coverage_with_header.tsv"
 
-    # Exit program
-    # --------------
-
+    combined_coverage.to_csv(coverage_path, sep="\t", index=False, header=False)
+    combined_coverage.to_csv(header_path, sep="\t", index=False, header=True)
+    print(f"The combined coverage values can be found at {coverage_path}")
     print("Thank you for using combine_cov!")
 
 

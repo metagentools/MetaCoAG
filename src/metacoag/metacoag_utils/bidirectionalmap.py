@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-"""
-This code is used from the source found at 
-https://stackoverflow.com/questions/3318625/how-to-implement-an-efficient-bidirectional-hash-table 
-answered by user jme
+"""An invertible dictionary implementation.
+
+Adapted from https://stackoverflow.com/questions/3318625/.
 """
 
 
@@ -12,8 +11,8 @@ class BidirectionalError(Exception):
 
     def __init__(self, value):
         self.value = value
-        msg = 'The value "{}" is already in the mapping.'
-        super().__init__(msg.format(value))
+        message = f'The value "{value}" is already in the mapping.'
+        super().__init__(message)
 
 
 class BidirectionalMap(dict):

@@ -4,6 +4,7 @@ import click
 
 from metacoag import metacoag_runner
 
+
 __author__ = "Vijini Mallawaarachchi and Yu Lin"
 __copyright__ = "Copyright 2020, MetaCoAG Project"
 __license__ = "GPL-3.0"
@@ -13,7 +14,7 @@ __email__ = "vijini.mallawaarachchi@anu.edu.au"
 __status__ = "Stable Release"
 
 
-class ArgsObj:
+class Arguments:
     def __init__(
         self,
         assembler,
@@ -35,7 +36,7 @@ class ArgsObj:
         bin_mg_threshold,
         min_bin_size,
         delimiter,
-        nthreads
+        nthreads,
     ):
         self.assembler = assembler
         self.graph = graph
@@ -62,11 +63,14 @@ class ArgsObj:
 # Setup argument parser
 # ---------------------------------------------------
 
+
 @click.command()
 @click.option(
     "--assembler",
     help="name of the assembler used. (Supports SPAdes, MEGAHIT and Flye)",
-    type=click.Choice(["spades", "megahit", "megahitc", "flye", "custom"], case_sensitive=False),
+    type=click.Choice(
+        ["spades", "megahit", "megahitc", "flye", "custom"], case_sensitive=False
+    ),
     required=True,
 )
 @click.option(
@@ -197,7 +201,7 @@ class ArgsObj:
 @click.option(
     "--delimiter",
     help="delimiter for output results. Supports a comma (,), a semicolon (;), a tab ($'\\t'), a space (\" \") and a pipe (|) .",
-    type=click.Choice([",", ";", "$'\\t'", "\" \""], case_sensitive=False),
+    type=click.Choice([",", ";", "$'\\t'", '" "'], case_sensitive=False),
     default=",",
     show_default=True,
     required=False,
@@ -231,14 +235,14 @@ def main(
     bin_mg_threshold,
     min_bin_size,
     delimiter,
-    nthreads
+    nthreads,
 ):
     """
     MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
     """
 
     # Make args object
-    args = ArgsObj(
+    args = Arguments(
         assembler,
         graph,
         contigs,
@@ -258,12 +262,16 @@ def main(
         bin_mg_threshold,
         min_bin_size,
         delimiter,
-        nthreads
+        nthreads,
     )
-    
+
     # Run MetaCoAG
     # ---------------------------------------------------
     metacoag_runner.main(args)
+
+
+# Backward-compatible alias for older imports.
+ArgsObj = Arguments
 
 
 if __name__ == "__main__":

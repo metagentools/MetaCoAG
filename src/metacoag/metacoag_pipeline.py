@@ -8,6 +8,7 @@ import operator
 import pathlib
 import shutil
 import sys
+
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -24,6 +25,7 @@ from metacoag.metacoag_utils import (
     matching_utils,
 )
 from metacoag.metacoag_utils.bidirectionalmap import BidirectionalMap
+
 
 MAX_WEIGHT = sys.float_info.max
 MAX_OPEN_BIN_FILES = 32
@@ -165,11 +167,15 @@ def validate_inputs(config):
     required_files = [config.graph, config.contigs, config.abundance]
     if config.assembler in {"spades", "flye"}:
         if config.paths is None:
-            expected = "contigs.paths" if config.assembler == "spades" else "assembly_info.txt"
+            expected = (
+                "contigs.paths" if config.assembler == "spades" else "assembly_info.txt"
+            )
             raise ValueError(f"{config.assembler} requires a {expected} file")
         required_files.append(config.paths)
 
-    missing_files = [path for path in required_files if not pathlib.Path(path).is_file()]
+    missing_files = [
+        path for path in required_files if not pathlib.Path(path).is_file()
+    ]
     if missing_files:
         raise FileNotFoundError(f"Input file does not exist: {missing_files[0]}")
 
@@ -311,9 +317,7 @@ def load_graph(config, logger):
         graph_to_contig_map_rev = graph_to_contig_map.inverse
 
     isolated = graph_utils.get_isolated(node_count, assembly_graph)
-    logger.info(
-        "Total isolated contigs in the assembly graph: %s", len(isolated)
-    )
+    logger.info("Total isolated contigs in the assembly graph: %s", len(isolated))
 
     graph_data = GraphData(
         node_count=node_count,
@@ -390,7 +394,9 @@ def parse_markers(config, graph_data, features, logger):
 
     if not hmm_output.exists():
         missing_tools = [
-            tool for tool in ("run_FragGeneScan.pl", "hmmsearch") if shutil.which(tool) is None
+            tool
+            for tool in ("run_FragGeneScan.pl", "hmmsearch")
+            if shutil.which(tool) is None
         ]
         if missing_tools:
             raise FileNotFoundError(
@@ -402,7 +408,7 @@ def parse_markers(config, graph_data, features, logger):
         marker_gene_utils.scan_for_marker_genes(
             contigs_file=config.contigs,
             nthreads=config.nthreads,
-            markerURL=config.hmm,
+            marker_url=config.hmm,
             no_cut_tc=config.no_cut_tc,
         )
     else:
@@ -508,8 +514,8 @@ def match_seed_bins(config, graph_data, features, marker_data, logger):
     )
     logger.debug("Number of bins after matching: %s", len(bins))
 
-    unbinned_marker_contigs = (
-        set(marker_data.contig_markers) - set(binned_contigs_with_markers)
+    unbinned_marker_contigs = set(marker_data.contig_markers) - set(
+        binned_contigs_with_markers
     )
     unbinned_by_length = sorted(
         (
@@ -546,8 +552,8 @@ def match_seed_bins(config, graph_data, features, marker_data, logger):
         nthreads=config.nthreads,
     )
 
-    remaining_marker_contigs = (
-        set(marker_data.contig_markers) - set(binned_contigs_with_markers)
+    remaining_marker_contigs = set(marker_data.contig_markers) - set(
+        binned_contigs_with_markers
     )
     logger.debug(
         "Remaining number of unbinned MG seed contigs: %s",
@@ -647,16 +653,14 @@ def propagate_bins(config, graph_data, features, marker_data, state, logger):
 
     def assign_long(contig):
         return label_prop_utils.assign_long(
-            contigid=contig,
+            contig_id=contig,
             coverages=features.coverages,
             normalized_tetramer_profiles=features.normalized_tetramer_profiles,
             bin_tetramer_profiles=state.seed_tetramer_profiles,
             bin_coverage_profiles=state.seed_coverage_profiles,
         )
 
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=config.nthreads
-    ) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=config.nthreads) as executor:
         assigned = list(
             tqdm(
                 executor.map(assign_long, long_unbinned),
@@ -720,9 +724,7 @@ def merge_bins(config, features, state, logger):
         bins_graph.vs[i]["label"] = f"bin {i + 1}"
 
     bin_ids = list(state.bins)
-    marker_sets = {
-        bin_id: frozenset(state.bin_markers[bin_id]) for bin_id in bin_ids
-    }
+    marker_sets = {bin_id: frozenset(state.bin_markers[bin_id]) for bin_id in bin_ids}
     best_bins = {bin_id: -1 for bin_id in bin_ids}
     best_weights = {bin_id: MAX_WEIGHT for bin_id in bin_ids}
 
@@ -847,8 +849,7 @@ def write_output(config, graph_data, state, merge_plan, logger):
         for bin_name in set(final_bins.values())
     }
     low_quality_paths = {
-        bin_name: low_quality_path
-        / f"{config.prefix}bin_{bin_name}_seqs.fasta"
+        bin_name: low_quality_path / f"{config.prefix}bin_{bin_name}_seqs.fasta"
         for bin_name in set(low_quality_bins.values())
     }
 
