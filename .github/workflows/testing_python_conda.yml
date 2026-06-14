@@ -18,11 +18,11 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-12, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: "actions/checkout@v3"
+      - uses: "actions/checkout@v6"
         with:
           fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
 
-      - name: "Setup graphbin on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
+      - name: "Setup metacoag on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
         run: |
           python --version
           python -m pip install --upgrade pip
@@ -44,4 +44,4 @@ jobs:
       - name: "Generate coverage report on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
         run: |
           pip install pytest pytest-cov
-          pytest --cov=graphbin --cov-report=xml --cov-append
+          pytest --cov=metacoag --cov-report=xml --cov-append

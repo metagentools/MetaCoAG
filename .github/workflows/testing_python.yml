@@ -14,18 +14,18 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-12, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: "actions/checkout@v3"
+      - uses: "actions/checkout@v6"
         with:
           fetch-depth: 0
 
       # Setup env
-      - uses: "actions/setup-python@v3"
+      - uses: "actions/setup-python@v5"
         with:
-            python-version: "${{ matrix.python-version }}"
+          python-version: "${{ matrix.python-version }}"
 
       - name: "Install dependencies on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
         run: |
@@ -40,23 +40,21 @@ jobs:
           pytest --cov=./ --cov-report xml --cov-report lcov --cov-append
           
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           parallel: true
-          github-token: ${{ secrets.github_token }}
-          flag-name: run-${{ matrix.test_number }}
-          path-to-lcov: "coverage.lcov"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}
+          file: "coverage.lcov"
+          format: lcov
 
   finish:
     needs: tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
     steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.github_token }}
-        parallel-finished: true
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
