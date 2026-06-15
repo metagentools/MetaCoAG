@@ -37,6 +37,7 @@ class Arguments:
         min_bin_size,
         delimiter,
         nthreads,
+        continue_run=False,
     ):
         self.assembler = assembler
         self.graph = graph
@@ -58,6 +59,7 @@ class Arguments:
         self.min_bin_size = min_bin_size
         self.delimiter = delimiter
         self.nthreads = nthreads
+        self.continue_run = continue_run
 
 
 # Setup argument parser
@@ -214,6 +216,13 @@ class Arguments:
     show_default=True,
     required=False,
 )
+@click.option(
+    "--continue",
+    "continue_run",
+    help="resume from the last completed stage in the output folder.",
+    is_flag=True,
+    default=False,
+)
 @click.version_option(__version__, "-v", "--version", is_flag=True)
 def main(
     assembler,
@@ -236,6 +245,7 @@ def main(
     min_bin_size,
     delimiter,
     nthreads,
+    continue_run,
 ):
     """
     MetaCoAG: Binning Metagenomic Contigs via Composition, Coverage and Assembly Graphs
@@ -263,6 +273,7 @@ def main(
         min_bin_size,
         delimiter,
         nthreads,
+        continue_run,
     )
 
     # Run MetaCoAG

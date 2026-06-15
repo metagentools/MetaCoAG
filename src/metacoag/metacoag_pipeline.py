@@ -53,6 +53,7 @@ class PipelineConfig:
     min_bin_size: int
     delimiter: str
     nthreads: int
+    continue_run: bool
 
     @classmethod
     def from_args(cls, args):
@@ -81,6 +82,7 @@ class PipelineConfig:
             min_bin_size=args.min_bin_size,
             delimiter=args.delimiter,
             nthreads=args.nthreads,
+            continue_run=getattr(args, "continue_run", False),
         )
 
 

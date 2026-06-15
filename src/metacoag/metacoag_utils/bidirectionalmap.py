@@ -39,3 +39,6 @@ class BidirectionalMap(dict):
 
     def _set_item(self, key, value):
         super().__setitem__(key, value)
+
+    def __reduce__(self):
+        return self.__class__, (), None, None, iter(self.items())
