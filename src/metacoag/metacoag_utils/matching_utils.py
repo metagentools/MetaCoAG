@@ -173,6 +173,7 @@ def match_contigs(
     w_inter,
     d_limit,
 ):
+    n_bins = len(bins)
     edge_weights_per_iteration = {}
 
     smg_iterations = len(smg_iteration)
