@@ -3,7 +3,7 @@
 import hashlib
 import re
 
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from Bio import SeqIO
 
@@ -389,15 +389,43 @@ def get_isolated(node_count, assembly_graph):
 
 
 def get_non_isolated(node_count, assembly_graph, binned_contigs, nthreads):
-    """Return contigs in connected components that contain at least one bin label.
+    """Return per-node labelled connected components.
 
-    ``node_count`` and ``nthreads`` are kept for compatibility with the runner.
+    This preserves the pre-connected-components return shape: one list per graph
+    node, with component members only for nodes that are already binned.
+    ``nthreads`` is kept for API compatibility.
     """
+    del nthreads
+
     binned_contigs = set(binned_contigs)
-    non_isolated = set()
+    return [
+        get_connected_component_contigs(contig_id, assembly_graph, binned_contigs)
+        for contig_id in range(node_count)
+    ]
 
-    for component in assembly_graph.connected_components():
-        if any(contig in binned_contigs for contig in component):
-            non_isolated.update(component)
 
-    return non_isolated
+def get_connected_component_contigs(contig_id, assembly_graph, binned_contigs):
+    if contig_id not in binned_contigs:
+        return []
+
+    component = []
+    visited = {contig_id}
+    queue = deque([contig_id])
+
+    while queue:
+        active_contig = queue.popleft()
+        component.append(active_contig)
+
+        for neighbour in assembly_graph.neighbors(active_contig, mode="ALL"):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                queue.append(neighbour)
+
+    if not any(contig in binned_contigs for contig in component):
+        return []
+
+    return component
+
+
+# Backward-compatible alias for older imports.
+get_connected_components = get_connected_component_contigs
