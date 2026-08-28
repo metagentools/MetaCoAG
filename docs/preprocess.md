@@ -24,12 +24,11 @@ Now run the following command to get the graph file. Make sure to adjust the `k`
 megahit_core contig2fastg 141 final.contig.fa > final.fastg
 ```
 
-**Note:** Currently, MetaCoAG supports GFA file format for the assembly graph file. The MEGAHIT toolkit will produce a FASTG file which you can convert to GFA format using [fastg2gfa](https://github.com/lh3/gfa1/blob/master/misc/fastg2gfa.c).
+**Note:** Currently, MetaCoAG supports only the GFA file format for the assembly graph file. The MEGAHIT toolkit will produce a FASTG file which you can convert to GFA format using [agtools](https://agtools.readthedocs.io/en/latest/) [`fastg2gfa` subcommand](https://agtools.readthedocs.io/en/latest/cli/#fastg2gfa).
 
 ```
-fastg2gfa final.fastg > final.gfa
+agtools fastg2gfa -g final.fastg -k 141 -o final.gfa
 ```
-Support for FASTG files will be added in the near future.
 
 ### Flye
 [**Flye**](https://github.com/fenderglass/Flye) is a long-read assembler based on the de Bruijn graph approach. **metaFlye** is the metagenomic version of Flye. Use metaFlye to assemble reads into contigs. A sample command is given below.
