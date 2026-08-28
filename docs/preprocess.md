@@ -18,7 +18,7 @@ spades --meta -1 Reads_1.fastq -2 Reads_2.fastq -o /path/output_folder -t 8
 megahit -1 Reads_1.fastq -2 Reads_2.fastq --k-min 21 --k-max 77 -o /path/output_folder -t 8
 ```
 
-Now run the following command to get the graph file.
+Now run the following command to get the graph file. Make sure to adjust the `k` value in the final assembly.
 
 ```
 megahit_core contig2fastg 141 final.contig.fa > final.fastg
