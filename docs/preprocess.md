@@ -48,6 +48,8 @@ sed -i '1d' abundance.tsv	# remove the header of the file
 
 You can use the -c (or --coupled) option of CoverM if you have multiple samples. Please refer the [CoverM contig documentation](https://wwood.github.io/CoverM/coverm-contig.html) for further details.
 
+**Note:** Make sure `abundance.tsv` file has no header.
+
 The resulting `abundance.tsv` file can be directly used in MetaCoAG.
 
 Once you have obtained the assembly output and the `abundance.tsv` file, you can run MetaCoAG.
