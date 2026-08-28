@@ -31,7 +31,7 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip
-          pip install --upgrade pip wheel setuptools "flit>=3.8,<4"
+          pip install --upgrade pip wheel setuptools "flit>=3.8,<4" "flit_core>=3.2,<4"
           flit install
       
       - name: "Generate coverage report on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
