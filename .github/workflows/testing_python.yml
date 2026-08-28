@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       # Setup env
-      - uses: "actions/setup-python@v5"
+      - uses: "actions/setup-python@v6"
         with:
           python-version: "${{ matrix.python-version }}"
 
@@ -31,7 +31,7 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip
-          pip install --upgrade pip wheel setuptools flit
+          pip install --upgrade pip wheel setuptools "flit>=3.8,<4"
           flit install
       
       - name: "Generate coverage report on ${{ matrix.os }} for Python ${{ matrix.python-version }}"
